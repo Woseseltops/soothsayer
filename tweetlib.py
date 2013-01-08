@@ -8,7 +8,7 @@ def get_all_tweets(user,api=None):
 
     no_tweets = False;
     tweets_total = [];
-    c = 0;
+    c = 1;
 
     while not no_tweets:
         try:
@@ -21,34 +21,59 @@ def get_all_tweets(user,api=None):
             no_tweets = True;
         else:
             for tweet in tweets:
-                tweets_total.append((str(tweet['id']),tweet['text'].encode('utf8')));
+                tweets_total.append((str(tweet['id']),str(tweet['created_at']),clean_tweet(tweet['text'].encode('utf8'))));
 
         c+= 1;
 
     return tweets_total;
 
-def clean_tweet(tweet):
+def get_recent_tweets(user,number,api=None):
+    """Returns number recent tweets for this twitter user""";
+
+    if api==None:
+        api = t.Twython();
+
+    tweets_total = [];
+
+    try:
+        tweets = api.getUserTimeline(screen_name=user,count=number);
+    except t.TwythonError:
+        tweets = [];
+        print('Twython is sad :(');
+
+    for tweet in tweets:
+        tweets_total.append((str(tweet['id']),str(tweet['created_at']),
+                             clean_tweet(tweet['text'].encode('utf8'),2)));
+
+    return tweets_total;
+
+def clean_tweet(tweet,severity=2):
     """Removes links, hastags, smilies, addressees""";
 
-    triggers = ['@','#','http',':',';'];
+    result = tweet.replace('\n','').replace();
 
-    words = tweet.split();
-    clean_words = [];
+    if severity > 1:
+        triggers = ['@','#','http',':',';'];
 
-    for i in words:
-        found_trigger = False;
-        
-        for j in triggers:
-            if j in i:
-                found_trigger = True;
-                break;
+        words = result.split();
+        clean_words = [];
 
-        if found_trigger:
-            continue;
+        for i in words:
+            found_trigger = False;
+            
+            for j in triggers:
+                if j in i:
+                    found_trigger = True;
+                    break;
 
-        clean_words.append(i);
+            if found_trigger:
+                continue;
 
-    return ' '.join(clean_words);
+            clean_words.append(i);
+
+            result = ' '.join(clean_words)
+
+    return result;
 
 def get_addressees(tweet):
     """Returns all people this tweet was addressed to""";
@@ -57,7 +82,7 @@ def get_addressees(tweet):
     addressees = [];
     for i in words:
         if len(i) > 0 and i[0] == '@':
-            addressees.append(i.replace('@','').replace(':','').replace(',','').replace('.','');
+            addressees.append(i.replace('@','').replace(':','').replace(',','').replace('.',''));
 
     return addressees;
 
@@ -100,3 +125,19 @@ def get_dutch_wordlist():
             words.append(word);
     
     return(words);
+
+def get_most_mentioned_addressees():
+    """WIP""";
+
+    #If this tweet contains addressees we don't know yet, and the tweet is Dutch,
+    #add them to the people we follow
+    addressees = tweetlib.get_addressees(tweet[1]);            
+
+    if len(addressees) > 0 and tweetlib.is_dutch(tweet[1]):
+        tweeterfile = open(tweeterfile_loc,'a');
+        
+        for addressee in addressees:                    
+            if addressee not in tweeters:                    
+                tweeterfile.write(addressee+'\n');
+                tweeters.append(addressee);
+

@@ -2,6 +2,7 @@ import tweetlib
 import sys
 import os
 import twython
+import random
 
 api = twython.Twython();
 
@@ -12,48 +13,79 @@ except:
     tweeterfile_loc = 'C:\\Users\\Stoop\\Desktop\\Scriptie\\tweetdata\\twitteraars.txt';
     feedslib = 'C:\\Users\\Stoop\\Desktop\\Scriptie\\tweetdata\\feeds\\';
 
-#Get all twitter users
+#Get all tweeters, and shuffle them (so we don't always start with the same)
 tweeterfile = open(tweeterfile_loc,'r');
 tweeters = [];
 
 for tweeter in tweeterfile:
     tweeters.append(tweeter[:-1]);
 
+random.shuffle(tweeters);
+
 #See if they have tweets we don't have (yet)
 for tweeter in tweeters:
+
+    if tweeter == '':
+        continue;
 
     #If we got no data for this user yet, get as much as you can
     if not os.path.isfile(feedslib+tweeter):
 
-        open(feedslib+tweeter,'w');
-        feedfile = open(feedslib+tweeter,'a');
-
         tweets = tweetlib.get_all_tweets(tweeter,api);
-        print(len(tweets),tweeter);
+        tweets.reverse();
+        print('Added',len(tweets),'tweets for',tweeter);
 
-        #Process all new tweets
-        for tweet in tweets:
-            feedfile.write(tweet[0] + '||' + tweet[1]+'\n');
+        if len(tweets) > 0:
+            open(feedslib+tweeter,'w');
+            feedfile = open(feedslib+tweeter,'a');
 
-            #If this tweet contains addressees we don't know yet, and the tweet is Dutch,
-            #add them to the people we follow
-            addressees = tweetlib.get_addressees(tweet[1]);            
-
-            if len(addressees) > 0 and tweetlib.is_dutch(tweet[1]):
-                tweeterfile = open(tweeterfile_loc,'a');
-                
-                for addressee in addressees:                    
-                    if addressee not in tweeters:                    
-                        tweeterfile.write(addressee+'\n');
-                        tweeters.append(addressee);
+            for tweet in tweets:
+                feedfile.write(tweet[0] + '||' + tweet[1] + '||' + tweet[2]+'\n');
 
     #If we do have data, only update        
     else:
-        pass;
+        
+        #Get all id you already know
+        feedfile = open(feedslib+tweeter,'r').readlines();        
+        ids_collected = [];
 
-#TODO
-# De twee nieuwe mensen die we volgen zijn de mensen die het meeste worden aangesproken
-# door de mensen die we wel volgen
-# Update feeds
-# Ook tijden opslaan voor tweets
+        for line in feedfile:
+            ids_collected.append(line.split('||')[0]);
+
+        #Reverse the list, so the new ones are the ones seen first
+        ids_collected.reverse();
+
+        #Get new tweets, and compare their ids to the ones you already have
+        found_match = False;
+        number = 20;
+        tries = 0;
+
+        while not found_match and tries < 4:
+            tweets = tweetlib.get_recent_tweets(tweeter,number,api);    
+            tweets.reverse();
+
+            for tweet in tweets:
+                if tweet[0] in ids_collected:
+                    found_match = True;
+                    break;
+
+            if found_match:
+                print('Found match!');
+                feedfile = open(feedslib+tweeter,'a');
+
+                for tweet in tweets:
+                    if tweet[0] not in ids_collected:
+                        print('New tweet found:',tweet[2]);
+                        feedfile.write(tweet[0] + '||' + tweet[1] + '||' + tweet[2]+'\n');
+                    else:
+                        print('I already have this tweet:',tweet[2]);
+            else:
+                print('No match found, asking for more data!');
+                number *= 4;
+
+            tries += 1;
+
+#TODO           
+# Telkens drie nieuwe mensen
 # Is dutch optimizen
+# \n uit tweets verwijderen
