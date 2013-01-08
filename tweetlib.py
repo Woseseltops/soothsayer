@@ -21,7 +21,7 @@ def get_all_tweets(user,api=None):
             no_tweets = True;
         else:
             for tweet in tweets:
-                tweets_total.append((str(tweet['id']),str(tweet['created_at']),clean_tweet(tweet['text'].encode('utf8'))));
+                tweets_total.append((str(tweet['id']),str(tweet['created_at']),clean_tweet(tweet['text'].encode('utf8'),0)));
 
         c+= 1;
 
@@ -50,7 +50,7 @@ def get_recent_tweets(user,number,api=None):
 def clean_tweet(tweet,severity=2):
     """Removes links, hastags, smilies, addressees""";
 
-    result = tweet.replace('\n','').replace();
+    result = tweet.replace('\n','');
 
     if severity > 1:
         triggers = ['@','#','http',':',';'];

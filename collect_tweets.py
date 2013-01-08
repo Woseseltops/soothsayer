@@ -7,7 +7,7 @@ import random
 api = twython.Twython();
 
 try:
-    tweeters = sys.argv[1];
+    tweeterfile_loc = sys.argv[1];
     feedslib = sys.argv[2];
 except:
     tweeterfile_loc = 'C:\\Users\\Stoop\\Desktop\\Scriptie\\tweetdata\\twitteraars.txt';
