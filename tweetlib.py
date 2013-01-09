@@ -43,7 +43,7 @@ def get_recent_tweets(user,number,api=None):
 
     for tweet in tweets:
         tweets_total.append((str(tweet['id']),str(tweet['created_at']),
-                             clean_tweet(tweet['text'].encode('utf8'),2)));
+                             clean_tweet(tweet['text'].encode('utf8'),0)));
 
     return tweets_total;
 
