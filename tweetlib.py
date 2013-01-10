@@ -149,14 +149,18 @@ def get_new_tweeters(feeddir,tweeters):
     most_mentioned_addressee = '';
     addressee_most_people_refer_to = '';
 
+    print(most_mentioned_addressses[:20]);
+
     for i in most_mentioned_addressees:
-        if i[0] not in tweeters:
-            most_mentioned_addressee = i[0];
+        if i[0].lowercase() not in tweeters:
+            most_mentioned_addressee = i[0].lowercase();
             break;
 
+    print(addressees_most_people_refer_to[:20]);
+
     for i in addressees_most_people_refer_to:
-        if i[0] not in tweeters and i[0] != most_mentioned_addressee:
-            addressee_most_people_refer_to = i[0];
+        if i[0].lowercase() not in tweeters and i[0] != most_mentioned_addressee:
+            addressee_most_people_refer_to = i[0].lowercase();
             break;
 
     return most_mentioned_addressee,addressee_most_people_refer_to;
