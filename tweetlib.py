@@ -149,7 +149,7 @@ def get_new_tweeters(feeddir,tweeters):
     most_mentioned_addressee = '';
     addressee_most_people_refer_to = '';
 
-    print(most_mentioned_addressses[:20]);
+    print(most_mentioned_addressees[:20]);
 
     for i in most_mentioned_addressees:
         if i[0].lowercase() not in tweeters:
