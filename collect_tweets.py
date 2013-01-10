@@ -3,6 +3,7 @@ import sys
 import os
 import twython
 import random
+import sys
 
 api = twython.Twython();
 
@@ -70,22 +71,19 @@ for tweeter in tweeters:
                     break;
 
             if found_match:
-                print('Found match!');
                 feedfile = open(feedslib+tweeter,'a');
 
                 for tweet in tweets:
                     if tweet[0] not in ids_collected:
                         print('New tweet found:',tweet[2]);
                         feedfile.write(tweet[0] + '||' + tweet[1] + '||' + tweet[2]+'\n');
-                    else:
-                        print('I already have this tweet:',tweet[2]);
             else:
                 print('No match found, asking for more data!');
                 number *= 4;
 
             tries += 1;
 
-#TODO           
-# Telkens drie nieuwe mensen
-# Is dutch optimizen
-# \n uit tweets verwijderen
+#Add new tweeters to the list
+tweeter1, tweeter2 = tweetlib.get_new_tweeters(feedslib,tweeters);
+open(tweeterfile_loc,'a').write(tweeter1+'\n'+tweeter2+'\n');
+print('Added',tweeter1,tweeter2);

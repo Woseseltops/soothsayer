@@ -1,4 +1,6 @@
 import twython as t
+import operator
+import os
 
 def get_all_tweets(user,api=None):
     """Returns as much tweets as possible for this twitter user""";
@@ -86,7 +88,7 @@ def get_addressees(tweet):
 
     return addressees;
 
-def is_dutch(tweet):
+def is_dutch(tweet,word_list = None):
     """Returns whether a tweet is Dutch or not""";
 
     words = clean_tweet(tweet).split();
@@ -95,20 +97,22 @@ def is_dutch(tweet):
     amount_dutch_threshold = round(len(words) / 2);
 
     #Import the list
-    word_list = get_dutch_wordlist();
+    if word_list == None:
+        word_list = get_dutch_wordlist();
 
     #See how much words are in the list
     found_in_list = 0;
 
-    for i in words:
-        if i in word_list:
+    for i in word_list:
+        if i in words:
             found_in_list += 1;
 
-    #Enough words Dutch? Return true
-    if found_in_list >= amount_dutch_threshold:
-        return True;
-    else:
-        return False;
+            #Enough words Dutch? Return true
+            if found_in_list >= amount_dutch_threshold:
+                return True;
+                break;
+
+    return False;
 
 def get_dutch_wordlist():
     """Returns a list of the most frequent Dutch words""";
@@ -126,18 +130,88 @@ def get_dutch_wordlist():
     
     return(words);
 
-def get_most_mentioned_addressees():
-    """WIP""";
+def get_new_tweeters(feeddir,tweeters):
+    """Returns the addressee most mentioned and the addressee most people tweet to""";
 
-    #If this tweet contains addressees we don't know yet, and the tweet is Dutch,
-    #add them to the people we follow
-    addressees = tweetlib.get_addressees(tweet[1]);            
+    #Get all addressees
+    total_addressees = [];
+    files = os.listdir(feeddir);
 
-    if len(addressees) > 0 and tweetlib.is_dutch(tweet[1]):
-        tweeterfile = open(tweeterfile_loc,'a');
-        
-        for addressee in addressees:                    
-            if addressee not in tweeters:                    
-                tweeterfile.write(addressee+'\n');
-                tweeters.append(addressee);
+    for f in files:
+        print('Getting addressees from',f);
+        total_addressees.append(get_all_addressees_from(feeddir+f));
 
+    #Figure out which are most mentioned
+    most_mentioned_addressees = most_frequent_first(sum_dicts(total_addressees));
+    addressees_most_people_refer_to = most_frequent_first(most_used_keys(total_addressees));
+
+    #Get the two most frequent
+    most_mentioned_addressee = '';
+    addressee_most_people_refer_to = '';
+
+    for i in most_mentioned_addressees:
+        if i[0] not in tweeters:
+            most_mentioned_addressee = i[0];
+            break;
+
+    for i in addressees_most_people_refer_to:
+        if i[0] not in tweeters and i[0] != most_mentioned_addressee:
+            addressee_most_people_refer_to = i[0];
+            break;
+
+    return most_mentioned_addressee,addressee_most_people_refer_to;
+
+def get_all_addressees_from(fileloc):
+    """Return all addressees mentioned in this file as a dictionary with frequencies""";
+
+    wordlist = get_dutch_wordlist();
+    addressees_total = {};
+    f = open(fileloc,'r');
+    for line in f:
+        tweet = line.split('||')[2];
+        addressees = get_addressees(tweet);
+        if len(addressees) > 0 and is_dutch(tweet,wordlist):
+            for addressee in addressees:
+                try:
+                    addressees_total[addressee] += 1;
+                except KeyError:
+                    addressees_total[addressee] = 1;
+
+    return addressees_total;
+
+def sum_dicts(dicts):
+    """Ads up similar elements in multiple dicts""";
+
+    dict1 = {};
+
+    for d in dicts:
+        dict2 = d;
+        for k,v in dict2.items():
+            try:
+                dict1[k] += v;
+            except KeyError:
+                dict1[k] = v;
+
+    return dict1;
+
+def most_used_keys(dicts):
+    """Returns the keys most used in a series of keys""";
+
+    score = {};
+
+    for d in dicts:
+        for k in d.keys():
+            try:
+                score[k] += 1;
+            except KeyError:
+                score[k] = 1;
+
+    return score;    
+
+def most_frequent_first(d):
+    """Changes a dict into a sorted list of key-value tuples, highest value first""";
+
+    d = sorted(d.iteritems(), key=operator.itemgetter(1));
+    d.reverse();
+
+    return d;
