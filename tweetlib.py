@@ -117,7 +117,12 @@ def is_dutch(tweet,word_list = None):
 def get_dutch_wordlist():
     """Returns a list of the most frequent Dutch words""";
 
-    lines = open(os.getcwd()+'nl.txt','r').readlines();
+    #TEMP solution
+    try:
+        lines = open('/scratch/wstoop/soothsayer/nl.txt','r').readlines();
+    except:
+        lines = open('C:\\Users\\Stoop\\Desktop\\Scriptie\\nl.txt','r').readlines();        
+
     words = [];
 
     for i in lines:
