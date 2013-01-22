@@ -18,6 +18,7 @@ def get_all_tweets(user,api=None):
         except t.TwythonError:
             tweets = [];
             print('Twython is sad :(');
+            break;
 
         if len(tweets) < 1:
             no_tweets = True;
@@ -42,6 +43,7 @@ def get_recent_tweets(user,number,api=None):
     except t.TwythonError:
         tweets = [];
         print('Twython is sad :(');
+        break;
 
     for tweet in tweets:
         tweets_total.append((str(tweet['id']),str(tweet['created_at']),

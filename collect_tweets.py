@@ -24,7 +24,7 @@ for tweeter in tweeterfile:
 random.shuffle(tweeters);
 
 #See if they have tweets we don't have (yet)
-for tweeter in tweeters:
+for tweeter in tweeters[:25]:
 
     if tweeter == '':
         continue;
@@ -70,20 +70,23 @@ for tweeter in tweeters:
                     found_match = True;
                     break;
 
-            if found_match:
-                feedfile = open(feedslib+tweeter,'a');
-
-                for tweet in tweets:
-                    if tweet[0] not in ids_collected:
-                        print('New tweet found:',tweet[2]);
-                        feedfile.write(tweet[0] + '||' + tweet[1] + '||' + tweet[2]+'\n');
-            else:
+            if not found_match:
                 print('No match found, asking for more data!');
                 number *= 4;
 
             tries += 1;
 
+        feedfile = open(feedslib+tweeter,'a');
+
+        for tweet in tweets:
+            if tweet[0] not in ids_collected:
+                print('New tweet found:',tweet[2]);
+                feedfile.write(tweet[0] + '||' + tweet[1] + '||' + tweet[2]+'\n');
+
 #Add new tweeters to the list
-tweeter1, tweeter2 = tweetlib.get_new_tweeters(feedslib,tweeters);
+tweeter1, tweeter2 = tweetlib.get_new_tweeters(feedslib,tweeters[:35]);
 open(tweeterfile_loc,'a').write(tweeter1+'\n'+tweeter2+'\n');
 print('Added',tweeter1,tweeter2);
+
+#TODO
+# Remove tweeters with closed profiles
