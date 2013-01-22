@@ -43,7 +43,6 @@ def get_recent_tweets(user,number,api=None):
     except t.TwythonError:
         tweets = [];
         print('Twython is sad :(');
-        break;
 
     for tweet in tweets:
         tweets_total.append((str(tweet['id']),str(tweet['created_at']),
@@ -89,6 +88,14 @@ def get_addressees(tweet):
             addressees.append(i.replace('@','').replace(':','').replace(',','').replace('.',''));
 
     return addressees;
+
+def is_private(tweeter,api=None):
+    """Returns whether this user's profile is private""";
+
+    if api==None:
+        api = t.Twython();
+
+    return api.lookupUser(screen_name = tweeter)[0][u'protected'];
 
 def is_dutch(tweet,word_list = None):
     """Returns whether a tweet is Dutch or not""";

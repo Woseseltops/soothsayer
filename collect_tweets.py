@@ -65,6 +65,9 @@ for tweeter in tweeters[:25]:
             tweets = tweetlib.get_recent_tweets(tweeter,number,api);    
             tweets.reverse();
 
+            if len(tweets) == 0:
+                break;
+
             for tweet in tweets:
                 if tweet[0] in ids_collected:
                     found_match = True;
