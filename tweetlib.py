@@ -147,11 +147,13 @@ def get_dutch_wordlist():
 def get_new_tweeters(feeddir,tweeters):
     """Returns the addressee most mentioned and the addressee most people tweet to""";
 
-    #Get all addressees
+    #Get addressees from 35 random tweeters
     total_addressees = [];
     files = os.listdir(feeddir);
 
-    for f in files:
+    random.shuffle(files);
+
+    for f in files[:35]:
         print('Getting addressees from',f);
         total_addressees.append(get_all_addressees_from(feeddir+f));
 

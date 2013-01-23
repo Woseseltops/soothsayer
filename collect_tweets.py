@@ -87,7 +87,7 @@ for tweeter in tweeters[:25]:
                 feedfile.write(tweet[0] + '||' + tweet[1] + '||' + tweet[2]+'\n');
 
 #Add new tweeters to the list
-tweeter1, tweeter2 = tweetlib.get_new_tweeters(feedslib,tweeters[:35]);
+tweeter1, tweeter2 = tweetlib.get_new_tweeters(feedslib,tweeters);
 open(tweeterfile_loc,'a').write(tweeter1+'\n'+tweeter2+'\n');
 print('Added',tweeter1,tweeter2);
 
