@@ -1,6 +1,7 @@
 import twython as t
 import operator
 import os
+import random
 
 def get_all_tweets(user,api=None):
     """Returns as much tweets as possible for this twitter user""";
