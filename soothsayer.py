@@ -35,7 +35,7 @@ def clear():
 
 def do_prediction(text):
 
-    words = text.split();
+    words = text.split()[-4:-1];
 
     if 'heet' in words:
         return 'wessel';
@@ -44,12 +44,16 @@ def do_prediction(text):
 
 def add_prediction(text,prediction):
 
-    words = text.split();
-    last_input = words[-1];
-    words = words[:-1];
-    words.append(prediction);
-    return ' '.join(words) + ' ', last_input;
+    if text[-1] == ' ':
+        return text + prediction, ''; #Last input not correct
 
+    else:
+        words = text.split();
+        last_input = words[-1];
+        words = words[:-1];
+        words.append(prediction);
+        return ' '.join(words) + ' ', last_input;
+    
 def demo_mode():
     print('Start typing whenever you want');
     
@@ -66,10 +70,15 @@ def demo_mode():
         if char == ' ':
             text_so_far, last_input = add_prediction(text_so_far,prediction);
 
+        #Reject prediction
+        elif char == '\t':
+            text_so_far+= ' ';
+
         #Don't accept prediction
         else:
             text_so_far += char;
-            prediction = do_prediction(text_so_far);
+
+        prediction = do_prediction(text_so_far);
 
         clear();
         print(text_so_far);
