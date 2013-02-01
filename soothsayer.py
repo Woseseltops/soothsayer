@@ -42,6 +42,14 @@ def do_prediction(text):
     else:
         return('koekjes');
 
+def add_prediction(text,prediction):
+
+    words = text.split();
+    last_input = words[-1];
+    words = words[:-1];
+    words.append(prediction);
+    return ' '.join(words) + ' ', last_input;
+
 def demo_mode():
     print('Start typing whenever you want');
     
@@ -49,16 +57,26 @@ def demo_mode():
 
     busy = True;
     text_so_far = '';
+    prediction = '';
 
     while busy:
         char = str(get_character());
-        text_so_far += char;
+
+        #Accept prediction
+        if char == ' ':
+            text_so_far, last_input = add_prediction(text_so_far,prediction);
+
+        #Don't accept prediction
+        else:
+            text_so_far += char;
+            prediction = do_prediction(text_so_far);
 
         clear();
         print(text_so_far);
         print();
-        print(do_prediction(text_so_far));
+        print(prediction);
 
+        #Check for quit
         if 'quit' in text_so_far.split():
             busy = False;
 
