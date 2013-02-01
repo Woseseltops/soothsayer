@@ -99,7 +99,7 @@ def prepare_training_data(directory):
 
     ngrams = window_string(total_text.strip())
     training_file_content = '\n'.join(ngrams);
-    training_file = open('training.txt','w');
+    training_file = open('models\\'+directory[:-1]+'.training.txt','w');
     training_file.write(training_file_content);
     
     return training_file;
