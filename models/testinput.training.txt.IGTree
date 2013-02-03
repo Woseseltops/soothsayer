@@ -1,0 +1,66 @@
+# Status: pruned
+# Permutation: < 3, 2, 1 >
+# Numeric: .
+# Bin_Size: 20
+# Version 4 (Hashed)
+#
+Classes
+1	ik
+2	hou
+3	van
+4	koekjes.
+5	ijsjes.
+6	pizza.
+7	pannekoeken.
+8	broodjes.
+9	een
+10	twee
+11	drie
+12	vier
+13	vijf
+14	zes.
+15	vier.
+16	zes
+17	zeven
+18	acht.
+Features
+1	_
+2	ik
+3	hou
+4	van
+5	koekjes.
+6	ijsjes.
+7	pizza.
+8	pannekoeken.
+9	broodjes.
+10	een
+11	twee
+12	drie
+13	vier
+14	vijf
+15	zes.
+16	vier.
+17	zes
+18	zeven
+19	acht.
+
+(9{ 1 8, 2 8, 3 8, 4 3, 5 2, 6 1, 7 1, 8 1, 9 78, 10 78, 11 78, 12 63, 13 78, 14 63, 15 15, 16 15, 17 15, 18 15 }[2(2{ 2 8 })
+,3(3{ 3 8 })
+,4(4{ 4 3, 5 2, 6 1, 7 1, 8 1 })
+,5(1{ 1 3 })
+,6(1{ 1 1 })
+,7(1{ 1 1 })
+,8(1{ 1 1 })
+,9(1{ 1 1 })
+,10(10{ 10 78 })
+,11(11{ 11 78 })
+,12(12{ 12 63, 15 15 })
+,13(13{ 13 63 })
+,14(14{ 14 63, 16 15 }[16(16{ 16 15 })
+]
+)
+,16(13{ 13 15 })
+,17(17{ 17 15 })
+,18(18{ 18 15 })
+]
+)

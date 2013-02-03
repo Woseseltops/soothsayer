@@ -44,27 +44,57 @@ def clear():
     os.system(['clear','cls'][os.name == 'nt']);
 
 def do_prediction(text,model):
+    """Returns a prediction by TiMBL and the word the user is currently typing""";
 
-    words = text.split()[-4:-1];
+    #Figure out the left context and the word being worked on
+    words = text.split();
 
+    if text == '' or text[-1] == ' ':
+        current_word = '';
+        words = words[-3:]
+    else:
+        current_word = words[-1];
+        words = words[-4:-1];
+
+    #Make ready for Timbl
     while len(words) < 3:
         words = ['_'] + words;
 
-    #Transform into string and add empty space for TiMBL's prediction
     lcontext = ' '.join(words) + ' _';
-
     open('predictions/lcontext','w').write(lcontext);
-    command('timbl -t predictions/lcontext -i '+model+' +vdb +D -a1',True);
 
-    prediction = open('predictions/lcontext.IGTree.gr.out','r').read().split('{')[1];
+    #Ask TiMBL for prediction
+    command('timbl -t predictions/lcontext -i '+model+' +vdb +D -a1 -G +vcf',True);
 
-    return prediction;
+    #Turn prediction into list of tuples
+    raw_distr = open('predictions/lcontext.IGTree.gr.out','r').read().split('{')[1];
+    distr = raw_distr.strip()[:-2].split();
+
+    last_word = None;
+    predictions = [];
+    for i in distr:
+
+        if last_word == None:
+            last_word = i;
+        else:
+            predictions.append((last_word,float(i[:-1])));
+            last_word = None;
+
+    #Pick the best prediction, based on what has been typed so far
+    pick = '';
+    boundary = len(current_word);
+
+    for i in predictions:
+        if i[0][:boundary] == current_word:
+            pick = i[0];
+            break;
+    
+    return pick,current_word; 
 
 def add_prediction(text,prediction):
 
     if text[-1] == ' ':
-        return text + prediction, ''; #Last input not correct
-
+        return text + prediction + ' ', '';
     else:
         words = text.split();
         last_input = words[-1];
@@ -86,7 +116,10 @@ def demo_mode(model):
 
         #Accept prediction
         if char == ' ':
-            text_so_far, last_input = add_prediction(text_so_far,prediction);
+            if prediction != '':
+                text_so_far, last_input = add_prediction(text_so_far,prediction);
+            else:
+                text_so_far += ' ';
 
         #Reject prediction
         elif char == '\t':
@@ -96,12 +129,12 @@ def demo_mode(model):
         else:
             text_so_far += char;
 
-        prediction = do_prediction(text_so_far,model);
+        #Predict new word
+        prediction,current_word = do_prediction(text_so_far,model);
 
+        #Show the prediction
         clear();
-        print(text_so_far);
-        print();
-        print(prediction);
+        print(text_so_far+'|'+prediction[len(current_word):]);
 
         #Check for quit
         if 'quit' in text_so_far.split():
