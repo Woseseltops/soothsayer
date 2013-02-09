@@ -95,9 +95,14 @@ def do_prediction(text,model):
     second_pick = '';
     second_highest_confidence = 0;
 
+    third_pick = '';
+    third_highest_confidence = 0;
+
     for i in predictions:
         if i[0][:boundary] == current_word:
             if i[1] > highest_confidence:
+                third_pick = second_pick;
+                third_highest_confidence = second_highest_confidence;
 
                 second_pick = pick;
                 second_highest_confidence = highest_confidence;
@@ -105,10 +110,17 @@ def do_prediction(text,model):
                 pick = i[0];
                 highest_confidence = i[1];
             elif i[1] > second_highest_confidence:
+                third_pick = second_pick;
+                third_highest_confidence = second_highest_confidence;
+
                 second_pick = i[0];
                 second_highest_confidence = i[1];                
+            elif i[1] > third_highest_confidence:
+                third_pick = i[0];
+                third_highest_confidence = i[1];
     
-    return {'full_word':pick,'word_so_far':current_word,'nr_options':len(predictions),'second_guess':second_pick}; 
+    return {'full_word':pick,'word_so_far':current_word,'nr_options':len(predictions),
+            'second_guess':second_pick,'third_guess':third_pick}; 
 
 def add_prediction(text,prediction):
 
@@ -156,7 +168,7 @@ def demo_mode(model):
         clear();
         print(text_so_far+'|'+prediction['full_word'][chars_typed:]);
         print();
-        print('Or '+prediction['second_guess']+', '+str(prediction['nr_options'])+' options.');
+        print(prediction['second_guess']+', '+prediction['third_guess']+', '+str(prediction['nr_options'])+' options.');
 
         #Check for quit
         if 'quit' in text_so_far.split():
@@ -176,7 +188,7 @@ def simulation_mode(model,testfile):
     for i in range(len(teststring)):
 
         if teststring[i] == ' ':
-            second_guess_got_it_already = False;
+            skks_got_it_already = False;
 
         #If the word was not already predicted, guess (again)
         if not already_predicted:
@@ -200,7 +212,7 @@ def simulation_mode(model,testfile):
                 perc = str(total_keystrokes_saved / len(text_so_far));
                 outputfile.write(str(total_keystrokes_saved) + ' of ' + str(len(text_so_far)) + ' keystrokes saved so far, (' +perc+'%) - CKS\n');
 
-                if not second_guess_got_it_already:
+                if not skks_got_it_already:
                     total_keystrokes_saved_sk += keystrokes_saved;            
                     perc = str(total_keystrokes_saved_sk / len(text_so_far));
                     outputfile.write(str(total_keystrokes_saved_sk) + ' of ' + str(len(text_so_far)) + ' keystrokes saved so far, (' +perc+'%) - SKKS\n');
@@ -215,7 +227,19 @@ def simulation_mode(model,testfile):
                 perc = str(total_keystrokes_saved_sk / len(text_so_far));
                 outputfile.write(str(total_keystrokes_saved_sk) + ' of ' + str(len(text_so_far)) + ' keystrokes saved so far, (' +perc+'%) - SKKS\n');
 
-                second_guess_got_it_already = True;
+                skks_got_it_already = True;
+
+            elif teststring[i-1] == ' ' and current_word == prediction['third_guess']:
+                outputfile.write('Third guess was correct here. \n');
+
+                keystrokes_saved = calculate_keystrokes_saved(prediction['word_so_far'],prediction['third_guess']);
+
+                total_keystrokes_saved_sk += keystrokes_saved;            
+
+                perc = str(total_keystrokes_saved_sk / len(text_so_far));
+                outputfile.write(str(total_keystrokes_saved_sk) + ' of ' + str(len(text_so_far)) + ' keystrokes saved so far, (' +perc+'%) - SKKS\n');
+
+                skks_got_it_already = True;
                 
         #Skip if the word was already predicted
         else:
