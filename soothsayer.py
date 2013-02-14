@@ -1,5 +1,6 @@
 import os;
 import subprocess;
+import sys;
 
 ############### Functions ###################################
 
@@ -47,29 +48,50 @@ def clear():
 
     os.system(['clear','cls'][os.name == 'nt']);
 
-def do_prediction(text,model):
-    """Returns a prediction by TiMBL and the word the user is currently typing""";
+def do_prediction(text,model,approach):
+    """Returns a prediction by TiMBL and related info""";
 
-    #Figure out the left context and the word being worked on
+
     words = text.split();
 
-    if text == '' or text[-1] == ' ':
-        current_word = '';
-        words = words[-3:]
+    if approach == 'w':
 
-        #Make ready for Timbl
-        while len(words) < 3:
-            words = ['_'] + words;
+        if text == '' or text[-1] == ' ':
 
-        lcontext = ' '.join(words) + ' _';
+            #Figure out the left context and the word being worked on
+            current_word = '';
+            words = words[-3:]
+
+            #Make ready for Timbl
+            while len(words) < 3:
+                words = ['_'] + words;
+
+            lcontext = ' '.join(words) + ' _';
+            open('predictions/lcontext','w').write(lcontext);
+
+            #Ask TiMBL for new prediction
+            command('timbl -t predictions/lcontext -i '+model+' +vdb +D -a1 -G +vcf');
+
+        else:
+            current_word = words[-1];
+            words = words[-4:-1];
+    elif approach == 'l':
+
+        #Figure out the left context and the word being worked on
+        lcontext = ' '.join(text[-15:].replace(' ','_')) + ' ?';
+
+        #Make ready for TiMBL
+        while len(lcontext) < 30:
+            lcontext = '_ ' + lcontext;
+
         open('predictions/lcontext','w').write(lcontext);
+        if text == '' or text[-1] == ' ':
+            current_word = '';
+        else:
+            current_word = words[-1];
 
         #Ask TiMBL for new prediction
         command('timbl -t predictions/lcontext -i '+model+' +vdb +D -a1 -G +vcf');
-
-    else:
-        current_word = words[-1];
-        words = words[-4:-1];
 
     #Turn prediction into list of tuples
     raw_distr = open('predictions/lcontext.IGTree.gr.out','r').read().split('{');
@@ -99,7 +121,7 @@ def do_prediction(text,model):
     third_highest_confidence = 0;
 
     for i in predictions:
-        if i[0][:boundary] == current_word:
+        if i[0][:boundary] == current_word or approach == 'l':
             if i[1] > highest_confidence:
                 third_pick = second_pick;
                 third_highest_confidence = second_highest_confidence;
@@ -133,7 +155,7 @@ def add_prediction(text,prediction):
         words.append(prediction);
         return ' '.join(words) + ' ', last_input;
     
-def demo_mode(model):
+def demo_mode(model,approach):
     print('Start typing whenever you want');
     
     get_character = get_character_function();
@@ -161,7 +183,7 @@ def demo_mode(model):
             text_so_far += char;
 
         #Predict new word
-        prediction = do_prediction(text_so_far,model);
+        prediction = do_prediction(text_so_far,model,approach);
 
         #Show the prediction
         chars_typed = len(prediction['word_so_far']);
@@ -174,7 +196,7 @@ def demo_mode(model):
         if 'quit' in text_so_far.split():
             busy = False;
 
-def simulation_mode(model,testfile):
+def simulation_mode(model,testfile,approach):
 
     #Prepare vars and output
     teststring = open(testfile,'r').read();
@@ -195,7 +217,7 @@ def simulation_mode(model,testfile):
 
             #Do prediction and compare with what the user was actually writing
             text_so_far = teststring[:i];
-            prediction = do_prediction(text_so_far,model);
+            prediction = do_prediction(text_so_far,model,approach);
             current_word = find_current_word(teststring,i);
             outputfile.write(prediction['word_so_far']+', '+ current_word+', '+prediction['full_word']+'\n');
 
@@ -250,20 +272,25 @@ def simulation_mode(model,testfile):
 def find_current_word(string, position):
     """Returns which word the user was typing at this position""";
 
-    word = string[position-1];
+    try:
+        word = string[position-1];
+    except IndexError:
+        return '';
+
+    separators = [' ','_'];
 
     #If starting with a space, give the next word
-    while word == ' ':
+    while word in separators:
         position += 1;
         word = string[position-1];
 
     c = 2;
-    while word[0] != ' ':
+    while word[0] not in separators:
         word = string[position-c] + word;
         c += 1;
 
     c = 0;
-    while word[-1] != ' ':
+    while word[-1] not in separators:
         try:
             word +=  string[position+c];
         except IndexError:
@@ -272,7 +299,12 @@ def find_current_word(string, position):
 
     return word.strip();
 
-def prepare_training_data(directory,mode):
+def prepare_training_data(directory,mode,approach):
+
+    if approach == 'w':
+        foldername = 'wordmodels';
+    elif approach == 'l':
+        foldername = 'lettermodels';
 
     #Paste all texts in the directory into one string
     files = os.listdir(directory);
@@ -280,12 +312,21 @@ def prepare_training_data(directory,mode):
 
     for i in files:
         print(i);
-        total_text += ' _ _ _ '+open(directory+i,'r').read();
+
+        if approach == 'w':
+            total_text += ' _ _ _ '+open(directory+i,'r').read();
+        elif approach == 'l':
+            total_text += ' ________________ '+open(directory+i,'r').read();
+
+    #Attenuate
+    lexicon_filename = foldername+'/'+directory[:-1]+'.lex.txt'; 
+    string_to_lexicon(total_text,lexicon_filename);
+    total_text = attenuate(total_text,lexicon_filename,40);
 
     #In simulation mode, cut away 10 percent for testing later
     if mode == 's':
-        testfilename = 'models/'+directory[:-1]+'.10.test.txt';
-        training_filename = 'models/'+directory[:-1]+'.90.training.txt';
+        testfilename = foldername+'/'+directory[:-1]+'.10.test.txt';
+        training_filename = foldername+'/'+directory[:-1]+'.90.training.txt';
 
         words = total_text.split();
         boundary = round(len(words)*0.9);
@@ -296,10 +337,14 @@ def prepare_training_data(directory,mode):
     #In demo mode, just take all
     else:
         testfilename = '';
-        training_filename = 'models/'+directory[:-1]+'.training.txt';
+        training_filename = foldername+'/'+directory[:-1]+'.training.txt';
 
     #Make into ngrams, and save the file
-    ngrams = window_string(total_text.strip())
+    if approach == 'w':
+        ngrams = window_string(total_text.strip())
+    elif approach == 'l':
+        ngrams = window_string_letters(total_text.strip());
+
     training_file_content = '\n'.join(ngrams);
     open(training_filename,'w').write(training_file_content);
 
@@ -326,6 +371,32 @@ def window_string(string):
 
     return ngrams;
 
+def window_string_letters(string):
+    """Return the string as a list of letter 15-grams""";
+
+    words = string.split();
+    newstring = string.replace(' ','_').replace('\n','');
+    ngrams = [];
+    
+    for i in range(0,len(string)+1):
+
+        current_word = find_current_word(newstring, i).replace('_','');
+        letters_before = ' '.join(newstring[i-15:i]);
+
+        ngrams.append(letters_before + ' ' +current_word);
+
+    #Remove useless ones
+    ngrams_to_remove = [];
+    for n,i in enumerate(ngrams):
+        words = i.split();
+        if i[-1] == '_' or len(words) != 16 or i == ngrams[-1]:
+            ngrams_to_remove.append(i);
+
+    for i in ngrams_to_remove:
+        ngrams.remove(i);
+
+    return ngrams[1:-1];
+
 def train_model(filename):
     """Train a model on the basis of these ngrams""";
 
@@ -342,7 +413,67 @@ def calculate_keystrokes_saved(word_so_far,prediction):
     
     return keystrokes_saved;
 
+def string_to_lexicon(string,outputfilename):
+    """Creates a lexicon from a string""";
+
+    #Counts words
+    words = string.replace('\n','').split();
+    counts = {};
+
+    for i in words:
+        try:
+            counts[i] += 1;
+        except KeyError:
+            counts[i] = 1;
+
+    #Sort words, most frequent first
+    counts = sorted(list(counts.items()),key=lambda x: x[1],reverse=True);
+
+    #Save results
+    lines = '';
+
+    for i in counts:
+        lines += i[0] + ' ' +str(i[1]) + '\n';
+
+    open(outputfilename,'w').write(lines);
+
+def attenuate(string,lexicon,threshold):
+    """Replaces infrequent words with #DUMMY""";
+
+    #Load in lexicon
+    lexicon = open(lexicon,'r');
+    frequent_words = [];
+
+    for i in lexicon:
+        word,frequency = i.split();
+        frequency = int(frequency);
+
+        if frequency > threshold:
+            frequent_words.append(word);
+
+    #Replace all words below threshold to #DUMMY
+    words = string.split();
+
+    result = '';
+    for i in words:
+        if i not in frequent_words:
+            result += ' #DUMMY';
+        else:
+            result += ' '+i;
+
+    return result.strip();
+
 ######### Script starts here ######################
+
+#Try to find arguments
+try:
+    if sys.argv[1] == '-l':
+        approach = 'l';
+        modelfolder = 'lettermodels';
+        print('Using the letter approach instead of the word approach.');
+except IndexError:
+    approach = 'w';    
+    modelfolder = 'wordmodels';
 
 #Ask for mode and input directory
 mode = input('Mode (d = demo, s = simulation): ');
@@ -356,21 +487,21 @@ elif mode == 's':
 
 #Try opening the language model (and testfile), or create one if it doesn't exist
 try:
-    open('models/'+dir_reference+'.training.txt','r');
+    open(modelfolder+'/'+dir_reference+'.training.txt','r');
     print('Using existing model for '+dir_reference+'.');
 
-    testfile = 'models/'+inp[:-1] + '.10.test.txt';
-    model = 'models/'+dir_reference+'.training.txt.IGTree';
+    testfile = modelfolder+'/'+inp[:-1] + '.10.test.txt';
+    model = modelfolder+'/'+dir_reference+'.training.txt.IGTree';
 except:
-    training_file, testfile = prepare_training_data(inp,mode);
+    training_file, testfile = prepare_training_data(inp,mode,approach);
     model = train_model(training_file);
     print('Model not found. Created a new one.');
 
 #Go do the prediction in one of the modes, with the model
 if mode == 'd':
-    demo_mode(model);
+    demo_mode(model,approach);
 elif mode == 's':
-    simulation_mode(model,testfile);
+    simulation_mode(model,testfile,approach);
 
 #TODO
 # Server modus
