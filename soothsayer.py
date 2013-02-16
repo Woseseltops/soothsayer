@@ -67,6 +67,7 @@ def do_prediction(text,model,lexicon,approach):
             while len(words) < 3:
                 words = ['_'] + words;
 
+
             lcontext = attenuate_string(' '.join(words) + ' _',lexicon);
             open('predictions/lcontext','w').write(lcontext);
 
