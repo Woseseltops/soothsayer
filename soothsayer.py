@@ -325,7 +325,7 @@ def prepare_training_data(directory,mode,approach):
     #Create and load lexicon
     lexicon_filename = foldername+'/'+directory[:-1]+'.lex.txt'; 
     string_to_lexicon(total_text,lexicon_filename);
-    lexicon = load_lexicon(lexicon_filename,20);
+    lexicon = load_lexicon(lexicon_filename,att_threshold);
 
     #In simulation mode, cut away 10 percent for testing later
     if mode == 's':
@@ -500,21 +500,41 @@ def attenuate_training_file(filename,lexicon):
 
     open(filename,'w').write('\n'.join(newlines));
 
-######### Script starts here ######################
+######### Script starts here######################
 
-#Try to find arguments
-try:
-    if sys.argv[1] == '-l':
-        approach = 'l';
-        modelfolder = 'lettermodels';
-        print('Using the letter approach instead of the word approach.');
-except IndexError:
-    approach = 'w';    
+att_threshold = 20;
+
+#Figure out settings
+
+if '-d' in sys.argv:
+    mode = 'd';
+elif '-s' in sys.argv:
+    mode = 's';
+else:
+    mode = input('Mode (d = demo, s = simulation): ');    
+
+if '-l' in sys.argv:
+    approach = 'l';
+    modelfolder = 'lettermodels';
+elif '-w' in sys.argv:
+    approach = 'w';
     modelfolder = 'wordmodels';
+else:
+    approach = input('Approach (l = letter, w = word): ');
 
-#Ask for mode and input directory
-mode = input('Mode (d = demo, s = simulation): ');
-inp = input('Input directory (include (back)slash): ');
+if '-id' in sys.argv:
+    for n,i in enumerate(sys.argv):
+        if i == '-id':
+            inp = sys.argv[n+1];
+else:
+    inp = input('Input directory (include (back)slash): ');
+
+if '-tf' in sys.argv:
+    for n,i in enumerate(sys.argv):
+        if i == '-tf':
+            testfile_preset = sys.argv[n+1];    
+else:
+    testfile_preset = False;
 
 #Set directory reference (add .90 for the simulation mode)
 if mode == 'd':
@@ -529,11 +549,15 @@ try:
 
     testfile = modelfolder+'/'+inp[:-1] + '.10.test.txt';
     model = modelfolder+'/'+dir_reference+'.training.txt.IGTree';
-    lexicon = load_lexicon(modelfolder+'/'+dir_reference+'.lex.txt',20);
-except:
+    lexicon = load_lexicon(modelfolder+'/'+inp[:-1]+'.lex.txt',att_threshold);
+except IOError:
     training_file, testfile, lexicon = prepare_training_data(inp,mode,approach);
     model = train_model(training_file);
     print('Model not found. Created a new one.');
+
+#If the user has his own testfile, abandon the automatically generated one
+if testfile_preset:
+    testfile = testfile_preset;
 
 #Go do the prediction in one of the modes, with the model
 if mode == 'd':
@@ -542,7 +566,6 @@ elif mode == 's':
     simulation_mode(model,lexicon,testfile,approach);
 
 #TODO
-# Alles via argumenten mogelijk maken
 # Letter modus perfectioneren
 # Attenuation perfectioneren
 # Alle metingen heel nauwkeurig doen
