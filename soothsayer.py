@@ -230,8 +230,12 @@ def simulation_mode(model,lexicon,testfile,approach):
     total_keystrokes_saved_sk = 0; #Swiftkey measure
     already_predicted = False;
     skks_got_it_already = False;
+
     open('Soothsayer_output','w');
     outputfile = open('Soothsayer_output','a');
+
+    open('predictions_marked','w');
+    predictions_marked_file = open('predictions_marked','a');
 
     #Go through the testfile letter for letter
     for i in range(len(teststring)):
@@ -250,47 +254,48 @@ def simulation_mode(model,lexicon,testfile,approach):
 
             #If correct, calculate keystrokes saved and put in output
             if current_word == prediction['full_word']:
-                outputfile.write('## Correct! Skip to the next word. \n');
+                outputfile.write('\n## FIRST GUESS CORRECT. SKIP. \n');
+                predictions_marked_file.write('<');
 
                 keystrokes_saved = calculate_keystrokes_saved(prediction['word_so_far'],current_word);
                     
-                outputfile.write('## ' + str(keystrokes_saved)+' keystrokes saved \n');
+                outputfile.write('## KEYSTROKES SAVED ' + str(keystrokes_saved)+' \n');
 
                 total_keystrokes_saved += keystrokes_saved;
                 perc = str(total_keystrokes_saved / len(text_so_far));
-                outputfile.write('## ' + str(total_keystrokes_saved) + ' of ' + str(len(text_so_far)) + ' keystrokes saved so far, (' +perc+'%) - CKS\n');
+                outputfile.write('## CKS ' + str(total_keystrokes_saved) + ' of ' + str(len(text_so_far)) + ' (' +perc+'%) \n');
 
                 if not skks_got_it_already:
                     total_keystrokes_saved_sk += keystrokes_saved;            
                     perc = str(total_keystrokes_saved_sk / len(text_so_far));
-                    outputfile.write('## ' + str(total_keystrokes_saved_sk) + ' of ' + str(len(text_so_far)) + ' keystrokes saved so far, (' +perc+'%) - SKKS\n');
+                    outputfile.write('## SKKS ' + str(total_keystrokes_saved_sk) + ' of ' + str(len(text_so_far)) + ' (' +perc+'%) \n');
 
-                outputfile.write('%% Duration so far: '+str(time.time() - starttime)+' seconds \n');
+                outputfile.write('## DURATION: '+str(time.time() - starttime)+' seconds \n\n');
 
                 if teststring[i] != ' ':
                     already_predicted = True;
 
             elif current_word == prediction['second_guess']:
-                outputfile.write('## Second guess was correct here. \n');
+                outputfile.write('\n## SECOND GUESS CORRECT \n');
 
                 keystrokes_saved = calculate_keystrokes_saved(prediction['word_so_far'],prediction['second_guess']);
 
                 total_keystrokes_saved_sk += keystrokes_saved;            
 
                 perc = str(total_keystrokes_saved_sk / len(text_so_far));
-                outputfile.write('## ' + str(total_keystrokes_saved_sk) + ' of ' + str(len(text_so_far)) + ' keystrokes saved so far, (' +perc+'%) - SKKS\n');
+                outputfile.write('## SKKS ' + str(total_keystrokes_saved_sk) + ' of ' + str(len(text_so_far)) + ' (' +perc+'%) \n\n');
 
                 skks_got_it_already = True;
 
             elif teststring[i-1] == ' ' and current_word == prediction['third_guess']:
-                outputfile.write('## Third guess was correct here. \n');
+                outputfile.write('\n## THIRD GUESS CORRECT \n');
 
                 keystrokes_saved = calculate_keystrokes_saved(prediction['word_so_far'],prediction['third_guess']);
 
                 total_keystrokes_saved_sk += keystrokes_saved;            
 
                 perc = str(total_keystrokes_saved_sk / len(text_so_far));
-                outputfile.write('## ' + str(total_keystrokes_saved_sk) + ' of ' + str(len(text_so_far)) + ' keystrokes saved so far, (' +perc+'%) - SKKS\n');
+                outputfile.write('## SKKS ' + str(total_keystrokes_saved_sk) + ' of ' + str(len(text_so_far)) + ' (' +perc+'%) \n\n');
 
                 skks_got_it_already = True;
                 
@@ -298,7 +303,8 @@ def simulation_mode(model,lexicon,testfile,approach):
         else:
             if teststring[i] == ' ':
                 already_predicted = False;
-                
+
+        predictions_marked_file.write(teststring[i]);                
 
 def find_current_word(string, position):
     """Returns which word the user was typing at this position""";
