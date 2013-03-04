@@ -18,6 +18,11 @@ develop-eggs
 lib
 lib64
 
+# Special dirs
+wordmodels
+lettermodels
+nl
+
 # Installer logs
 pip-log.txt
 
