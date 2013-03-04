@@ -51,9 +51,8 @@ def clear():
 
     os.system(['clear','cls'][os.name == 'nt']);
 
-def do_prediction(text,model,lexicon,approach):
+def do_prediction(text,model,lexicon,approach,cut_off_lexicon):
     """Returns a prediction by TiMBL and related info""";
-
 
     words = text.split();
 
@@ -74,7 +73,7 @@ def do_prediction(text,model,lexicon,approach):
             open('predictions/lcontext','w').write(lcontext);
 
             #Ask TiMBL for new prediction
-            command('timbl -t predictions/lcontext -i '+model+' +vdb +D -a1 -G +vcf');
+            command('timbl -t predictions/lcontext -i '+model+'.training.txt.IGTree +vdb +D -a1 -G +vcf');
 
         else:
             current_word = words[-1];
@@ -147,14 +146,17 @@ def do_prediction(text,model,lexicon,approach):
 
     source = 'IGTREE';
 
+    #Nothing found? Use lexicon as safety net
     if pick == '':
-        lexicon = open('wordmodels/nl.lex.txt');
+        lexicon = open(model+'.lex.txt');
         
         for i in lexicon:
-            word = i.split()[0];
+            word, freq = i.split();
             if word[:boundary] == current_word:
                 pick = word;
                 source = 'LEXICON';
+                break;
+            elif int(freq) < cut_off_lexicon:
                 break;
     
     return {'full_word':pick,'word_so_far':current_word,'nr_options':len(predictions),
@@ -171,11 +173,11 @@ def add_prediction(text,prediction):
         words.append(prediction);
         return ' '.join(words) + ' ', last_input;
     
-def demo_mode(model,lexicon,approach):
+def demo_mode(model,lexicon,approach,cut_off_lexicon):
     print('Start typing whenever you want');
 
     #Predict starting word
-    prediction = do_prediction('',model,lexicon,approach);
+    prediction = do_prediction('',model,lexicon,approach,cut_off_lexicon);
 
     #Ask for first char    
     get_character = get_character_function();
@@ -203,7 +205,7 @@ def demo_mode(model,lexicon,approach):
             text_so_far += char;
 
         #Predict new word
-        prediction = do_prediction(text_so_far,model,lexicon,approach);
+        prediction = do_prediction(text_so_far,model,lexicon,approach,cut_off_lexicon);
 
         #Show the prediction
         clear();
@@ -221,7 +223,7 @@ def demo_mode(model,lexicon,approach):
         if 'quit' in text_so_far.split():
             busy = False;
 
-def simulation_mode(model,lexicon,testfile,approach):
+def simulation_mode(model,lexicon,testfile,approach,cut_of_lexicon):
 
     #Prepare vars and output
     starttime = time.time();
@@ -248,7 +250,7 @@ def simulation_mode(model,lexicon,testfile,approach):
 
             #Do prediction and compare with what the user was actually writing
             text_so_far = teststring[:i];
-            prediction = do_prediction(text_so_far,model,lexicon,approach);
+            prediction = do_prediction(text_so_far,model,lexicon,approach,cut_off_lexicon);
             current_word = find_current_word(teststring,i);
             outputfile.write(prediction['word_so_far']+', '+ current_word+', '+prediction['full_word']+'\n');
 
@@ -349,8 +351,9 @@ def prepare_training_data(directory,mode,approach):
     total_text = '';
 
     for i in files:
-        if approach == 'w':
-            total_text += ' _ _ _ '+open(directory+i,'r').read();
+        if approach == 'w' and i not in ['allmail']:
+            print(directory,i);
+            total_text += ' _ _ _ '+open(directory+i,'r',encoding='utf-8',errors='ignore').read();
         elif approach == 'l':
             total_text += ' ________________ '+open(directory+i,'r').read();
 
@@ -497,7 +500,7 @@ def train_model(filename):
 
     command('timbl -f '+filename+' -I '+filename+'.IGTree +D +vdb -a1 -p 1000000',False);
 
-    return filename+'.IGTree';
+    return filename.replace('.training.txt','');
 
 def calculate_keystrokes_saved(word_so_far,prediction):
 
@@ -674,10 +677,11 @@ def divide_iterable(it,n,overlap=None):
 
 ######### Script starts here######################
 
-att_threshold = 4500;
+# Static settings
+att_threshold = 10;
+cut_off_lexicon = 3;
 
 #Figure out settings
-
 if '-d' in sys.argv:
     mode = 'd';
 elif '-s' in sys.argv:
@@ -725,7 +729,7 @@ try:
     print('Using existing model for '+dir_reference+'.');
 
     testfile = modelfolder+'/'+inp[:-1] + '.10.test.txt';
-    model = modelfolder+'/'+dir_reference+'.training.txt.IGTree';
+    model = modelfolder+'/'+dir_reference;
     lexicon = load_lexicon(modelfolder+'/'+inp[:-1]+'.lex.txt',att_threshold);
 except IOError:
     print('Model not found. Prepare data to create a new one:');
@@ -739,13 +743,11 @@ if testfile_preset:
 
 #Go do the prediction in one of the modes, with the model
 if mode == 'd':
-    demo_mode(model,lexicon,approach);
+    demo_mode(model,lexicon,approach,cut_off_lexicon);
 elif mode == 's':
-    simulation_mode(model,lexicon,testfile,approach);
+    simulation_mode(model,lexicon,testfile,approach,cut_off_lexicon);
 
 #TODO
-# Lexiconalternatief netjes maken
-# Fout in sim modus
+# ucto inbouwen
 # Letter modus perfectioneren
-# Attenuation perfectioneren
 # Server modus
