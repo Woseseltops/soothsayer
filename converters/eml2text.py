@@ -1,5 +1,10 @@
 import os;
 import email.parser as parser;
+import re;
+
+def remove_weird_chars(string):
+
+    return re.sub(r'=[0-9][A-Z]','',string);
 
 def get_email_content(mail):
     """Extracts the actual message from an email""";
@@ -17,17 +22,23 @@ def get_email_content(mail):
                     if len(i) > 0 and i[0] not in ['-','>']:
                         new_content.append(i);
 
-                content = ' '.join(new_content).replace('= ','').replace(' ----- Oorspronkelijk bericht -----','').replace('----- Doorgestuurd bericht -----','').replace('=C3=A9','e');
+                content = remove_weird_chars(' '.join(new_content).replace(' ----- Oorspronkelijk bericht -----','').replace('----- Doorgestuurd bericht -----','')).replace('=','');
                 return(content);    
 
     return '';
 
-inputdir = '/scratch/wstoop/mail/Sent!5/';
+
+inputdir = '/scratch/wstoop/mail/Sent!7/';
 
 files = os.listdir(inputdir);
+
+c = 3464;
 
 for i in files:
     if i[-4:] == '.eml':
 
         mail = open(inputdir+i,'r').read();
-        print(get_email_content(mail));
+        open('/scratch/wstoop/mail/allmail/'+str(c),'w').write(get_email_content(mail));
+	c += 1;
+
+print(c);
