@@ -94,7 +94,7 @@ def do_prediction(text,model,lexicon,approach,cut_off_lexicon):
             current_word = words[-1];
 
         #Ask TiMBL for new prediction
-        command('timbl -t predictions/lcontext -i '+model+' +vdb +D -a1 -G +vcf');
+        command('timbl -t predictions/lcontext -i '+model+'.training.txt.IGTree +vdb +D -a1 -G +vcf');
 
     #Turn prediction into list of tuples
     raw_distr = open('predictions/lcontext.IGTree.gr.out','r').read().split('] {');
@@ -320,8 +320,11 @@ def find_current_word(string, position):
 
     #If starting with a space, give the next word
     while word in separators:
-        position += 1;
-        word = string[position-1];
+        try:
+            position += 1;
+            word = string[position-1];
+        except IndexError:
+            return '';
 
     c = 2;
     while word[0] not in separators:
@@ -351,11 +354,11 @@ def prepare_training_data(directory,mode,approach):
     total_text = '';
 
     for i in files:
-        if approach == 'w' and i not in ['allmail']:
+        if approach == 'w':
             print(directory,i);
             total_text += ' _ _ _ '+open(directory+i,'r',encoding='utf-8',errors='ignore').read();
         elif approach == 'l':
-            total_text += ' ________________ '+open(directory+i,'r').read();
+            total_text += ' ________________ '+open(directory+i,'r',encoding='utf-8',errors='ignore').read();
 
     #Create and load lexicon
     print('  Create lexicon');
@@ -383,10 +386,12 @@ def prepare_training_data(directory,mode,approach):
     #Attenuate the string with the training text
     print('  Attenuate string');
     total_text = attenuate_string_multicore(total_text,lexicon);
+    print(total_text[:15]);
 
     #Make into ngrams, and save the file
     print('  Make ngrams');
     ngrams = make_ngrams(total_text,approach);
+    print(ngrams[:15]);
 
     print('  Create file');
     training_file_content = '\n'.join(ngrams);
@@ -413,8 +418,11 @@ def make_ngrams(text,approach):
 
         result.put((nr,ngrams));
 
-    substrings = divide_iterable(text.split(),10,3);
-    
+    if approach == 'w':
+        substrings = divide_iterable(text.split(),10,3);
+    elif approach == 'l':
+        substrings = divide_iterable(text,10,15);    
+
     for n,i in enumerate(substrings):
         t = multiprocessing.Process(target=worker,args=[n,i,result]);
         t.start();
@@ -458,14 +466,8 @@ def window_string(string,verbose = False):
         if i[-1] == '_':
             ngrams_to_remove.append(i);
 
-#    if verbose:
-#        print('Task 2/3 finished');
-
 #    for i in ngrams_to_remove:
 #        ngrams.remove(i);
-
-#    if verbose:
-#        print('Task 3/3 finished');
 
     return ngrams;
 
@@ -497,6 +499,8 @@ def window_string_letters(string):
 
 def train_model(filename):
     """Train a model on the basis of these ngrams""";
+
+    print('timbl -f '+filename+' -I '+filename+'.IGTree +D +vdb -a1 -p 1000000');
 
     command('timbl -f '+filename+' -I '+filename+'.IGTree +D +vdb -a1 -p 1000000',False);
 
