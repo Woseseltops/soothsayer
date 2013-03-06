@@ -22,6 +22,17 @@ lib64
 wordmodels
 lettermodels
 nl
+allmail
+request
+predictions_marked
+twython
+requests
+nltest
+
+# Special files
+Soothsayer_output
+TiMBL_output
+fun_example.txt
 
 # Installer logs
 pip-log.txt
@@ -38,3 +49,6 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+
+# Temp files
+*~
