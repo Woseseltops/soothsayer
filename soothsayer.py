@@ -80,6 +80,12 @@ def do_prediction(text,model,lexicon,approach,cut_off_lexicon):
             words = words[-4:-1];
     elif approach == 'l':
 
+        #Find out current word
+        if text == '' or text[-1] == ' ':
+            current_word = '';
+        else:
+            current_word = words[-1];
+
         #Figure out the left context and the word being worked on
         lcontext = ' '.join(text[-15:].replace(' ','_')) + ' ?';
 
@@ -87,11 +93,13 @@ def do_prediction(text,model,lexicon,approach,cut_off_lexicon):
         while len(lcontext) < 30:
             lcontext = '_ ' + lcontext;
 
+        #Replace first feature with first feature of word
+        try:
+            lcontext = current_word[0] + lcontext[1:];
+        except IndexError:
+            pass;
+        
         open('predictions/lcontext','w').write(lcontext);
-        if text == '' or text[-1] == ' ':
-            current_word = '';
-        else:
-            current_word = words[-1];
 
         #Ask TiMBL for new prediction
         command('timbl -t predictions/lcontext -i '+model+'.training.txt.IGTree +vdb +D -a1 -G +vcf');
@@ -217,7 +225,7 @@ def demo_mode(model,lexicon,approach,cut_off_lexicon):
               str(prediction['nr_options'])+' options, source:',prediction['source']);
 
         if prediction['full_word'] == '':
-            print('Switch to word list');
+            print('No prediction');
 
         #Check for quit
         if 'quit' in text_so_far.split():
@@ -355,14 +363,17 @@ def prepare_training_data(directory,mode,approach):
 
     for i in files:
         if approach == 'w':
-            print(directory,i);
             total_text += ' _ _ _ '+open(directory+i,'r',encoding='utf-8',errors='ignore').read();
         elif approach == 'l':
             total_text += ' ________________ '+open(directory+i,'r',encoding='utf-8',errors='ignore').read();
 
     #Create and load lexicon
     print('  Create lexicon');
-    lexicon_filename = foldername+'/'+directory[:-1]+'.lex.txt'; 
+
+    if mode == 'd':
+        lexicon_filename = foldername+'/'+directory[:-1]+'.lex.txt'; 
+    elif mode == 's':
+        lexicon_filename = foldername+'/'+directory[:-1]+'.90.lex.txt'; 
     string_to_lexicon(total_text,lexicon_filename);
     lexicon = load_lexicon(lexicon_filename,att_threshold);
 
@@ -386,12 +397,10 @@ def prepare_training_data(directory,mode,approach):
     #Attenuate the string with the training text
     print('  Attenuate string');
     total_text = attenuate_string_multicore(total_text,lexicon);
-    print(total_text[:15]);
 
     #Make into ngrams, and save the file
     print('  Make ngrams');
     ngrams = make_ngrams(total_text,approach);
-    print(ngrams[:15]);
 
     print('  Create file');
     training_file_content = '\n'.join(ngrams);
@@ -482,8 +491,10 @@ def window_string_letters(string):
 
         current_word = find_current_word(newstring, i).replace('_','');
         letters_before = ' '.join(newstring[i-15:i]);
+        if len(letters_before) > 1 and len(current_word) > 1:
+            letters_before = current_word[0] + letters_before[1:];
 
-        ngrams.append(letters_before + ' ' +current_word);
+            ngrams.append(letters_before + ' ' +current_word);
 
     #Remove useless ones
     ngrams_to_remove = [];
@@ -499,8 +510,6 @@ def window_string_letters(string):
 
 def train_model(filename):
     """Train a model on the basis of these ngrams""";
-
-    print('timbl -f '+filename+' -I '+filename+'.IGTree +D +vdb -a1 -p 1000000');
 
     command('timbl -f '+filename+' -I '+filename+'.IGTree +D +vdb -a1 -p 1000000',False);
 
@@ -682,7 +691,7 @@ def divide_iterable(it,n,overlap=None):
 ######### Script starts here######################
 
 # Static settings
-att_threshold = 10;
+att_threshold = 100;
 cut_off_lexicon = 3;
 
 #Figure out settings
@@ -734,7 +743,7 @@ try:
 
     testfile = modelfolder+'/'+inp[:-1] + '.10.test.txt';
     model = modelfolder+'/'+dir_reference;
-    lexicon = load_lexicon(modelfolder+'/'+inp[:-1]+'.lex.txt',att_threshold);
+    lexicon = load_lexicon(modelfolder+'/'+dir_reference+'.lex.txt',att_threshold);
 except IOError:
     print('Model not found. Prepare data to create a new one:');
     training_file, testfile, lexicon = prepare_training_data(inp,mode,approach);
@@ -753,5 +762,8 @@ elif mode == 's':
 
 #TODO
 # ucto inbouwen
-# Letter modus perfectioneren
+# Simulatiemodus moet parallel en een indicatie van de voortgang krijgen
+# Letter modus: woorden kloppen niet met wat getypt-probleem fixen
+# Attenuation automatiseren
+# Backup-model integreren
 # Server modus
