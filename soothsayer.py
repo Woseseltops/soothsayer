@@ -51,7 +51,7 @@ def clear():
 
     os.system(['clear','cls'][os.name == 'nt']);
 
-def do_prediction(text,model,lexicon,approach,cut_off_lexicon):
+def do_prediction(text,model,lexicon,approach,cut_off_lexicon,nr=''):
     """Returns a prediction by TiMBL and related info""";
 
     words = text.split();
@@ -62,18 +62,17 @@ def do_prediction(text,model,lexicon,approach,cut_off_lexicon):
 
             #Figure out the left context and the word being worked on
             current_word = '';
-            words = words[-3:]
+            words = words[-3:];
 
             #Make ready for Timbl
             while len(words) < 3:
                 words = ['_'] + words;
 
-
             lcontext = attenuate_string_simple(' '.join(words) + ' _',lexicon);
-            open('predictions/lcontext','w').write(lcontext);
+            open('predictions/lcontext'+nr,'w').write(lcontext);
 
             #Ask TiMBL for new prediction
-            command('timbl -t predictions/lcontext -i '+model+'.training.txt.IGTree +vdb +D -a1 -G +vcf');
+            command('timbl -t predictions/lcontext'+nr+' -i '+model+'.training.txt.IGTree +vdb +D -a1 -G +vcf');
 
         else:
             current_word = words[-1];
@@ -99,13 +98,13 @@ def do_prediction(text,model,lexicon,approach,cut_off_lexicon):
         except IndexError:
             pass;
         
-        open('predictions/lcontext','w').write(lcontext);
+        open('predictions/lcontext'+nr,'w').write(lcontext);
 
         #Ask TiMBL for new prediction
-        command('timbl -t predictions/lcontext -i '+model+'.training.txt.IGTree +vdb +D -a1 -G +vcf');
+        command('timbl -t predictions/lcontext'+nr+' -i '+model+'.training.txt.IGTree +vdb +D -a1 -G +vcf');
 
     #Turn prediction into list of tuples
-    raw_distr = open('predictions/lcontext.IGTree.gr.out','r').read().split('] {');
+    raw_distr = open('predictions/lcontext'+nr+'.IGTree.gr.out','r').read().split('] {');
     raw_distr = raw_distr[1];
     distr = raw_distr.strip()[:-2].split();
 
@@ -232,23 +231,62 @@ def demo_mode(model,lexicon,approach,cut_off_lexicon):
             busy = False;
 
 def simulation_mode(model,lexicon,testfile,approach,cut_of_lexicon):
+    """Simulates someone typing, multicore""";
+
+    result = multiprocessing.Queue();
+
+    #Starts the workers
+#    teststring = ucto(open(testfile,'r').read());
+    teststring = open(testfile,'r').read();
+    substrings = divide_iterable(teststring.split(),30,3);
+
+    for n,i in enumerate(substrings):
+        i = ' '.join(i);
+        t = multiprocessing.Process(target=simulate,args=[model,lexicon,i,approach,cut_of_lexicon,n,result]);
+        t.start();
+
+    #Wait until all results are in
+    resultlist = [];
+
+    while len(resultlist) < len(substrings):
+
+        while not result.empty():
+            resultlist.append(result.get());
+
+        time.sleep(1);
+
+    #Sort and merge the results
+    resultlist = sorted(resultlist,key=lambda x:x[0]);
+    between_result = [x[1] for x in resultlist];    
+    end_result = '';
+    for i in between_result:
+        end_result += i;
+
+    print(end_result);
+
+    open('output/Soothsayer_output','w').write(end_result);  
+
+    print('Done');
+
+def simulate(model,lexicon,teststring,approach,cut_of_lexicon,nr,result):
 
     #Prepare vars and output
     starttime = time.time();
-    teststring = open(testfile,'r').read();
     total_keystrokes_saved = 0;
     total_keystrokes_saved_sk = 0; #Swiftkey measure
     already_predicted = False;
     skks_got_it_already = False;
 
-    open('Soothsayer_output','w');
-    outputfile = open('Soothsayer_output','a');
+    output = '';
 
-    open('predictions_marked','w');
-    predictions_marked_file = open('predictions_marked','a');
+#    open('predictions_marked','w');
+#    predictions_marked_file = open('predictions_marked'+str(nr),'a');
 
     #Go through the testfile letter for letter
     for i in range(len(teststring)):
+
+        if nr == 0 and i%10 == 0:
+             print(i/len(teststring));
 
         if teststring[i] == ' ':
             skks_got_it_already = False;
@@ -258,54 +296,54 @@ def simulation_mode(model,lexicon,testfile,approach,cut_of_lexicon):
 
             #Do prediction and compare with what the user was actually writing
             text_so_far = teststring[:i];
-            prediction = do_prediction(text_so_far,model,lexicon,approach,cut_off_lexicon);
+            prediction = do_prediction(text_so_far,model,lexicon,approach,cut_off_lexicon,nr=str(nr));
             current_word = find_current_word(teststring,i);
-            outputfile.write(prediction['word_so_far']+', '+ current_word+', '+prediction['full_word']+'\n');
+            output += prediction['word_so_far']+', '+ current_word+', '+prediction['full_word']+'\n';
 
             #If correct, calculate keystrokes saved and put in output
             if current_word == prediction['full_word']:
-                outputfile.write('\n## FIRST GUESS CORRECT. SKIP. \n');
-                predictions_marked_file.write('<');
+                output += '\n## FIRST GUESS CORRECT. SKIP. \n';
+#                predictions_marked_file.write('<');
 
                 keystrokes_saved = calculate_keystrokes_saved(prediction['word_so_far'],current_word);
                     
-                outputfile.write('## KEYSTROKES SAVED ' + str(keystrokes_saved)+' \n');
+                output += '## KEYSTROKES SAVED ' + str(keystrokes_saved)+' \n';
 
                 total_keystrokes_saved += keystrokes_saved;
                 perc = str(total_keystrokes_saved / len(text_so_far));
-                outputfile.write('## CKS ' + str(total_keystrokes_saved) + ' of ' + str(len(text_so_far)) + ' (' +perc+'%) \n');
+                output += '## CKS ' + str(total_keystrokes_saved) + ' of ' + str(len(text_so_far)) + ' (' +perc+'%) \n';
 
                 if not skks_got_it_already:
                     total_keystrokes_saved_sk += keystrokes_saved;            
                     perc = str(total_keystrokes_saved_sk / len(text_so_far));
-                    outputfile.write('## SKKS ' + str(total_keystrokes_saved_sk) + ' of ' + str(len(text_so_far)) + ' (' +perc+'%) \n');
+                    output += '## SKKS ' + str(total_keystrokes_saved_sk) + ' of ' + str(len(text_so_far)) + ' (' +perc+'%) \n';
 
-                outputfile.write('## DURATION: '+str(time.time() - starttime)+' seconds \n\n');
+                output += '## DURATION: '+str(time.time() - starttime)+' seconds \n\n';
 
                 if teststring[i] != ' ':
                     already_predicted = True;
 
             elif current_word == prediction['second_guess']:
-                outputfile.write('\n## SECOND GUESS CORRECT \n');
+                output += '\n## SECOND GUESS CORRECT \n';
 
                 keystrokes_saved = calculate_keystrokes_saved(prediction['word_so_far'],prediction['second_guess']);
 
                 total_keystrokes_saved_sk += keystrokes_saved;            
 
                 perc = str(total_keystrokes_saved_sk / len(text_so_far));
-                outputfile.write('## SKKS ' + str(total_keystrokes_saved_sk) + ' of ' + str(len(text_so_far)) + ' (' +perc+'%) \n\n');
+                output += '## SKKS ' + str(total_keystrokes_saved_sk) + ' of ' + str(len(text_so_far)) + ' (' +perc+'%) \n\n';
 
                 skks_got_it_already = True;
 
             elif teststring[i-1] == ' ' and current_word == prediction['third_guess']:
-                outputfile.write('\n## THIRD GUESS CORRECT \n');
+                output += '\n## THIRD GUESS CORRECT \n';
 
                 keystrokes_saved = calculate_keystrokes_saved(prediction['word_so_far'],prediction['third_guess']);
 
                 total_keystrokes_saved_sk += keystrokes_saved;            
 
                 perc = str(total_keystrokes_saved_sk / len(text_so_far));
-                outputfile.write('## SKKS ' + str(total_keystrokes_saved_sk) + ' of ' + str(len(text_so_far)) + ' (' +perc+'%) \n\n');
+                output += '## SKKS ' + str(total_keystrokes_saved_sk) + ' of ' + str(len(text_so_far)) + ' (' +perc+'%) \n\n';
 
                 skks_got_it_already = True;
                 
@@ -314,7 +352,9 @@ def simulation_mode(model,lexicon,testfile,approach,cut_of_lexicon):
             if teststring[i] == ' ':
                 already_predicted = False;
 
-        predictions_marked_file.write(teststring[i]);                
+#        predictions_marked_file.write(teststring[i]);   
+
+    result.put((nr,output));          
 
 def find_current_word(string, position):
     """Returns which word the user was typing at this position""";
@@ -366,6 +406,9 @@ def prepare_training_data(directory,mode,approach):
             total_text += ' _ _ _ '+open(directory+i,'r',encoding='utf-8',errors='ignore').read();
         elif approach == 'l':
             total_text += ' ________________ '+open(directory+i,'r',encoding='utf-8',errors='ignore').read();
+
+    #Tokenize
+    #total_text = ucto(total_text);
 
     #Create and load lexicon
     print('  Create lexicon');
@@ -688,10 +731,18 @@ def divide_iterable(it,n,overlap=None):
 
     return result;
 
-######### Script starts here######################
+def ucto(string):
+    """Tokenizes a string with Ucto""";
+
+    open('uctofile','w').write(string);
+    result = command('ucto -L nl uctofile',True);
+    os.remove('uctofile');
+    return result.replace('<utt>','');
+
+######### Script starts here ######################
 
 # Static settings
-att_threshold = 100;
+att_threshold = 3;
 cut_off_lexicon = 3;
 
 #Figure out settings
@@ -761,8 +812,10 @@ elif mode == 's':
     simulation_mode(model,lexicon,testfile,approach,cut_off_lexicon);
 
 #TODO
-# ucto inbouwen
-# Simulatiemodus moet parallel en een indicatie van de voortgang krijgen
+# De data die ik tot zover verzameld heb eens bekijken
+
+# Uitzoeken of Ucto de resultaten wel verbetert
+# Simulatiemodus moet parallel: overlap uit resultaten verwijderen, resultaten samenvoegen
 # Letter modus: woorden kloppen niet met wat getypt-probleem fixen
 # Attenuation automatiseren
 # Backup-model integreren
