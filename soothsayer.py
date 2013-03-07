@@ -257,18 +257,38 @@ def simulation_mode(model,lexicon,testfile,approach,cut_of_lexicon):
 
     #Sort and merge the results
     resultlist = sorted(resultlist,key=lambda x:x[0]);
-    between_result = [x[1] for x in resultlist];    
+    between_result = [x[1:] for x in resultlist];    
+    ks_saved_cks = 0;
+    ks_saved_skks = 0;
+    nr_ks = 0;
+    duration = 0;
     end_result = '';
+    
     for i in between_result:
-        end_result += i;
+        end_result += i[0];
+        ks_saved_cks += i[1][0];
+        ks_saved_skks += i[1][1];
+        nr_ks += i[1][2];
+        duration += i[1][3];
 
-    print(end_result);
-
+    end_result = 'Total CKS: '+str(ks_saved_cks/nr_ks)+'\n'+\
+        'Total SKKS: '+str(ks_saved_skks/nr_ks)+'\n'+\
+        'Total duration: '+str(duration)+'\n\n'+\
+        end_result;
+        
     open('output/Soothsayer_output','w').write(end_result);  
 
     print('Done');
 
 def simulate(model,lexicon,teststring,approach,cut_of_lexicon,nr,result):
+
+    #Find out where to start (because of overlap)
+
+    if nr == 0:
+        starting_point = 0;
+    else:
+        first_words = teststring[:60].split()[:3];
+        starting_point = len(first_words[0]) + len(first_words[1]) + len(first_words[2]) + 3;
 
     #Prepare vars and output
     starttime = time.time();
@@ -277,13 +297,13 @@ def simulate(model,lexicon,teststring,approach,cut_of_lexicon,nr,result):
     already_predicted = False;
     skks_got_it_already = False;
 
-    output = '';
+    output = '#############################\n##   CORE '+str(nr)+' STARTS HERE    ##\n#############################\n\n';
 
 #    open('predictions_marked','w');
 #    predictions_marked_file = open('predictions_marked'+str(nr),'a');
 
     #Go through the testfile letter for letter
-    for i in range(len(teststring)):
+    for i in range(starting_point,len(teststring)):
 
         if nr == 0 and i%10 == 0:
              print(i/len(teststring));
@@ -294,8 +314,11 @@ def simulate(model,lexicon,teststring,approach,cut_of_lexicon,nr,result):
         #If the word was not already predicted, guess (again)
         if not already_predicted:
 
-            #Do prediction and compare with what the user was actually writing
+            #Figure out what has been said so far
             text_so_far = teststring[:i];
+            nr_chars_typed = i - starting_point +1;
+
+            #Do prediction and compare with what the user was actually writing
             prediction = do_prediction(text_so_far,model,lexicon,approach,cut_off_lexicon,nr=str(nr));
             current_word = find_current_word(teststring,i);
             output += prediction['word_so_far']+', '+ current_word+', '+prediction['full_word']+'\n';
@@ -310,13 +333,13 @@ def simulate(model,lexicon,teststring,approach,cut_of_lexicon,nr,result):
                 output += '## KEYSTROKES SAVED ' + str(keystrokes_saved)+' \n';
 
                 total_keystrokes_saved += keystrokes_saved;
-                perc = str(total_keystrokes_saved / len(text_so_far));
-                output += '## CKS ' + str(total_keystrokes_saved) + ' of ' + str(len(text_so_far)) + ' (' +perc+'%) \n';
+                perc = str(total_keystrokes_saved / nr_chars_typed);
+                output += '## CKS ' + str(total_keystrokes_saved) + ' of ' + str(nr_chars_typed) + ' (' +perc+'%) \n';
 
                 if not skks_got_it_already:
                     total_keystrokes_saved_sk += keystrokes_saved;            
-                    perc = str(total_keystrokes_saved_sk / len(text_so_far));
-                    output += '## SKKS ' + str(total_keystrokes_saved_sk) + ' of ' + str(len(text_so_far)) + ' (' +perc+'%) \n';
+                    perc = str(total_keystrokes_saved_sk / nr_chars_typed);
+                    output += '## SKKS ' + str(total_keystrokes_saved_sk) + ' of ' + str(nr_chars_typed) + ' (' +perc+'%) \n';
 
                 output += '## DURATION: '+str(time.time() - starttime)+' seconds \n\n';
 
@@ -330,8 +353,8 @@ def simulate(model,lexicon,teststring,approach,cut_of_lexicon,nr,result):
 
                 total_keystrokes_saved_sk += keystrokes_saved;            
 
-                perc = str(total_keystrokes_saved_sk / len(text_so_far));
-                output += '## SKKS ' + str(total_keystrokes_saved_sk) + ' of ' + str(len(text_so_far)) + ' (' +perc+'%) \n\n';
+                perc = str(total_keystrokes_saved_sk / nr_chars_typed);
+                output += '## SKKS ' + str(total_keystrokes_saved_sk) + ' of ' + str(nr_chars_typed) + ' (' +perc+'%) \n\n';
 
                 skks_got_it_already = True;
 
@@ -342,8 +365,8 @@ def simulate(model,lexicon,teststring,approach,cut_of_lexicon,nr,result):
 
                 total_keystrokes_saved_sk += keystrokes_saved;            
 
-                perc = str(total_keystrokes_saved_sk / len(text_so_far));
-                output += '## SKKS ' + str(total_keystrokes_saved_sk) + ' of ' + str(len(text_so_far)) + ' (' +perc+'%) \n\n';
+                perc = str(total_keystrokes_saved_sk / nr_chars_typed);
+                output += '## SKKS ' + str(total_keystrokes_saved_sk) + ' of ' + str(nr_chars_typed) + ' (' +perc+'%) \n\n';
 
                 skks_got_it_already = True;
                 
@@ -354,7 +377,15 @@ def simulate(model,lexicon,teststring,approach,cut_of_lexicon,nr,result):
 
 #        predictions_marked_file.write(teststring[i]);   
 
-    result.put((nr,output));          
+    nr_chars_typed = len(teststring) - starting_point;
+
+    output += '## FINAL CKS ' + str(total_keystrokes_saved) + ' of ' + str(nr_chars_typed) + '\n';
+    output += '## FINAL SKKS ' + str(total_keystrokes_saved_sk) + ' of ' + str(nr_chars_typed) + '\n';
+    output += '## FINAL DURATION: '+str(time.time() - starttime)+' seconds \n\n';
+
+    results = [total_keystrokes_saved,total_keystrokes_saved_sk,len(text_so_far),time.time() - starttime];
+
+    result.put((nr,output,results));          
 
 def find_current_word(string, position):
     """Returns which word the user was typing at this position""";
@@ -812,10 +843,7 @@ elif mode == 's':
     simulation_mode(model,lexicon,testfile,approach,cut_off_lexicon);
 
 #TODO
-# De data die ik tot zover verzameld heb eens bekijken
-
 # Uitzoeken of Ucto de resultaten wel verbetert
-# Simulatiemodus moet parallel: overlap uit resultaten verwijderen, resultaten samenvoegen
 # Letter modus: woorden kloppen niet met wat getypt-probleem fixen
 # Attenuation automatiseren
 # Backup-model integreren
