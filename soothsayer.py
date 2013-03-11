@@ -55,6 +55,7 @@ def do_prediction(text,model,lexicon,approach,cut_off_lexicon,nr=''):
     """Returns a prediction by TiMBL and related info""";
 
     words = text.split();
+    modelname = model.split('/')[1];
 
     if approach == 'w':
 
@@ -64,15 +65,21 @@ def do_prediction(text,model,lexicon,approach,cut_off_lexicon,nr=''):
             current_word = '';
             words = words[-3:];
 
-            #Make ready for Timbl
+            #Preprocessing for Timbl
             while len(words) < 3:
                 words = ['_'] + words;
 
             lcontext = attenuate_string_simple(' '.join(words) + ' _',lexicon);
             open('predictions/lcontext'+nr,'w').write(lcontext);
 
-            #Ask TiMBL for new prediction
-            command('timbl -t predictions/lcontext'+nr+' -i '+model+'.training.txt.IGTree +vdb +D -a1 -G +vcf');
+            #Mark back-up predictions file as busy
+            open('predictions/lcontext'+nr+'.nl.IGTree.gr.out','w').write('b');
+
+            #Ask TiMBL to predict with current and back-up model simultaneously
+            command('timbl -t predictions/lcontext'+nr+' -o predictions/lcontext'+nr+'.'+modelname+'.IGTree.gr.out -i '+model+'.training.txt.IGTree +vdb +D -a1 -G +vcf');
+
+            t = multiprocessing.Process(target=command,args=['timbl -t predictions/lcontext'+nr+' -o predictions/lcontext'+nr+'.nl.IGTree.gr.out -i wordmodels/nl.training.txt.IGTree +vdb +D -a1 -G +vcf']);
+            t.start();
 
         else:
             current_word = words[-1];
@@ -103,9 +110,60 @@ def do_prediction(text,model,lexicon,approach,cut_off_lexicon,nr=''):
         #Ask TiMBL for new prediction
         command('timbl -t predictions/lcontext'+nr+' -i '+model+'.training.txt.IGTree +vdb +D -a1 -G +vcf');
 
+    #Figure out how much has been typed so far
+    boundary = len(current_word);
+
+    pick = '';
+
+    #Try context-sensitive, personal model
+    if pick == '':
+        source = 'PERS. MODEL/IGTREE';
+        pick, second_pick, third_pick, predictions = read_prediction_file(modelname,nr,current_word,boundary);
+
+    #Try context-sensitive, general model
+    if pick == '':
+        source = 'GEN. MODEL/IGTREE';
+        pick, second_pick, third_pick, predictions = read_prediction_file('nl',nr,current_word,boundary);
+
+    #Try context-free, personal model
+    if pick == '':
+        source = 'PERS. MODEL/LEXICON';
+        pick = read_frequency_file(model,current_word,boundary,cut_off_lexicon);
+        
+    #Try context-free, personal model
+    if pick == '':
+        source = 'GEN. MODEL/LEXICON';
+        pick = read_frequency_file('wordmodels/nl',current_word,boundary,cut_off_lexicon);
+
+    #Admit that you don't know
+    if pick == '':
+        source = 'I GIVE UP';
+    
+    return {'full_word':pick,'word_so_far':current_word,'nr_options':len(predictions),
+            'second_guess':second_pick,'third_guess':third_pick, 'source': source}; 
+
+def read_prediction_file(modelname,nr,current_word,boundary):
+    """Reads and orders the predictions by TiMBL""";
+
+    #See if prediction is ready, if not wait
+    ready = False;
+            
+    while not ready:
+        try:
+            raw_distr = open('predictions/lcontext'+nr+'.'+ modelname+'.IGTree.gr.out','r').read().split('] {');
+            if len(raw_distr) > 1:
+                ready = True;
+            else:
+                time.sleep(0.3);
+        except IOError:
+            time.sleep(0.3);
+
     #Turn prediction into list of tuples
-    raw_distr = open('predictions/lcontext'+nr+'.IGTree.gr.out','r').read().split('] {');
-    raw_distr = raw_distr[1];
+
+    try:
+        raw_distr = raw_distr[1];
+    except:
+        print('Error with this distr',raw_distr);
     distr = raw_distr.strip()[:-2].split();
 
     last_word = None;
@@ -119,8 +177,6 @@ def do_prediction(text,model,lexicon,approach,cut_off_lexicon,nr=''):
             last_word = None;
 
     #Pick the best prediction, based on what has been typed so far
-    boundary = len(current_word);
-
     pick = '';
     highest_confidence = 0;
 
@@ -150,35 +206,50 @@ def do_prediction(text,model,lexicon,approach,cut_off_lexicon,nr=''):
             elif i[1] > third_highest_confidence:
                 third_pick = i[0];
                 third_highest_confidence = i[1];
-
-    source = 'IGTREE';
-
-    #Nothing found? Use lexicon as safety net
-    if pick == '':
-        lexicon = open(model+'.lex.txt');
-        
-        for i in lexicon:
-            word, freq = i.split();
-            if word[:boundary] == current_word:
-                pick = word;
-                source = 'LEXICON';
-                break;
-            elif int(freq) < cut_off_lexicon:
-                break;
     
-    return {'full_word':pick,'word_so_far':current_word,'nr_options':len(predictions),
-            'second_guess':second_pick,'third_guess':third_pick, 'source': source}; 
+    return pick, second_pick, third_pick, predictions;
 
-def add_prediction(text,prediction):
+def read_frequency_file(model,current_word,boundary,cut_off_lexicon):
+    """Returns the most frequent word that starts with current_word"""
+
+    pick = '';
+    lexicon = open(model+'.lex.txt');
+    
+    for i in lexicon:
+        word, freq = i.split();
+        if word[:boundary] == current_word:
+            pick = word;
+            break;
+        elif int(freq) < cut_off_lexicon:
+            break;
+
+    return pick;
+
+
+def add_prediction(text,text_colored,prediction,source):
 
     if text[-1] == ' ':
-        return text + prediction + ' ', '';
+        text += prediction + ' ';
+        text_colored += colors[source] + prediction + colors['white'] + ' ';
+        last_input = '';
+
     else:
         words = text.split();
-        last_input = words[-1];
+        last_input = words[-1];        
         words = words[:-1];
         words.append(prediction);
-        return ' '.join(words) + ' ', last_input;
+
+        words_colored = text_colored.split();
+        already_typed = words_colored[-1];
+        words_colored = words_colored[:-1]
+        prediction = already_typed + colors[source] + \
+                     prediction[len(already_typed):] + colors['white'];
+        words_colored.append(prediction);        
+
+        text = ' '.join(words) + ' ';
+        text_colored = ' '.join(words_colored) + ' ';
+        
+    return text, text_colored, last_input;
     
 def demo_mode(model,lexicon,approach,cut_off_lexicon):
     print('Start typing whenever you want');
@@ -192,6 +263,7 @@ def demo_mode(model,lexicon,approach,cut_off_lexicon):
     #Start the process
     busy = True;
     text_so_far = '';
+    text_so_far_colored = '';
 
     while busy:
         char = str(get_character());
@@ -199,17 +271,23 @@ def demo_mode(model,lexicon,approach,cut_off_lexicon):
         #Accept prediction
         if char == ' ':
             if prediction['full_word'] != '':
-                text_so_far, last_input = add_prediction(text_so_far,prediction['full_word']);
+                text_so_far, text_so_far_colored, last_input = add_prediction(text_so_far,
+                                                                              text_so_far_colored,
+                                                                              prediction['full_word'],
+                                                                              prediction['source']);
             else:
                 text_so_far += ' ';
+                text_so_far_colored += ' ';
 
         #Reject prediction
         elif char == '\t':
             text_so_far+= ' ';
+            text_so_far_colored+= ' ';
 
         #Don't accept prediction
         else:
             text_so_far += char;
+            text_so_far_colored += char;
 
         #Predict new word
         prediction = do_prediction(text_so_far,model,lexicon,approach,cut_off_lexicon);
@@ -218,13 +296,11 @@ def demo_mode(model,lexicon,approach,cut_off_lexicon):
         clear();
 
         chars_typed = len(prediction['word_so_far']);
-        print(text_so_far+'|'+prediction['full_word'][chars_typed:]);
+        print(text_so_far_colored+'|'+prediction['full_word'][chars_typed:]);
         print();
         print(prediction['second_guess']+', '+prediction['third_guess']+', '+ \
-              str(prediction['nr_options'])+' options, source:',prediction['source']);
-
-        if prediction['full_word'] == '':
-            print('No prediction');
+              str(prediction['nr_options'])+' options, source:',colors[prediction['source']],
+              prediction['source'],colors['white']);
 
         #Check for quit
         if 'quit' in text_so_far.split():
@@ -439,7 +515,7 @@ def prepare_training_data(directory,mode,approach):
             total_text += ' ________________ '+open(directory+i,'r',encoding='utf-8',errors='ignore').read();
 
     #Tokenize
-    #total_text = ucto(total_text);
+#    total_text = ucto(total_text);
 
     #Create and load lexicon
     print('  Create lexicon');
@@ -770,6 +846,11 @@ def ucto(string):
     os.remove('uctofile');
     return result.replace('<utt>','');
 
+######### Colors ##############
+colors = {'PERS. MODEL/IGTREE': '\033[0;35m', 'PERS. MODEL/LEXICON': '\033[1;34m',
+          'GEN. MODEL/IGTREE': '\033[0;32m', 'GEN. MODEL/LEXICON': '\033[1;31m',
+          'white': '\033[0m', 'I GIVE UP': '\033[0m'};
+
 ######### Script starts here ######################
 
 # Static settings
@@ -843,8 +924,7 @@ elif mode == 's':
     simulation_mode(model,lexicon,testfile,approach,cut_off_lexicon);
 
 #TODO
-# Uitzoeken of Ucto de resultaten wel verbetert
+# Input ook in losse map stoppen
 # Letter modus: woorden kloppen niet met wat getypt-probleem fixen
 # Attenuation automatiseren
-# Backup-model integreren
 # Server modus
