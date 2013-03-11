@@ -4,6 +4,8 @@ import sys;
 import time;
 import multiprocessing;
 import math;
+import socket;
+import random;
 
 ############### Functions ###################################
 
@@ -50,6 +52,82 @@ def clear():
     """Clears the screen""";
 
     os.system(['clear','cls'][os.name == 'nt']);
+
+def do_prediction_server(text,model,lexicon,approach,cut_off_lexicon,sockets,nr=''):
+    """Returns a prediction by TiMBL and related info""";
+
+    words = text.split();
+    modelname = model.split('/')[1];
+
+    if approach == 'w':
+
+        if text == '' or text[-1] == ' ':
+
+            #Figure out the left context and the word being worked on
+            current_word = '';
+            words = words[-3:];
+
+            #Preprocessing for Timbl
+            while len(words) < 3:
+                words = ['_'] + words;
+
+            lcontext = ('c '+attenuate_string_simple(' '.join(words) + ' _',lexicon) + '\n').encode();
+
+            #Personal model
+            sockets[0].sendall(lcontext);
+            distr = '';
+
+            while distr == '' or 'DISTRIBUTION' not in distr or distr[-1] != '\n':
+                distr += sockets[0].recv(1024).decode();
+
+            final_distr = '[ word ]' + distr.split('DISTRIBUTION')[1];
+            open('predictions/lcontext'+nr+'.'+modelname+'.IGTree.gr.out','w').write(final_distr);
+
+            #General back-up model
+            sockets[1].sendall(lcontext);
+            distr = '';
+
+            while distr == '' or 'DISTRIBUTION' not in distr or distr[-1] != '\n':
+                distr += sockets[1].recv(1024).decode();
+
+            final_distr = '[ word ]' + distr.split('DISTRIBUTION')[1];
+            open('predictions/lcontext'+nr+'.nl.IGTree.gr.out','w').write(final_distr);
+
+        else:
+            current_word = words[-1];
+            words = words[-4:-1];
+            
+    #Figure out how much has been typed so far
+    boundary = len(current_word);
+
+    pick = '';
+
+    #Try context-sensitive, personal model
+    if pick == '':
+        source = 'PERS. MODEL/IGTREE';
+        pick, second_pick, third_pick, predictions = read_prediction_file(modelname,nr,current_word,boundary);
+
+    #Try context-sensitive, general model
+    if pick == '':
+        source = 'GEN. MODEL/IGTREE';
+        pick, second_pick, third_pick, predictions = read_prediction_file('nl',nr,current_word,boundary);
+
+    #Try context-free, personal model
+    if pick == '':
+        source = 'PERS. MODEL/LEXICON';
+        pick = read_frequency_file(model,current_word,boundary,cut_off_lexicon);
+        
+    #Try context-free, personal model
+    if pick == '':
+        source = 'GEN. MODEL/LEXICON';
+        pick = read_frequency_file('wordmodels/nl',current_word,boundary,cut_off_lexicon);
+
+    #Admit that you don't know
+    if pick == '':
+        source = 'I GIVE UP';
+    
+    return {'full_word':pick,'word_so_far':current_word,'nr_options':len(predictions),
+            'second_guess':second_pick,'third_guess':third_pick, 'source': source}; 
 
 def do_prediction(text,model,lexicon,approach,cut_off_lexicon,nr=''):
     """Returns a prediction by TiMBL and related info""";
@@ -160,10 +238,7 @@ def read_prediction_file(modelname,nr,current_word,boundary):
 
     #Turn prediction into list of tuples
 
-    try:
-        raw_distr = raw_distr[1];
-    except:
-        print('Error with this distr',raw_distr);
+    raw_distr = raw_distr[1];
     distr = raw_distr.strip()[:-2].split();
 
     last_word = None;
@@ -252,12 +327,15 @@ def add_prediction(text,text_colored,prediction,source):
     return text, text_colored, last_input;
     
 def demo_mode(model,lexicon,approach,cut_off_lexicon):
-    print('Start typing whenever you want');
+
+    sockets = start_servers(model);
 
     #Predict starting word
-    prediction = do_prediction('',model,lexicon,approach,cut_off_lexicon);
+#    prediction = do_prediction('',model,lexicon,approach,cut_off_lexicon);
+    prediction = do_prediction_server('',model,lexicon,approach,cut_off_lexicon,sockets);
 
     #Ask for first char    
+    print('Start typing whenever you want');
     get_character = get_character_function();
 
     #Start the process
@@ -290,7 +368,8 @@ def demo_mode(model,lexicon,approach,cut_off_lexicon):
             text_so_far_colored += char;
 
         #Predict new word
-        prediction = do_prediction(text_so_far,model,lexicon,approach,cut_off_lexicon);
+#        prediction = do_prediction(text_so_far,model,lexicon,approach,cut_off_lexicon);
+        prediction = do_prediction_server(text_so_far,model,lexicon,approach,cut_off_lexicon,sockets);
 
         #Show the prediction
         clear();
@@ -358,8 +437,10 @@ def simulation_mode(model,lexicon,testfile,approach,cut_of_lexicon):
 
 def simulate(model,lexicon,teststring,approach,cut_of_lexicon,nr,result):
 
-    #Find out where to start (because of overlap)
+    #Start the necessary servers
+    sockets = start_servers(model);
 
+    #Find out where to start (because of overlap)
     if nr == 0:
         starting_point = 0;
     else:
@@ -395,7 +476,7 @@ def simulate(model,lexicon,teststring,approach,cut_of_lexicon,nr,result):
             nr_chars_typed = i - starting_point +1;
 
             #Do prediction and compare with what the user was actually writing
-            prediction = do_prediction(text_so_far,model,lexicon,approach,cut_off_lexicon,nr=str(nr));
+            prediction = do_prediction_server(text_so_far,model,lexicon,approach,cut_off_lexicon,sockets,nr=str(nr));
             current_word = find_current_word(teststring,i);
             output += prediction['word_so_far']+', '+ current_word+', '+prediction['full_word']+'\n';
 
@@ -508,7 +589,10 @@ def prepare_training_data(directory,mode,approach):
     files = os.listdir(directory);
     total_text = '';
 
-    for i in files:
+    for n,i in enumerate(files):
+        if n%1000 == 0:
+            print('   ',n/len(files));
+
         if approach == 'w':
             total_text += ' _ _ _ '+open(directory+i,'r',encoding='utf-8',errors='ignore').read();
         elif approach == 'l':
@@ -846,6 +930,52 @@ def ucto(string):
     os.remove('uctofile');
     return result.replace('<utt>','');
 
+def start_servers(model):
+    """Starts the necessary servers and connects to them""";
+
+    #Personal model
+    succeeded = False;
+
+    while not succeeded:
+        port = get_free_port();
+        command('timblserver -i '+model+'.training.txt.IGTree +vdb +D -a1 -G +vcf -S '+str(port)+' -C 1000');
+            
+        s1 = socket.socket(socket.AF_INET,socket.SOCK_STREAM);
+
+        try:
+            s1.connect(('',port));
+            s1.recv(1024);
+            succeeded = True;
+        except socket.error:
+            pass;
+
+    #General model
+    succeeded = False;
+
+    while not succeeded:
+        port = get_free_port();
+        command('timblserver -i wordmodels/nl.training.txt.IGTree +vdb +D -a1 -G +vcf -S '+str(port)+' -C 1000');
+            
+        s2 = socket.socket(socket.AF_INET,socket.SOCK_STREAM);
+
+        try:
+            s2.connect(('',port));
+            s2.recv(1024);
+            succeeded = True;
+        except socket.error:
+            pass;
+    
+    return [s1,s2];
+
+def get_free_port():
+    
+    s = socket.socket(socket.AF_INET,socket.SOCK_STREAM);
+    s.bind(('',0));
+    port = s.getsockname()[1];
+    s.close();
+
+    return int(port);
+
 ######### Colors ##############
 colors = {'PERS. MODEL/IGTREE': '\033[0;35m', 'PERS. MODEL/LEXICON': '\033[1;34m',
           'GEN. MODEL/IGTREE': '\033[0;32m', 'GEN. MODEL/LEXICON': '\033[1;31m',
@@ -854,7 +984,7 @@ colors = {'PERS. MODEL/IGTREE': '\033[0;35m', 'PERS. MODEL/LEXICON': '\033[1;34m
 ######### Script starts here ######################
 
 # Static settings
-att_threshold = 3;
+att_threshold = 10;
 cut_off_lexicon = 3;
 
 #Figure out settings
