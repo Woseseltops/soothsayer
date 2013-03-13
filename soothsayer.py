@@ -751,10 +751,7 @@ def train_model(filename):
 
 def calculate_keystrokes_saved(word_so_far,prediction):
 
-    keystrokes_saved = len(prediction) - len(word_so_far) - 1;
-
-    if keystrokes_saved < 0:
-        keystrokes_saved = 0;
+    keystrokes_saved = len(prediction) - len(word_so_far);
     
     return keystrokes_saved;
 
