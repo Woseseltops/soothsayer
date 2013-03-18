@@ -53,13 +53,13 @@ def clear():
 
     os.system(['clear','cls'][os.name == 'nt']);
 
-def do_prediction_server(text,model,lexicon,approach,cut_off_lexicon,sockets,nr=''):
+def do_prediction_server(text,model,lexicon,settings,sockets,nr=''):
     """Returns a prediction by TiMBL and related info""";
 
     words = text.split();
     modelname = model.split('/')[1];
 
-    if approach == 'w':
+    if settings['approach'] == 'w':
 
         if text == '' or text[-1] == ' ':
 
@@ -115,16 +115,20 @@ def do_prediction_server(text,model,lexicon,approach,cut_off_lexicon,sockets,nr=
     #Try context-free, personal model
     if pick == '':
         source = 'PERS. MODEL/LEXICON';
-        pick = read_frequency_file(model,current_word,boundary,cut_off_lexicon);
+        pick = read_frequency_file(model,current_word,boundary,settings['cut_off_lexicon']);
         
     #Try context-free, personal model
     if pick == '':
         source = 'GEN. MODEL/LEXICON';
-        pick = read_frequency_file('wordmodels/nl',current_word,boundary,cut_off_lexicon);
+        pick = read_frequency_file('wordmodels/nl',current_word,boundary,settings['cut_off_lexicon']);
 
     #Admit that you don't know
     if pick == '':
         source = 'I GIVE UP';
+
+    #If it ends with punctuation, remove that
+    elif pick[-1] in settings['punctuation']:
+        pick = pick[:-1];
     
     return {'full_word':pick,'word_so_far':current_word,'nr_options':len(predictions),
             'second_guess':second_pick,'third_guess':third_pick, 'source': source}; 
@@ -262,7 +266,7 @@ def read_prediction_file(modelname,nr,current_word,boundary):
     third_highest_confidence = 0;
 
     for i in predictions:
-        if i[0] != '#DUMMY' and (i[0][:boundary] == current_word or approach == 'l'):
+        if i[0] != '#DUMMY' and (i[0][:boundary] == current_word or settings['approach'] == 'l'):
             if i[1] > highest_confidence:
                 third_pick = second_pick;
                 third_highest_confidence = second_highest_confidence;
@@ -304,8 +308,8 @@ def read_frequency_file(model,current_word,boundary,cut_off_lexicon):
 def add_prediction(text,text_colored,prediction,source):
 
     if text[-1] == ' ':
-        text += prediction + ' ';
-        text_colored += colors[source] + prediction + colors['white'] + ' ';
+        text += prediction;
+        text_colored += colors[source] + prediction + colors['white'];
         last_input = '';
 
     else:
@@ -321,18 +325,17 @@ def add_prediction(text,text_colored,prediction,source):
                      prediction[len(already_typed):] + colors['white'];
         words_colored.append(prediction);        
 
-        text = ' '.join(words) + ' ';
-        text_colored = ' '.join(words_colored) + ' ';
+        text = ' '.join(words);
+        text_colored = ' '.join(words_colored);
         
     return text, text_colored, last_input;
     
-def demo_mode(model,lexicon,approach,cut_off_lexicon):
+def demo_mode(model,lexicon,settings):
 
     sockets = start_servers(model);
 
     #Predict starting word
-#    prediction = do_prediction('',model,lexicon,approach,cut_off_lexicon);
-    prediction = do_prediction_server('',model,lexicon,approach,cut_off_lexicon,sockets);
+    prediction = do_prediction_server('',model,lexicon,settings,sockets);
 
     #Ask for first char    
     print('Start typing whenever you want');
@@ -347,13 +350,16 @@ def demo_mode(model,lexicon,approach,cut_off_lexicon):
         char = str(get_character());
 
         #Accept prediction
-        if char == ' ':
+        if char in [' '] + settings['punctuation']:
             if prediction['full_word'] != '':
                 text_so_far, text_so_far_colored, last_input = add_prediction(text_so_far,
                                                                               text_so_far_colored,
                                                                               prediction['full_word'],
                                                                               prediction['source']);
-            else:
+            text_so_far += char;
+            text_so_far_colored += char;
+
+            if char not in [' ']:
                 text_so_far += ' ';
                 text_so_far_colored += ' ';
 
@@ -368,8 +374,7 @@ def demo_mode(model,lexicon,approach,cut_off_lexicon):
             text_so_far_colored += char;
 
         #Predict new word
-#        prediction = do_prediction(text_so_far,model,lexicon,approach,cut_off_lexicon);
-        prediction = do_prediction_server(text_so_far,model,lexicon,approach,cut_off_lexicon,sockets);
+        prediction = do_prediction_server(text_so_far,model,lexicon,settings,sockets);
 
         #Show the prediction
         clear();
@@ -385,7 +390,7 @@ def demo_mode(model,lexicon,approach,cut_off_lexicon):
         if 'quit' in text_so_far.split():
             busy = False;
 
-def simulation_mode(model,lexicon,testfile,approach,cut_of_lexicon):
+def simulation_mode(model,lexicon,testfile,settings):
     """Simulates someone typing, multicore""";
 
     result = multiprocessing.Queue();
@@ -393,11 +398,11 @@ def simulation_mode(model,lexicon,testfile,approach,cut_of_lexicon):
     #Starts the workers
 #    teststring = ucto(open(testfile,'r').read());
     teststring = open(testfile,'r').read();
-    substrings = divide_iterable(teststring.split(),30,3);
+    substrings = divide_iterable(teststring.split(),15,3);
 
     for n,i in enumerate(substrings):
         i = ' '.join(i);
-        t = multiprocessing.Process(target=simulate,args=[model,lexicon,i,approach,cut_of_lexicon,n,result]);
+        t = multiprocessing.Process(target=simulate,args=[model,lexicon,i,settings,n,result]);
         t.start();
 
     #Wait until all results are in
@@ -435,7 +440,7 @@ def simulation_mode(model,lexicon,testfile,approach,cut_of_lexicon):
 
     print('Done');
 
-def simulate(model,lexicon,teststring,approach,cut_of_lexicon,nr,result):
+def simulate(model,lexicon,teststring,settings,nr,result):
 
     #Start the necessary servers
     sockets = start_servers(model);
@@ -476,8 +481,15 @@ def simulate(model,lexicon,teststring,approach,cut_of_lexicon,nr,result):
             nr_chars_typed = i - starting_point +1;
 
             #Do prediction and compare with what the user was actually writing
-            prediction = do_prediction_server(text_so_far,model,lexicon,approach,cut_off_lexicon,sockets,nr=str(nr));
+            prediction = do_prediction_server(text_so_far,model,lexicon,settings,sockets,nr=str(nr));
             current_word = find_current_word(teststring,i);
+
+            if len(current_word) > 0 and current_word[-1] in settings['punctuation']:
+                current_word = current_word[:-1];
+                had_punc = True;
+            else:
+                had_punc = False;
+            
             output += prediction['word_so_far']+', '+ current_word+', '+prediction['full_word']+'\n';
 
             #If correct, calculate keystrokes saved and put in output
@@ -486,6 +498,9 @@ def simulate(model,lexicon,teststring,approach,cut_of_lexicon,nr,result):
 #                predictions_marked_file.write('<');
 
                 keystrokes_saved = calculate_keystrokes_saved(prediction['word_so_far'],current_word);
+
+                if had_punc:
+                    keystrokes_saved += 1;
                     
                 output += '## KEYSTROKES SAVED ' + str(keystrokes_saved)+' \n';
 
@@ -577,26 +592,26 @@ def find_current_word(string, position):
 
     return word.strip();
 
-def prepare_training_data(directory,mode,approach):
+def prepare_training_data(directory,settings):
 
-    if approach == 'w':
+    if settings['approach'] == 'w':
         foldername = 'wordmodels';
-    elif approach == 'l':
+    elif settings['approach'] == 'l':
         foldername = 'lettermodels';
 
     #Paste all texts in the directory into one string
     print('  Grab all files');
-    files = os.listdir(directory);
+    files = os.listdir('input/'+directory);
     total_text = '';
 
     for n,i in enumerate(files):
         if n%1000 == 0:
             print('   ',n/len(files));
 
-        if approach == 'w':
-            total_text += ' _ _ _ '+open(directory+i,'r',encoding='utf-8',errors='ignore').read();
-        elif approach == 'l':
-            total_text += ' ________________ '+open(directory+i,'r',encoding='utf-8',errors='ignore').read();
+        if settings['approach'] == 'w':
+            total_text += ' _ _ _ '+open('input/'+directory+i,'r',encoding='utf-8',errors='ignore').read();
+        elif settings['approach'] == 'l':
+            total_text += ' ________________ '+open('input/'+directory+i,'r',encoding='utf-8',errors='ignore').read();
 
     #Tokenize
 #    total_text = ucto(total_text);
@@ -604,16 +619,16 @@ def prepare_training_data(directory,mode,approach):
     #Create and load lexicon
     print('  Create lexicon');
 
-    if mode == 'd':
+    if settings['mode'] == 'd':
         lexicon_filename = foldername+'/'+directory[:-1]+'.lex.txt'; 
-    elif mode == 's':
+    elif settings['mode'] == 's':
         lexicon_filename = foldername+'/'+directory[:-1]+'.90.lex.txt'; 
     string_to_lexicon(total_text,lexicon_filename);
-    lexicon = load_lexicon(lexicon_filename,att_threshold);
+    lexicon = load_lexicon(lexicon_filename,settings['att_threshold']);
 
     #In simulation mode, cut away 10 percent for testing later
     print('  Make test file if needed');
-    if mode == 's':
+    if settings['mode'] == 's':
         testfilename = foldername+'/'+directory[:-1]+'.10.test.txt';
         training_filename = foldername+'/'+directory[:-1]+'.90.training.txt';
 
@@ -624,7 +639,7 @@ def prepare_training_data(directory,mode,approach):
         total_text = ' '.join(words[:boundary]);
 
     #In demo mode, just take all
-    else:
+    elif settings['mode'] == 'd':
         testfilename = '';
         training_filename = foldername+'/'+directory[:-1]+'.training.txt';
 
@@ -634,7 +649,7 @@ def prepare_training_data(directory,mode,approach):
 
     #Make into ngrams, and save the file
     print('  Make ngrams');
-    ngrams = make_ngrams(total_text,approach);
+    ngrams = make_ngrams(total_text,settings['approach']);
 
     print('  Create file');
     training_file_content = '\n'.join(ngrams);
@@ -981,37 +996,39 @@ colors = {'PERS. MODEL/IGTREE': '\033[0;35m', 'PERS. MODEL/LEXICON': '\033[1;34m
 ######### Script starts here ######################
 
 # Static settings
-att_threshold = 10;
-cut_off_lexicon = 3;
+settings = {};
+settings['att_threshold'] = 10;
+settings['cut_off_lexicon'] = 3;
+settings['punctuation'] = ['.',',',':','!',';','?'];
 
-#Figure out settings
+#Figure out dynamic settings
 if '-d' in sys.argv:
-    mode = 'd';
+    settings['mode'] = 'd';
 elif '-s' in sys.argv:
-    mode = 's';
+    settings['mode'] = 's';
 else:
-    mode = input('Mode (d = demo, s = simulation): ');    
+    settings['mode'] = input('Mode (d = demo, s = simulation): ');    
 
 if '-l' in sys.argv:
-    approach = 'l';
+    settings['approach'] = 'l';
     modelfolder = 'lettermodels';
 elif '-w' in sys.argv:
-    approach = 'w';
+    settings['approach'] = 'w';
     modelfolder = 'wordmodels';
 else:
-    approach = input('Approach (l = letter, w = word): ');
+    settings['approach'] = input('Approach (l = letter, w = word): ');
 
-    if approach == 'l':
+    if settings['approach'] == 'l':
         modelfolder = 'lettermodels';
-    elif approach == 'w':
+    elif settings['approach'] == 'w':
         modelfolder = 'wordmodels';
 
 if '-id' in sys.argv:
     for n,i in enumerate(sys.argv):
         if i == '-id':
-            inp = sys.argv[n+1];
+            inp = sys.argv[n+1] + '/';
 else:
-    inp = input('Input directory (include (back)slash): ');
+    inp = input('Input directory: ') + '/';
 
 if '-tf' in sys.argv:
     for n,i in enumerate(sys.argv):
@@ -1021,22 +1038,22 @@ else:
     testfile_preset = False;
 
 #Set directory reference (add .90 for the simulation mode)
-if mode == 'd':
+if settings['mode'] == 'd':
     dir_reference = inp[:-1];
-elif mode == 's':
+elif settings['mode'] == 's':
     dir_reference = inp[:-1] + '.90';
 
 #Try opening the language model (and testfile), or create one if it doesn't exist
 try:
     open(modelfolder+'/'+dir_reference+'.training.txt','r');
-    print('Using existing model for '+dir_reference+'.');
+    print('Loading existing model for '+dir_reference+'.');
 
     testfile = modelfolder+'/'+inp[:-1] + '.10.test.txt';
     model = modelfolder+'/'+dir_reference;
-    lexicon = load_lexicon(modelfolder+'/'+dir_reference+'.lex.txt',att_threshold);
+    lexicon = load_lexicon(modelfolder+'/'+dir_reference+'.lex.txt',settings['att_threshold']);
 except IOError:
     print('Model not found. Prepare data to create a new one:');
-    training_file, testfile, lexicon = prepare_training_data(inp,mode,approach);
+    training_file, testfile, lexicon = prepare_training_data(inp,settings);
     print('Training model');
     model = train_model(training_file);
 
@@ -1045,13 +1062,22 @@ if testfile_preset:
     testfile = testfile_preset;
 
 #Go do the prediction in one of the modes, with the model
-if mode == 'd':
-    demo_mode(model,lexicon,approach,cut_off_lexicon);
-elif mode == 's':
-    simulation_mode(model,lexicon,testfile,approach,cut_off_lexicon);
+if settings['mode'] == 'd':
+    demo_mode(model,lexicon,settings);
+elif settings['mode'] == 's':
+    simulation_mode(model,lexicon,testfile,settings);
+
+#Close everything
+command('killall timblserver');
 
 #TODO
-# Input ook in losse map stoppen
-# Letter modus: woorden kloppen niet met wat getypt-probleem fixen
-# Attenuation automatiseren
+# Leestekens ook bekijken in de simulatiemodus
+# Recency!
 # Server modus
+
+# Haakjes kunnen nog geintegreerd worden
+# Letter modus: woorden kloppen niet met wat getypt-probleem fixen
+
+#BUGS
+# Onbekende woorden duurt heel lang
+# Eerste mode sim modus klopt niet
