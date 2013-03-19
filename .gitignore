@@ -28,6 +28,7 @@ predictions_marked
 twython
 requests
 nltest
+predictions
 
 # Special files
 Soothsayer_output
