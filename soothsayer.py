@@ -6,6 +6,7 @@ import multiprocessing;
 import math;
 import socket;
 import random;
+import collections;
 
 ############### Functions ###################################
 
@@ -53,7 +54,7 @@ def clear():
 
     os.system(['clear','cls'][os.name == 'nt']);
 
-def do_prediction_server(text,model,lexicon,settings,sockets,nr=''):
+def do_prediction_server(text,model,lexicon,recency_buffer,settings,sockets,nr=''):
     """Returns a prediction by TiMBL and related info""";
 
     words = text.split();
@@ -100,7 +101,16 @@ def do_prediction_server(text,model,lexicon,settings,sockets,nr=''):
     #Figure out how much has been typed so far
     boundary = len(current_word);
 
+    #Standard vrs
     pick = '';
+    second_pick = '';
+    third_pick = '';
+    predictions = [];
+
+    #Try the recency_buffer
+    if pick == '' and boundary > 0:
+        source = 'RECENCY BUFFER';
+        pick = read_recency_buffer(recency_buffer,current_word,boundary);
 
     #Try context-sensitive, personal model
     if pick == '':
@@ -129,97 +139,6 @@ def do_prediction_server(text,model,lexicon,settings,sockets,nr=''):
     #If it ends with punctuation, remove that
     elif pick[-1] in settings['punctuation']:
         pick = pick[:-1];
-    
-    return {'full_word':pick,'word_so_far':current_word,'nr_options':len(predictions),
-            'second_guess':second_pick,'third_guess':third_pick, 'source': source}; 
-
-def do_prediction(text,model,lexicon,approach,cut_off_lexicon,nr=''):
-    """Returns a prediction by TiMBL and related info""";
-
-    words = text.split();
-    modelname = model.split('/')[1];
-
-    if approach == 'w':
-
-        if text == '' or text[-1] == ' ':
-
-            #Figure out the left context and the word being worked on
-            current_word = '';
-            words = words[-3:];
-
-            #Preprocessing for Timbl
-            while len(words) < 3:
-                words = ['_'] + words;
-
-            lcontext = attenuate_string_simple(' '.join(words) + ' _',lexicon);
-            open('predictions/lcontext'+nr,'w').write(lcontext);
-
-            #Mark back-up predictions file as busy
-            open('predictions/lcontext'+nr+'.nl.IGTree.gr.out','w').write('b');
-
-            #Ask TiMBL to predict with current and back-up model simultaneously
-            command('timbl -t predictions/lcontext'+nr+' -o predictions/lcontext'+nr+'.'+modelname+'.IGTree.gr.out -i '+model+'.training.txt.IGTree +vdb +D -a1 -G +vcf');
-
-            t = multiprocessing.Process(target=command,args=['timbl -t predictions/lcontext'+nr+' -o predictions/lcontext'+nr+'.nl.IGTree.gr.out -i wordmodels/nl.training.txt.IGTree +vdb +D -a1 -G +vcf']);
-            t.start();
-
-        else:
-            current_word = words[-1];
-            words = words[-4:-1];
-    elif approach == 'l':
-
-        #Find out current word
-        if text == '' or text[-1] == ' ':
-            current_word = '';
-        else:
-            current_word = words[-1];
-
-        #Figure out the left context and the word being worked on
-        lcontext = ' '.join(text[-15:].replace(' ','_')) + ' ?';
-
-        #Make ready for TiMBL
-        while len(lcontext) < 30:
-            lcontext = '_ ' + lcontext;
-
-        #Replace first feature with first feature of word
-        try:
-            lcontext = current_word[0] + lcontext[1:];
-        except IndexError:
-            pass;
-        
-        open('predictions/lcontext'+nr,'w').write(lcontext);
-
-        #Ask TiMBL for new prediction
-        command('timbl -t predictions/lcontext'+nr+' -i '+model+'.training.txt.IGTree +vdb +D -a1 -G +vcf');
-
-    #Figure out how much has been typed so far
-    boundary = len(current_word);
-
-    pick = '';
-
-    #Try context-sensitive, personal model
-    if pick == '':
-        source = 'PERS. MODEL/IGTREE';
-        pick, second_pick, third_pick, predictions = read_prediction_file(modelname,nr,current_word,boundary);
-
-    #Try context-sensitive, general model
-    if pick == '':
-        source = 'GEN. MODEL/IGTREE';
-        pick, second_pick, third_pick, predictions = read_prediction_file('nl',nr,current_word,boundary);
-
-    #Try context-free, personal model
-    if pick == '':
-        source = 'PERS. MODEL/LEXICON';
-        pick = read_frequency_file(model,current_word,boundary,cut_off_lexicon);
-        
-    #Try context-free, personal model
-    if pick == '':
-        source = 'GEN. MODEL/LEXICON';
-        pick = read_frequency_file('wordmodels/nl',current_word,boundary,cut_off_lexicon);
-
-    #Admit that you don't know
-    if pick == '':
-        source = 'I GIVE UP';
     
     return {'full_word':pick,'word_so_far':current_word,'nr_options':len(predictions),
             'second_guess':second_pick,'third_guess':third_pick, 'source': source}; 
@@ -304,6 +223,15 @@ def read_frequency_file(model,current_word,boundary,cut_off_lexicon):
 
     return pick;
 
+def read_recency_buffer(rb,current_word,boundary):
+    """Gets the latest word from the recency buffer that matches what you were typing""";
+
+    for i in rb:
+        if i[:boundary] == current_word:
+            return i;
+            break;
+
+    return '';
 
 def add_prediction(text,text_colored,prediction,source):
 
@@ -332,10 +260,12 @@ def add_prediction(text,text_colored,prediction,source):
     
 def demo_mode(model,lexicon,settings):
 
+    #Start stuff needed for prediction
     sockets = start_servers(model);
+    recency_buffer = collections.deque(maxlen=settings['recency_buffer']);
 
     #Predict starting word
-    prediction = do_prediction_server('',model,lexicon,settings,sockets);
+    prediction = do_prediction_server('',model,lexicon,recency_buffer,settings,sockets);
 
     #Ask for first char    
     print('Start typing whenever you want');
@@ -363,6 +293,8 @@ def demo_mode(model,lexicon,settings):
                 text_so_far += ' ';
                 text_so_far_colored += ' ';
 
+            recency_buffer = add_to_recency_buffer(recency_buffer,text_so_far);
+
         #Reject prediction
         elif char == '\t':
             text_so_far+= ' ';
@@ -374,7 +306,7 @@ def demo_mode(model,lexicon,settings):
             text_so_far_colored += char;
 
         #Predict new word
-        prediction = do_prediction_server(text_so_far,model,lexicon,settings,sockets);
+        prediction = do_prediction_server(text_so_far,model,lexicon,recency_buffer,settings,sockets);
 
         #Show the prediction
         clear();
@@ -398,7 +330,7 @@ def simulation_mode(model,lexicon,testfile,settings):
     #Starts the workers
 #    teststring = ucto(open(testfile,'r').read());
     teststring = open(testfile,'r').read();
-    substrings = divide_iterable(teststring.split(),15,3);
+    substrings = divide_iterable(teststring.split(),settings['test_cores'],3);
 
     for n,i in enumerate(substrings):
         i = ' '.join(i);
@@ -442,8 +374,9 @@ def simulation_mode(model,lexicon,testfile,settings):
 
 def simulate(model,lexicon,teststring,settings,nr,result):
 
-    #Start the necessary servers
+    #Start the necessary things for the prediction
     sockets = start_servers(model);
+    recency_buffer = collections.deque(maxlen=settings['recency_buffer']);
 
     #Find out where to start (because of overlap)
     if nr == 0:
@@ -470,8 +403,10 @@ def simulate(model,lexicon,teststring,settings,nr,result):
         if nr == 0 and i%10 == 0:
              print(i/len(teststring));
 
+        #word finished
         if teststring[i] == ' ':
             skks_got_it_already = False;
+            recency_buffer = add_to_recency_buffer(recency_buffer,teststring[:i]);
 
         #If the word was not already predicted, guess (again)
         if not already_predicted:
@@ -481,7 +416,7 @@ def simulate(model,lexicon,teststring,settings,nr,result):
             nr_chars_typed = i - starting_point +1;
 
             #Do prediction and compare with what the user was actually writing
-            prediction = do_prediction_server(text_so_far,model,lexicon,settings,sockets,nr=str(nr));
+            prediction = do_prediction_server(text_so_far,model,lexicon,recency_buffer,settings,sockets,nr=str(nr));
             current_word = find_current_word(teststring,i);
 
             if len(current_word) > 0 and current_word[-1] in settings['punctuation']:
@@ -988,18 +923,25 @@ def get_free_port():
 
     return int(port);
 
+def add_to_recency_buffer(rb,text):
+    """Adds the latest word in a string to the recency buffer""";
+
+    rb.appendleft(text[-80:].split()[-1]);
+    return rb
+
 ######### Colors ##############
 colors = {'PERS. MODEL/IGTREE': '\033[0;35m', 'PERS. MODEL/LEXICON': '\033[1;34m',
           'GEN. MODEL/IGTREE': '\033[0;32m', 'GEN. MODEL/LEXICON': '\033[1;31m',
-          'white': '\033[0m', 'I GIVE UP': '\033[0m'};
+          'RECENCY BUFFER': '\033[1;31m', 'white': '\033[0m', 'I GIVE UP': '\033[0m'};
 
 ######### Script starts here ######################
 
 # Static settings
 settings = {};
-settings['att_threshold'] = 10;
+settings['att_threshold'] = 3;
 settings['cut_off_lexicon'] = 3;
 settings['punctuation'] = ['.',',',':','!',';','?'];
+settings['test_cores'] = 2;
 
 #Figure out dynamic settings
 if '-d' in sys.argv:
@@ -1037,6 +979,13 @@ if '-tf' in sys.argv:
 else:
     testfile_preset = False;
 
+if '-rb' in sys.argv:
+    for n,i in enumerate(sys.argv):
+        if i == '-rb':
+            settings['recency_buffer'] = int(sys.argv[n+1]);    
+else:
+    settings['recency_buffer'] = 5;
+
 #Set directory reference (add .90 for the simulation mode)
 if settings['mode'] == 'd':
     dir_reference = inp[:-1];
@@ -1071,7 +1020,6 @@ elif settings['mode'] == 's':
 command('killall timblserver');
 
 #TODO
-# Leestekens ook bekijken in de simulatiemodus
 # Recency!
 # Server modus
 
