@@ -125,12 +125,12 @@ def do_prediction_server(text,model,lexicon,recency_buffer,settings,sockets,nr='
     #Try context-free, personal model
     if pick == '':
         source = 'PERS. MODEL/LEXICON';
-        pick = read_frequency_file(model,current_word,boundary,settings['cut_off_lexicon']);
+        pick = read_frequency_file(model,current_word,boundary,settings['limit_personal_lexicon']);
         
     #Try context-free, personal model
     if pick == '':
         source = 'GEN. MODEL/LEXICON';
-        pick = read_frequency_file('wordmodels/nl',current_word,boundary,settings['cut_off_lexicon']);
+        pick = read_frequency_file('wordmodels/nl',current_word,boundary,settings['limit_backup_lexicon']);
 
     #Admit that you don't know
     if pick == '':
@@ -214,12 +214,13 @@ def read_frequency_file(model,current_word,boundary,cut_off_lexicon):
     lexicon = open(model+'.lex.txt');
     
     for i in lexicon:
-        word, freq = i.split();
-        if word[:boundary] == current_word:
-            pick = word;
-            break;
-        elif int(freq) < cut_off_lexicon:
-            break;
+        if i[0] == current_word[0]: #quick check before you do more heavy stuff
+            word, freq = i.split();
+            if word[:boundary] == current_word:
+                pick = word;
+                break;
+            elif int(freq) < cut_off_lexicon:
+                break;
 
     return pick;
 
@@ -941,7 +942,8 @@ colors = {'PERS. MODEL/IGTREE': '\033[0;35m', 'PERS. MODEL/LEXICON': '\033[1;34m
 # Static settings
 settings = {};
 settings['att_threshold'] = 3;
-settings['cut_off_lexicon'] = 3;
+settings['limit_personal_lexicon'] = 3;
+settings['limit_backup_lexicon'] = 30;
 settings['punctuation'] = ['.',',',':','!',';','?'];
 settings['test_cores'] = 8;
 
@@ -1022,7 +1024,6 @@ elif settings['mode'] == 's':
 command('killall timblserver');
 
 #TODO
-# Recency!
 # Server modus
 
 # Haakjes kunnen nog geintegreerd worden
