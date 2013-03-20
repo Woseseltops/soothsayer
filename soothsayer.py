@@ -333,8 +333,10 @@ def simulation_mode(model,lexicon,testfile,settings):
     substrings = divide_iterable(teststring.split(),settings['test_cores'],3);
 
     for n,i in enumerate(substrings):
+        buffersize = settings['recency_buffer'];
+        content_rb = substrings[n-1][-buffersize:];
         i = ' '.join(i);
-        t = multiprocessing.Process(target=simulate,args=[model,lexicon,i,settings,n,result]);
+        t = multiprocessing.Process(target=simulate,args=[model,lexicon,content_rb,i,settings,n,result]);
         t.start();
 
     #Wait until all results are in
@@ -372,11 +374,11 @@ def simulation_mode(model,lexicon,testfile,settings):
 
     print('Done');
 
-def simulate(model,lexicon,teststring,settings,nr,result):
+def simulate(model,lexicon,content_rb,teststring,settings,nr,result):
 
     #Start the necessary things for the prediction
     sockets = start_servers(model);
-    recency_buffer = collections.deque(maxlen=settings['recency_buffer']);
+    recency_buffer = collections.deque(content_rb,settings['recency_buffer']);
 
     #Find out where to start (because of overlap)
     if nr == 0:
@@ -941,7 +943,7 @@ settings = {};
 settings['att_threshold'] = 3;
 settings['cut_off_lexicon'] = 3;
 settings['punctuation'] = ['.',',',':','!',';','?'];
-settings['test_cores'] = 2;
+settings['test_cores'] = 8;
 
 #Figure out dynamic settings
 if '-d' in sys.argv:
