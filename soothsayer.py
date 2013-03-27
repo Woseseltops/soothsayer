@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os;
 import subprocess;
 import sys;
@@ -108,7 +109,7 @@ def do_prediction_server(text,model,lexicon,recency_buffer,settings,sockets,nr='
     predictions = [];
 
     #Try the recency_buffer
-    if pick == '' and boundary > 0:
+    if pick == '' and boundary > 4:
         source = 'RECENCY BUFFER';
         pick = read_recency_buffer(recency_buffer,current_word,boundary);
 
@@ -212,6 +213,9 @@ def read_frequency_file(model,current_word,boundary,cut_off_lexicon):
 
     pick = '';
     lexicon = open(model+'.lex.txt');
+
+    if len(current_word) == 0:
+        return '';
     
     for i in lexicon:
         if i[0] == current_word[0]: #quick check before you do more heavy stuff
@@ -278,10 +282,11 @@ def demo_mode(model,lexicon,settings):
     text_so_far_colored = '';
 
     while busy:
+        rejected = False;
         char = str(get_character());
 
         #Accept prediction
-        if char in [' '] + settings['punctuation']:
+        if char in [' ',')'] + settings['punctuation']:
             if prediction['full_word'] != '':
                 text_so_far, text_so_far_colored, last_input = add_prediction(text_so_far,
                                                                               text_so_far_colored,
@@ -290,7 +295,7 @@ def demo_mode(model,lexicon,settings):
             text_so_far += char;
             text_so_far_colored += char;
 
-            if char not in [' ']:
+            if char not in [' ',')']:
                 text_so_far += ' ';
                 text_so_far_colored += ' ';
 
@@ -298,16 +303,32 @@ def demo_mode(model,lexicon,settings):
 
         #Reject prediction
         elif char == '\t':
-            text_so_far+= ' ';
-            text_so_far_colored+= ' ';
+            prediction = {'full_word': '', 'source':  'USER', 'second_guess': '', 'third_guess': '',
+                          'nr_options': '', 'word_so_far': ''};
+            rejected = True;
+
+        #Hit backspace
+        elif char == '\x7f':
+            text_so_far = text_so_far[:-1];
+            text_so_far_colored = text_so_far_colored[:-1];          
+
+            while text_so_far_colored[-4:] in colors.values():
+                text_so_far_colored = text_so_far_colored[:-4];
+
+            while text_so_far_colored[-10:] in colors.values():
+                text_so_far_colored = text_so_far_colored[:-10];
+
+            char = 'Back'
 
         #Don't accept prediction
         else:
             text_so_far += char;
             text_so_far_colored += char;
+            char = 'Added'
 
         #Predict new word
-        prediction = do_prediction_server(text_so_far,model,lexicon,recency_buffer,settings,sockets);
+        if not rejected:
+            prediction = do_prediction_server(text_so_far,model,lexicon,recency_buffer,settings,sockets);
 
         #Show the prediction
         clear();
@@ -318,6 +339,7 @@ def demo_mode(model,lexicon,settings):
         print(prediction['second_guess']+', '+prediction['third_guess']+', '+ \
               str(prediction['nr_options'])+' options, source:',colors[prediction['source']],
               prediction['source'],colors['white']);
+        print(char);
 
         #Check for quit
         if 'quit' in text_so_far.split():
@@ -330,7 +352,7 @@ def simulation_mode(model,lexicon,testfile,settings):
 
     #Starts the workers
 #    teststring = ucto(open(testfile,'r').read());
-    teststring = open(testfile,'r').read();
+    teststring = ' ' + open(testfile,'r').read();
     substrings = divide_iterable(teststring.split(),settings['test_cores'],3);
 
     for n,i in enumerate(substrings):
@@ -500,6 +522,12 @@ def simulate(model,lexicon,content_rb,teststring,settings,nr,result):
 def find_current_word(string, position):
     """Returns which word the user was typing at this position""";
 
+    #If starting, just give the first word
+    if position == 0:
+        return string[:30].split()[0];
+
+    #If not, do complicated stuff
+
     try:
         word = string[position-1];
     except IndexError:
@@ -516,7 +544,7 @@ def find_current_word(string, position):
             return '';
 
     c = 2;
-    while word[0] not in separators:
+    while word[0] not in separators and position-c > -1:
         word = string[position-c] + word;
         c += 1;
 
@@ -935,7 +963,8 @@ def add_to_recency_buffer(rb,text):
 ######### Colors ##############
 colors = {'PERS. MODEL/IGTREE': '\033[0;35m', 'PERS. MODEL/LEXICON': '\033[1;34m',
           'GEN. MODEL/IGTREE': '\033[0;32m', 'GEN. MODEL/LEXICON': '\033[1;31m',
-          'RECENCY BUFFER': '\033[1;31m', 'white': '\033[0m', 'I GIVE UP': '\033[0m'};
+          'RECENCY BUFFER': '\033[1;31m', 'white': '\033[0m', 'I GIVE UP': '\033[0m',
+          'USER': '\033[0m'};
 
 ######### Script starts here ######################
 
@@ -945,7 +974,7 @@ settings['att_threshold'] = 3;
 settings['limit_personal_lexicon'] = 3;
 settings['limit_backup_lexicon'] = 30;
 settings['punctuation'] = ['.',',',':','!',';','?'];
-settings['test_cores'] = 8;
+settings['test_cores'] = 10;
 
 #Figure out dynamic settings
 if '-d' in sys.argv:
@@ -1026,9 +1055,10 @@ command('killall timblserver');
 #TODO
 # Server modus
 
-# Haakjes kunnen nog geintegreerd worden
+# Haakje sluiten in simulatiemodus
+# Nadenken over nieuwe tab in simulatiemodus
+# Backspace: houdt rekening met recency buffer, als je over de kleurgrenzen heen backspacet gaan de kleuren raar doen
 # Letter modus: woorden kloppen niet met wat getypt-probleem fixen
 
 #BUGS
-# Onbekende woorden duurt heel lang
-# Eerste mode sim modus klopt niet
+# Eerste woord sim modus klopt niet
