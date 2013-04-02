@@ -29,6 +29,8 @@ twython
 requests
 nltest
 predictions
+input
+output
 
 # Special files
 Soothsayer_output
