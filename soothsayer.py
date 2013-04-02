@@ -73,7 +73,8 @@ def do_prediction_server(text,model,lexicon,recency_buffer,settings,sockets,nr='
             while len(words) < 3:
                 words = ['_'] + words;
 
-            lcontext = ('c '+attenuate_string_simple(' '.join(words) + ' _',lexicon) + '\n').encode();
+#            lcontext = ('c '+attenuate_string_simple(' '.join(words) + ' _',lexicon) + '\n').encode();
+            lcontext = ('c ' + ' '.join(words) + ' _\n').encode();
 
             #Personal model
             sockets[0].sendall(lcontext);
@@ -93,7 +94,7 @@ def do_prediction_server(text,model,lexicon,recency_buffer,settings,sockets,nr='
                 distr += sockets[1].recv(1024).decode();
 
             final_distr = '[ word ]' + distr.split('DISTRIBUTION')[1];
-            open('predictions/lcontext'+nr+'.nl.IGTree.gr.out','w').write(final_distr);
+            open('predictions/lcontext'+nr+'.nlsave.IGTree.gr.out','w').write(final_distr);
 
         else:
             current_word = words[-1];
@@ -154,9 +155,9 @@ def do_prediction_server(text,model,lexicon,recency_buffer,settings,sockets,nr='
             source += ' +RB';
 
     #Try the recency_buffer
-    if pick == '' and boundary > 0:
-        source = 'RECENCY BUFFER';
-        pick = read_recency_buffer(recency_buffer,current_word,boundary);
+#    if pick == '' and boundary > 0:
+#        source = 'RECENCY BUFFER';
+#        pick = read_recency_buffer(recency_buffer,current_word,boundary);
 
     #Try context-free, personal model
     if pick == '':
@@ -998,13 +999,13 @@ def start_servers(model,settings):
     while not succeeded:
 
         if settings['mode'] == 'd':
-            port = get_port_for_timblserver('wordmodels/nl.training.txt.IGTree');
+            port = get_port_for_timblserver('wordmodels/nlsave.training.txt.IGTree');
         else:
             port = False;
 
         if not port:                
             port = get_free_port();
-            command('timblserver -i wordmodels/nl.training.txt.IGTree +vdb +D -a1 -G +vcf -S '+str(port)+' -C 1000');
+            command('timblserver -i wordmodels/nlsave.training.txt.IGTree +vdb +D -a1 -G +vcf -S '+str(port)+' -C 1000');
             
         s2 = socket.socket(socket.AF_INET,socket.SOCK_STREAM);
 
@@ -1104,7 +1105,7 @@ if '-rb' in sys.argv:
         if i == '-rb':
             settings['recency_buffer'] = int(sys.argv[n+1]);    
 else:
-    settings['recency_buffer'] = 5;
+    settings['recency_buffer'] = 100;
 
 if '-dks' in sys.argv or '-dcs' in sys.argv:
     settings['close_server'] = False;
@@ -1146,13 +1147,11 @@ if settings['close_server']:
     command('killall timblserver');
 
 #TODO
-# In python2 een timblserverzoeker maken
-# Moet alles geattenueerd worden?
 # Lettermodus
 
 # Server modus
 
 # Haakje sluiten in simulatiemodus
 # Nadenken over nieuwe tab in simulatiemodus
+# Nadenken over keys bespaard in simulatiemodus
 # Backspace: houdt rekening met recency buffer, als je over de kleurgrenzen heen backspacet gaan de kleuren raar doen
-# Letter modus: woorden kloppen niet met wat getypt-probleem fixen
