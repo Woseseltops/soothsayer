@@ -1,6 +1,7 @@
 import os
 import xml.dom.minidom as xml
 import cgi
+import sys
 
 def get_content(node):
 
@@ -10,10 +11,10 @@ def get_content(node):
 
 #fol = '/vol/bigdata/corpora/SoNaR500/SONAR500/DATA/WR-P-E-K_blogs/';
 #fol = '/vol/bigdata/corpora/SoNaR500/SONAR500/DATA/WR-P-E-J_wikipedia/';
-fol = '/vol/bigdata/corpora/SoNaR500/SONAR500/DATA/WR-P-P-H_periodicals_magazines/';
+fol = '/vol/bigdata/corpora/SoNaR500/SONAR500/DATA/WR-'+sys.argv[1];
 names = os.listdir(fol);
 
-for i in names[500:1000]:
+for i in names:
     print(i);
     if not 'cmdi' in i:
         string = open(fol+'/'+i,'r').read();
@@ -26,5 +27,5 @@ for i in names[500:1000]:
             except:
                 pass;
 
-        open('nl/'+i[:-4],'w').write(total);
+        open('/vol/bigdata/users/wstoop/soothsayer/input/nl/'+i[:-4],'w').write(total);
 
