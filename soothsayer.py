@@ -98,6 +98,34 @@ def do_prediction_server(text,model,lexicon,recency_buffer,settings,sockets,nr='
         else:
             current_word = words[-1];
             words = words[-4:-1];
+
+    elif settings['approach'] == 'l':
+
+            #Preprocessing for Timbl        
+            newstring = text.replace(' ','_').replace('\n','');
+            letters_before = ' '.join(newstring[15:]);
+            lcontext = ('c '+ letters_before + '\n').encode();
+
+            #Personal model
+            sockets[0].sendall(lcontext);
+            distr = '';
+
+            while distr == '' or 'DISTRIBUTION' not in distr or distr[-1] != '\n':
+                distr += sockets[0].recv(1024).decode();
+
+            final_distr = '[ word ]' + distr.split('DISTRIBUTION')[1];
+            open('predictions/lcontext'+nr+'.'+modelname+'.IGTree.gr.out','w').write(final_distr);
+
+            #General back-up model
+#            sockets[1].sendall(lcontext);
+#            distr = '';
+
+#            while distr == '' or 'DISTRIBUTION' not in distr or distr[-1] != '\n':
+#                distr += sockets[1].recv(1024).decode();
+
+#            final_distr = '[ word ]' + distr.split('DISTRIBUTION')[1];
+#            open('predictions/lcontext'+nr+'.nl.IGTree.gr.out','w').write(final_distr);
+        
             
     #Figure out how much has been typed so far
     boundary = len(current_word);
@@ -107,21 +135,28 @@ def do_prediction_server(text,model,lexicon,recency_buffer,settings,sockets,nr='
     second_pick = '';
     third_pick = '';
     predictions = [];
-
-    #Try the recency_buffer
-    if pick == '' and boundary > 4:
-        source = 'RECENCY BUFFER';
-        pick = read_recency_buffer(recency_buffer,current_word,boundary);
+    used_rb = False;
 
     #Try context-sensitive, personal model
     if pick == '':
         source = 'PERS. MODEL/IGTREE';
-        pick, second_pick, third_pick, predictions = read_prediction_file(modelname,nr,current_word,boundary);
+        pick, second_pick, third_pick, predictions, used_rb = read_prediction_file(modelname,nr,current_word,boundary);
+
+        if used_rb:
+            source += ' +RB';
 
     #Try context-sensitive, general model
     if pick == '':
         source = 'GEN. MODEL/IGTREE';
-        pick, second_pick, third_pick, predictions = read_prediction_file('nl',nr,current_word,boundary);
+        pick, second_pick, third_pick, predictions,used_rb = read_prediction_file('nl',nr,current_word,boundary,recency_buffer);
+
+        if used_rb:
+            source += ' +RB';
+
+    #Try the recency_buffer
+    if pick == '' and boundary > 0:
+        source = 'RECENCY BUFFER';
+        pick = read_recency_buffer(recency_buffer,current_word,boundary);
 
     #Try context-free, personal model
     if pick == '':
@@ -144,8 +179,10 @@ def do_prediction_server(text,model,lexicon,recency_buffer,settings,sockets,nr='
     return {'full_word':pick,'word_so_far':current_word,'nr_options':len(predictions),
             'second_guess':second_pick,'third_guess':third_pick, 'source': source}; 
 
-def read_prediction_file(modelname,nr,current_word,boundary):
+def read_prediction_file(modelname,nr,current_word,boundary,recency_buffer=False):
     """Reads and orders the predictions by TiMBL""";
+
+    used_rb = False;
 
     #See if prediction is ready, if not wait
     ready = False;
@@ -205,8 +242,19 @@ def read_prediction_file(modelname,nr,current_word,boundary):
             elif i[1] > third_highest_confidence:
                 third_pick = i[0];
                 third_highest_confidence = i[1];
+
+    #Recency_buffer overrules
+    if recency_buffer:
+        for i in recency_buffer:
+            if i[:boundary] == current_word:
+                for j in predictions:
+                    if i == j[0]:
+                        if pick != i:
+                            pick = i;
+                            used_rb = True;
+                        break;
     
-    return pick, second_pick, third_pick, predictions;
+    return pick, second_pick, third_pick, predictions, used_rb;
 
 def read_frequency_file(model,current_word,boundary,cut_off_lexicon):
     """Returns the most frequent word that starts with current_word"""
@@ -266,7 +314,7 @@ def add_prediction(text,text_colored,prediction,source):
 def demo_mode(model,lexicon,settings):
 
     #Start stuff needed for prediction
-    sockets = start_servers(model);
+    sockets = start_servers(model,settings);
     recency_buffer = collections.deque(maxlen=settings['recency_buffer']);
 
     #Predict starting word
@@ -318,13 +366,10 @@ def demo_mode(model,lexicon,settings):
             while text_so_far_colored[-10:] in colors.values():
                 text_so_far_colored = text_so_far_colored[:-10];
 
-            char = 'Back'
-
         #Don't accept prediction
         else:
             text_so_far += char;
             text_so_far_colored += char;
-            char = 'Added'
 
         #Predict new word
         if not rejected:
@@ -339,7 +384,6 @@ def demo_mode(model,lexicon,settings):
         print(prediction['second_guess']+', '+prediction['third_guess']+', '+ \
               str(prediction['nr_options'])+' options, source:',colors[prediction['source']],
               prediction['source'],colors['white']);
-        print(char);
 
         #Check for quit
         if 'quit' in text_so_far.split():
@@ -400,8 +444,11 @@ def simulation_mode(model,lexicon,testfile,settings):
 def simulate(model,lexicon,content_rb,teststring,settings,nr,result):
 
     #Start the necessary things for the prediction
-    sockets = start_servers(model);
+    sockets = start_servers(model,settings);
     recency_buffer = collections.deque(content_rb,settings['recency_buffer']);
+
+    correct_words = open('output/correct'+str(nr),'a+');
+    wrong_words = open('output/wrong'+str(nr),'a+');
 
     #Find out where to start (because of overlap)
     if nr == 0:
@@ -454,6 +501,10 @@ def simulate(model,lexicon,content_rb,teststring,settings,nr,result):
 
             #If correct, calculate keystrokes saved and put in output
             if current_word == prediction['full_word']:
+
+                if prediction['source'] in ['GEN. MODEL/IGTREE +RB','PERS. MODEL/IGTREE +RB']:
+                    correct_words.write(current_word + '\t'+  prediction['source'] + ' '+ teststring[i-30:i+30] +'\n');
+                
                 output += '\n## FIRST GUESS CORRECT. SKIP. \n';
 #                predictions_marked_file.write('<');
 
@@ -501,6 +552,10 @@ def simulate(model,lexicon,content_rb,teststring,settings,nr,result):
                 output += '## SKKS ' + str(total_keystrokes_saved_sk) + ' of ' + str(nr_chars_typed) + ' (' +perc+'%) \n\n';
 
                 skks_got_it_already = True;
+            else:
+                if prediction['source'] in ['GEN. MODEL/IGTREE +RB','PERS. MODEL/IGTREE +RB']:
+                    wrong_words.write(prediction['full_word'] + '\t'+ prediction['source'] + teststring[i-30:i+30] + '\n');                
+                pass;
                 
         #Skip if the word was already predicted
         else:
@@ -638,7 +693,10 @@ def make_ngrams(text,approach):
             else:
                 ngrams = window_string(string);
         elif approach == 'l':
-            ngrams = window_string_letters(string);    
+            if nr == 0:
+                ngrams = window_string_letters(string,True);
+            else:
+                ngrams = window_string_letters(string);
 
         result.put((nr,ngrams));
 
@@ -695,7 +753,7 @@ def window_string(string,verbose = False):
 
     return ngrams;
 
-def window_string_letters(string):
+def window_string_letters(string,verbose = False):
     """Return the string as a list of letter 15-grams""";
 
     words = string.split();
@@ -718,8 +776,8 @@ def window_string_letters(string):
         if i[-1] == '_' or len(words) != 16 or i == ngrams[-1]:
             ngrams_to_remove.append(i);
 
-    for i in ngrams_to_remove:
-        ngrams.remove(i);
+#    for i in ngrams_to_remove:
+#        ngrams.remove(i);
 
     return ngrams[1:-1];
 
@@ -908,15 +966,22 @@ def ucto(string):
     os.remove('uctofile');
     return result.replace('<utt>','');
 
-def start_servers(model):
+def start_servers(model,settings):
     """Starts the necessary servers and connects to them""";
 
     #Personal model
     succeeded = False;
 
     while not succeeded:
-        port = get_free_port();
-        command('timblserver -i '+model+'.training.txt.IGTree +vdb +D -a1 -G +vcf -S '+str(port)+' -C 1000');
+
+        if settings['mode'] == 'd':
+            port = get_port_for_timblserver(model+'.training.txt.IGTree');
+        else:
+            port = False;
+
+        if not port:        
+            port = get_free_port();
+            command('timblserver -i '+model+'.training.txt.IGTree +vdb +D -a1 -G +vcf -S '+str(port)+' -C 1000');
             
         s1 = socket.socket(socket.AF_INET,socket.SOCK_STREAM);
 
@@ -931,8 +996,15 @@ def start_servers(model):
     succeeded = False;
 
     while not succeeded:
-        port = get_free_port();
-        command('timblserver -i wordmodels/nl.training.txt.IGTree +vdb +D -a1 -G +vcf -S '+str(port)+' -C 1000');
+
+        if settings['mode'] == 'd':
+            port = get_port_for_timblserver('wordmodels/nl.training.txt.IGTree');
+        else:
+            port = False;
+
+        if not port:                
+            port = get_free_port();
+            command('timblserver -i wordmodels/nl.training.txt.IGTree +vdb +D -a1 -G +vcf -S '+str(port)+' -C 1000');
             
         s2 = socket.socket(socket.AF_INET,socket.SOCK_STREAM);
 
@@ -954,17 +1026,32 @@ def get_free_port():
 
     return int(port);
 
+def get_port_for_timblserver(arg):
+
+    result = int(command('python gettimblserverport.py '+arg,True));
+
+    if result == 0:
+        print('  No server found, starting a new one');
+        return False; 
+    else:
+        print('  Using running server');
+        return result;
+
 def add_to_recency_buffer(rb,text):
     """Adds the latest word in a string to the recency buffer""";
 
-    rb.appendleft(text[-80:].split()[-1]);
+    last_word = text[-80:].split()[-1];
+#    if len(last_word) < 6:
+    if True:
+        rb.appendleft(last_word);
     return rb
 
 ######### Colors ##############
 colors = {'PERS. MODEL/IGTREE': '\033[0;35m', 'PERS. MODEL/LEXICON': '\033[1;34m',
           'GEN. MODEL/IGTREE': '\033[0;32m', 'GEN. MODEL/LEXICON': '\033[1;31m',
           'RECENCY BUFFER': '\033[1;31m', 'white': '\033[0m', 'I GIVE UP': '\033[0m',
-          'USER': '\033[0m'};
+          'USER': '\033[0m', 'PERS. MODEL/IGTREE +RB': '\033[1;31m',
+          'GEN. MODEL/IGTREE +RB': '\033[1;31m'};
 
 ######### Script starts here ######################
 
@@ -1019,6 +1106,11 @@ if '-rb' in sys.argv:
 else:
     settings['recency_buffer'] = 5;
 
+if '-dks' in sys.argv or '-dcs' in sys.argv:
+    settings['close_server'] = False;
+else:
+    settings['close_server'] = True;
+
 #Set directory reference (add .90 for the simulation mode)
 if settings['mode'] == 'd':
     dir_reference = inp[:-1];
@@ -1050,15 +1142,17 @@ elif settings['mode'] == 's':
     simulation_mode(model,lexicon,testfile,settings);
 
 #Close everything
-command('killall timblserver');
+if settings['close_server']:
+    command('killall timblserver');
 
 #TODO
+# In python2 een timblserverzoeker maken
+# Moet alles geattenueerd worden?
+# Lettermodus
+
 # Server modus
 
 # Haakje sluiten in simulatiemodus
 # Nadenken over nieuwe tab in simulatiemodus
 # Backspace: houdt rekening met recency buffer, als je over de kleurgrenzen heen backspacet gaan de kleuren raar doen
 # Letter modus: woorden kloppen niet met wat getypt-probleem fixen
-
-#BUGS
-# Eerste woord sim modus klopt niet
