@@ -102,31 +102,43 @@ def do_prediction_server(text,model,lexicon,recency_buffer,settings,sockets,nr='
 
     elif settings['approach'] == 'l':
 
-            #Preprocessing for Timbl        
-            newstring = text.replace(' ','_').replace('\n','');
-            letters_before = ' '.join(newstring[15:]);
-            lcontext = ('c '+ letters_before + '\n').encode();
+        if text == '' or text[-1] == ' ':
+            current_word = '';
+        else:
+            current_word = words[-1];
 
-            #Personal model
-            sockets[0].sendall(lcontext);
-            distr = '';
+        #Preprocessing for Timbl
+        newstring = text.replace(' ','_').replace('\n','');
+        letters_before = ' '.join(newstring[-15:]);
 
-            while distr == '' or 'DISTRIBUTION' not in distr or distr[-1] != '\n':
-                distr += sockets[0].recv(1024).decode();
+        while len(letters_before) < 29:
+            letters_before = '_ ' + letters_before;
 
-            final_distr = '[ word ]' + distr.split('DISTRIBUTION')[1];
-            open('predictions/lcontext'+nr+'.'+modelname+'.IGTree.gr.out','w').write(final_distr);
+        if len(current_word) > 0:
+            letters_before = current_word[0] + letters_before[1:];
 
-            #General back-up model
-#            sockets[1].sendall(lcontext);
-#            distr = '';
+        lcontext = ('c '+ letters_before + ' _\n').encode();
 
-#            while distr == '' or 'DISTRIBUTION' not in distr or distr[-1] != '\n':
-#                distr += sockets[1].recv(1024).decode();
+        #Personal model
+        sockets[0].sendall(lcontext);
+        distr = '';
 
-#            final_distr = '[ word ]' + distr.split('DISTRIBUTION')[1];
-#            open('predictions/lcontext'+nr+'.nl.IGTree.gr.out','w').write(final_distr);
-        
+        while distr == '' or 'DISTRIBUTION' not in distr or distr[-1] != '\n':
+            distr += sockets[0].recv(1024).decode();
+
+        final_distr = '[ word ]' + distr.split('DISTRIBUTION')[1];
+        open('predictions/lcontext'+nr+'.'+modelname+'.IGTree.gr.out','w').write(final_distr);
+
+        #General back-up model
+        sockets[1].sendall(lcontext);
+        distr = '';
+
+        while distr == '' or 'DISTRIBUTION' not in distr or distr[-1] != '\n':
+            distr += sockets[1].recv(1024).decode();
+
+        final_distr = '[ word ]' + distr.split('DISTRIBUTION')[1];
+        open('predictions/lcontext'+nr+'.nl.IGTree.gr.out','w').write(final_distr);
+    
             
     #Figure out how much has been typed so far
     boundary = len(current_word);
@@ -141,7 +153,7 @@ def do_prediction_server(text,model,lexicon,recency_buffer,settings,sockets,nr='
     #Try context-sensitive, personal model
     if pick == '':
         source = 'PERS. MODEL/IGTREE';
-        pick, second_pick, third_pick, predictions, used_rb = read_prediction_file(modelname,nr,current_word,boundary);
+        pick, second_pick, third_pick, predictions, used_rb = read_prediction_file(modelname,nr,current_word,boundary,settings);
 
         if used_rb:
             source += ' +RB';
@@ -149,7 +161,7 @@ def do_prediction_server(text,model,lexicon,recency_buffer,settings,sockets,nr='
     #Try context-sensitive, general model
     if pick == '':
         source = 'GEN. MODEL/IGTREE';
-        pick, second_pick, third_pick, predictions,used_rb = read_prediction_file('nl',nr,current_word,boundary,recency_buffer);
+        pick, second_pick, third_pick, predictions,used_rb = read_prediction_file('nl',nr,current_word,boundary,settings,recency_buffer);
 
         if used_rb:
             source += ' +RB';
@@ -180,7 +192,7 @@ def do_prediction_server(text,model,lexicon,recency_buffer,settings,sockets,nr='
     return {'full_word':pick,'word_so_far':current_word,'nr_options':len(predictions),
             'second_guess':second_pick,'third_guess':third_pick, 'source': source}; 
 
-def read_prediction_file(modelname,nr,current_word,boundary,recency_buffer=False):
+def read_prediction_file(modelname,nr,current_word,boundary,settings,recency_buffer=False):
     """Reads and orders the predictions by TiMBL""";
 
     used_rb = False;
@@ -244,17 +256,21 @@ def read_prediction_file(modelname,nr,current_word,boundary,recency_buffer=False
                 third_pick = i[0];
                 third_highest_confidence = i[1];
 
-    #Recency_buffer overrules
-    if recency_buffer:
-        for i in recency_buffer:
-            if i[:boundary] == current_word:
-                for j in predictions:
-                    if i == j[0]:
-                        if pick != i:
-                            pick = i;
-                            used_rb = True;
-                        break;
-    
+    if settings['approach'] == 'l' and highest_confidence < 0.5:
+        pick = '';
+        second_pick = '';
+    else:
+        #Recency_buffer overrules with the word approach
+        if recency_buffer:
+            for i in recency_buffer:
+                if i[:boundary] == current_word:
+                    for j in predictions:
+                        if i == j[0]:
+                            if pick != i:
+                                pick = i;
+                                used_rb = True;
+                            break;
+            
     return pick, second_pick, third_pick, predictions, used_rb;
 
 def read_frequency_file(model,current_word,boundary,cut_off_lexicon):
@@ -765,8 +781,11 @@ def window_string_letters(string,verbose = False):
 
         current_word = find_current_word(newstring, i).replace('_','');
         letters_before = ' '.join(newstring[i-15:i]);
-        if len(letters_before) > 1 and len(current_word) > 1:
-            letters_before = current_word[0] + letters_before[1:];
+        if len(letters_before) > 1:
+            if len(current_word) > 1 and letters_before[-1] != '_':
+                letters_before = current_word[0] + letters_before[1:];
+            else:
+                letters_before = '_' + letters_before[1:];
 
             ngrams.append(letters_before + ' ' +current_word);
 
@@ -970,6 +989,13 @@ def ucto(string):
 def start_servers(model,settings):
     """Starts the necessary servers and connects to them""";
 
+    if settings['approach'] == 'w':
+        foldername = 'wordmodels';
+        backupname = 'nlsave';
+    elif settings['approach'] == 'l':
+        foldername = 'lettermodels';
+        backupname = 'nlsmall';
+
     #Personal model
     succeeded = False;
 
@@ -999,13 +1025,13 @@ def start_servers(model,settings):
     while not succeeded:
 
         if settings['mode'] == 'd':
-            port = get_port_for_timblserver('wordmodels/nlsave.training.txt.IGTree');
+            port = get_port_for_timblserver(foldername+'/'+backupname+'.training.txt.IGTree');
         else:
             port = False;
 
         if not port:                
             port = get_free_port();
-            command('timblserver -i wordmodels/nlsave.training.txt.IGTree +vdb +D -a1 -G +vcf -S '+str(port)+' -C 1000');
+            command('timblserver -i '+foldername+'/'+backupname+'.training.txt.IGTree +vdb +D -a1 -G +vcf -S '+str(port)+' -C 1000');
             
         s2 = socket.socket(socket.AF_INET,socket.SOCK_STREAM);
 
@@ -1148,10 +1174,7 @@ if settings['close_server']:
 
 #TODO
 # Lettermodus
-
 # Server modus
 
 # Haakje sluiten in simulatiemodus
-# Nadenken over nieuwe tab in simulatiemodus
-# Nadenken over keys bespaard in simulatiemodus
 # Backspace: houdt rekening met recency buffer, als je over de kleurgrenzen heen backspacet gaan de kleuren raar doen
