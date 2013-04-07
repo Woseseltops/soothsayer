@@ -1,0 +1,86 @@
+\documentclass[12pt]{article}
+
+\title{Using idiolects for autocompletion}
+\author{Wessel Stoop (\& Antal van den Bosch?)}
+
+\usepackage{covington}
+\usepackage{graphicx}
+\usepackage{natbib}
+
+\renewcommand{\familydefault}{\sfdefault}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+Predicting what somebody is going to say entails more than just knowledge of the language he/she uses; it is impossible to say what the next sentence in this text is going to be only on the basis of knowledge of English. [x] show this also true for autocompletion systems: [...]. [y] takes another approach to solve the same problem: he makes the system learn 'on the fly' by adding a recency buffer. This means that a list of the n most recent words is kept in memory. Whenever the word the user is keying in matches a word in this buffer, this word is predicted. So in example \ref{swim}, 'they' is predicted because it was used recently.
+
+\begin{examples} \label{swim}
+\item They decided to go swimming because t ...
+\end{examples}
+
+Both approaches significantly increase the number of keystrokes saved, but both approaches have downsides if one wants to implement them in a practical application for everyday use: for the system by [x] training texts in the same genre are needed, which might not be available, whereas the system by [y] is context-insensitive and thus throws away a lot of intelligence. For example, while a context-sensitive autocompletion system will probably be able to predict 'to' here, the one with the recency buffer will predict 'Tommy'.
+
+\begin{examples} \label{swim}
+\item Tommy was going t ...
+\end{examples}
+
+In this paper, a new approach to this problem is suggested: using texts written by the user earlier as training material. This way, context-sensitivity can be combined with material that is very likely to be available - the \emph{Sent emails} box from an email account would be enough in most cases. \\\indent
+Using an idiolect (i.e. the language from only one person) instead of a general language model makes sense from a linguistic point of view as well.
+
+\section{Methodology}
+
+\subsection{Autocompletion system: Soothsayer}
+
+The software used for the autocompletion experiments has the working title \emph{Soothsayer}, consists of two types of modules: context-sensitive ones and context-insensitive ones. 
+
+\textbf{Context-sensitive modules} are a wrapper around \emph{TiMBL}. TiMBL is an open source software package implementing several memory-based learning algorithms ([[ref]]). For reasons of speed, TiMBL's IGTree was used. IGTree is an approximation of IB1-IG (which is k-nearest neighbour classification), but reduces the classification process to a much faster decision tree. We refer to [[ref]] for details about IGTree's exact workings.
+
+Soothsayer can transform any text into 4-grams. These 4-grams are then given to TiMBL, which produces an IGTree on the basis of this material, henceforth referred to as the 'language model'. On this basis of this language model, new examples can be classified. This entails that a 3-gram is given to TiMBL, and that TiMBL responds with a list of words that can possibly follow this 3-gram, along with confidence values. Or, to put it differently, the fourth word in the training 4-grams functions as the class, the three words that came before it function as the features.
+
+Soothsayer's job thus is collecting three words to the left of what the user is typing, and asking TiMBL to classify these three words. The resulting class, which is the word that will most likely follow what has been keyed in so far (at least, on the basis of the language model that is being used), is showed to the user. If the user agrees, he/she can hit space or a punctuation mark to accept. If TiMBL returns multiple possible words (which is almost always the case), the word with the highest confidence value is chosen. When the user has already begun keying in the first letters of the next word, only words that start with exactly these letters are taken into consideration. For example, for both sentence \ref{ilike} and \ref{ilikes} Soothsayer will ask TiMBL to classify the 3-gream \emph{'\_ I like'}.
+
+\begin{examples}
+\item I like \label{ilike}
+\item I like s \label{ilikes}
+\end{examples}
+
+Imagine that TiMBL returns the classes 'soup', 'icecream' and 'sandwiches', with a confidence of 0.5, 0.9 and 0.8 respectively. For sentence \ref{ilike}, 'icecream' will be chosen, because it has the highest conficen value. For \ref{ilikes}, however, the 's' has already been given, which rules out 'icecream'. From the words that are still possible 'sandwich' has the highest confidence value, so that is the one that Soothsayer will show the user.
+%Confidence uitleggen
+
+\textbf{Context-insensitive} modules work with a frequency list based on the training material. Soothsayer looks at the word that is being keyed in, and returns the most frequent word that matches with what has been given so far. For sentence \ref{ilike}, this will be the most frequent word on the list (because nothing has been given so far), for \ref{ilikes} this will be the most frequent word that starts with an s.
+
+Soothsayer's modules can be concatenated. This means that a second modules takes over once the first module no longer has suggestions, the third module takes once the second no longer has suggestions, etc. For all experiments described here, only two modules have been used: a context-sensitive followed by a context-insensitve one, both based on the same material.
+
+%tab
+
+\subsection{Training and test material: SoNaR and tweets}
+
+%Sonar
+
+
+Twitter provides an excellent data source for researching idiolects, as Twitter in essence is a collection of language ordered by author. By communicating with the Twitter API we were able to follow a manually created set of Dutch Twitter users from January until April 2013, and save every tweet they produced. Retweets were excluded.
+%Meer tweets
+
+To capture the networks as good as possible, we extended our set of Twitter users every 30 minutes with the Twitter user most of the tweets in our collection referred to that was not yet on our list. This way we were able to add Twitter users that were somehow connected to a lot of the Twitter users we were already following. To limit our dataset to Dutch Twitter users, only Dutch tweets were counted. Because early tests showed this approach will mostly focus on famous Twitter users, we also extended our list with the Twitter user that was most referred to in general every 30 minutes. This way, we were able to add the Twitter users that the Twitter users we already were following communicated with a lot.
+
+In terms of amount of Tweets, the Twitter users show a Zipfian curve [[ref]]  [[uitzoeken of dat echt zo is!]]; most of the Twitter users we followed only produces a handful of tweets. For that reason, we limited ourselves to the 50 most frequent tweeters in the experiments.
+
+For the experiments, a Twitter user was considered a 'friend' of another Twitter user when both users tweeted to the other person at least three times. We have chosen this number because a total of six tweets from both sides makes it likely that both Twitter users know eachother. To find out who are the friends of user X, we make a list of which other users he/she addresses and how often. For each addressee, we count if he/she addresses user X at least three times as well.
+
+\subsection{Evaluation measures}
+The prestations of our autocompletion system was measured in 'percentage of keystrokes saved'. We calculate these in two different ways:
+\begin{itemize}
+\item By only showing the user one prediction at a time, which could be accepted with the spacebar or a punctuation mar, and is rejected with the tab key. Following [y], 'we do not consider ranked n-best lists of completion suggestions, as in many devices and circumstances it is inefficient or impossible to present these suggestion lists. Inspecting a list of suggestions also poses a larger cognitive load than checking a single suggestion [...].' (ref). This evaluation method will be referred to as 'Classical Keystrokes Saved' (CKS).
+\item Smartphone application SwiftKey always shows the user three prediction, which seem to be (1) what the user has keyed in so far, (2) the most likely word and (3) the second most likely word. In case the user has not yet started typing the next word, option (1) is replaced by the third most likely prediction. Because smartphones use a touchscreen as an input device, no extra keystrokes are needed. This evaluation method will be referred to as 'SwiftKey Keystrokes Saved' (SKKS).
+\end{itemize}
+
+%more explanation
+
+\subsection{Procedure}
+
+\section{Results}
+
+\section{Conclusion and discussion}
+
+\end{document}
