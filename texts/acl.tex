@@ -6,9 +6,8 @@
 
 \usepackage{covington}
 \usepackage{graphicx}
-\usepackage{natbib}
 
-\title{Using idiolects and sociolects for autocompletion}
+\title{Using idiolects and sociolects for word prediction}
 \author{Wessel Stoop (\& Antal van den Bosch?)}
 
 \date{}
@@ -17,41 +16,36 @@
 \maketitle
 
 \begin{abstract}
-
+In this paper, we show that our word prediction system performs better when it is tested on texts by the same authors it has been trained on. By training on the language of earlier tweets, for some Twitter users up to 53\% of the keystrokes of new tweets could have been saved. These results can further be improved by training on more tweets, in particular on tweets produced by people related to the author somehow.
 \end{abstract}
 
 \section{Introduction}
-Predicting what somebody is going to say entails more than just knowledge of the language he/she uses; it is impossible to say what the next sentence of this text is going to be only on the basis of knowledge of English. [x] show this also true for autocompletion systems: [...]. [y] takes another approach to solve the same problem: he makes the system learn 'on the fly' by adding a recency buffer. This means that a list of the n most recent words is kept in memory. Whenever the word the user is keying in matches a word in this buffer, this word is predicted. So in example \ref{swim}, 'they' will be predicted because it was used recently.
+Predicting what somebody is going to say entails more than just knowledge of the language he/she uses; it is impossible to say what the next sentence of this text is going to be only on the basis of knowledge of English. \newcite{verberne12} show this also true for word prediction applications. These applications try to predict the word the user currently typing, or is going to type next, with the goal to reduce the number of keystrokes. According to Verberne et al., better results can be achieved if their system has been trained on texts from a similar domain, and thus already has some 'knowledge' of what is going to come. \newcite{vandenbosch11} takes another approach to solve the same problem: he makes the system learn 'on the fly' by adding a recency buffer. This means that a list of the n most recent words is kept in memory. Whenever the word the user is keying in matches a word in this buffer, this word is predicted. So in the sentence \emph{They decided to go swimming because t...}, 'they' will be predicted because it was used recently.
 
-\begin{examples} \label{swim}
-\item They decided to go swimming because t ...
-\end{examples}
+Both approaches significantly increase the number of keystrokes saved, but both approaches also have downsides: for the system by \newcite{verberne12} training texts in the same genre are needed, which might not be available, whereas the system by \newcite{vandenbosch11} is context-insensitive and thus throws away a lot of intelligence. For example, while a context-sensitive text-prediction system will probably be able to predict 'to' for the sentence \emph{Tommy was going t...}, the one with the recency buffer will predict 'Tommy'.
 
-Both approaches significantly increase the number of keystrokes saved, but both approaches also have downsides: for the system by [x] training texts in the same genre are needed, which might not be available, whereas the system by [y] is context-insensitive and thus throws away a lot of intelligence. For example, while a context-sensitive autocompletion system will probably be able to predict 'to' for sentence \ref{tommy}, the one with the recency buffer will predict 'Tommy'.
+In this paper, a new approach is suggested: using texts written by the user earlier as training material. This way, context-sensitivity can be combined with material that is very likely to be available. Using an idiolect (i.e. the language from only one person) instead of a general language model makes sense from a linguistic point of view as well; a small but growing body of literature suggests there are significant differences between the language of individual language users, on all levels of language \cite[among others]{mollin09,barlow10}.
 
-\begin{examples} 
-\item Tommy was going t ... \label{tommy}
-\end{examples}
+To investigate the usefulness of idiolects in text prediction, we will use tweets. Twitter provides an excellent data source for researching idiolects, as Twitter in essence is a collection of language ordered by author. However, when trying to predict new tweets on the basis of earlier tweets, we have a practical and a theoretical problem. The practical problem is that a tweet only consists of 140 characters at most, which means that our datasets per user are likely to be relatively small. The theoretical problem is that the output of a particular person is only part of the idiolect; of course, people know much 'more language' than they produce. To really 'capture' an idiolect, it might make more sense to use the linguistic \emph{input} for a particular individual, instead of his/her output. We will try to solve both problems at once by also including the tweets of the 'friends' of the Twitter users investigated in the experiments described here. Since it is not possible to extract the exact social relation between Twitter users, we will assume that all users who talk to eachother at least 6 times (3 times from A to B and 3 times from B to A) are friends. This approach provides more training material, contributing to a solution for problem 1, and gives us language the investigated users are very likely to have read, contributing to a solution for problem 2. Of all input that could have been chosen for a particular Twitter user, we believe that the language of his/her friends is one of the best choices, as it is well known in the field of sociolinguistics that people that are in some way related try to speak alike [[refs?]]. The resulting language varieties are called sociolects.
 
-In this paper, a new approach is suggested: using texts written by the user earlier as training material. This way, context-sensitivity can be combined with material that is very likely to be available.
+The questions we are trying to answer thus are:
 
-Using an idiolect (i.e. the language from only one person) instead of a general language model makes sense from a linguistic point of view as well:
-
-To investigate the usefulness of idiolects in autocompletion, we will use tweets. Twitter provides an excellent data source for researching idiolects, as Twitter in essence is a collection of language ordered by author. However, when trying to predict new tweets on the basis of earlier tweets, we have a practical and a theoretical problem. The practical problem is that a tweet only consists of 140 characters at most, which means that we only have an acceptable amount of data for the most active Twitter users. The theoretical problem is that the output of a particular person is only part of the idiolect; of course, people know much 'more language' than what they say, otherwise they would not be able to understand people who speak or write differently than how they speak and write themselves. To really 'capture' an idiolect, it might make more sense to use the linguistic \emph{input} for a particular individual, instead of his/her output.
-
-We will try to solve both problems at once by also including the tweets of the 'friends' of the Twitter users investigated in the experiments described here. Since it is not possible to extract an indication of the exact social relation between Twitter users, we will assume that all users who talk to eachother at least 6 times (3 times from A to B and 3 times from B to A) are friends. This approach provides more training material, contributing to a solution for problem 1, and gives us language the investigated users are very likely to have read, contributing to a solution for problem 2. Of all input that could have been chosen for a particular Twitter user, we believe that the language of his/her friends is one of the best choices, as it is well known in the field of sociolinguistics that people that are in some way related try to speak alike [[refs?]]. The resulting language varieties are called sociolects.
+\begin{enumerate}
+\item Is it possible to do more accurate predictions if we train our language system on texts by the same author?
+\item Is it possible to do more accurate predictions if we train our language system on texts by people related to the author in some way?
+\end{enumerate}
 
 \section{Methodology}
 
-\subsection{Autocompletion system: Soothsayer}
+\subsection{Text prediction system: Soothsayer}
 
-The software used for the autocompletion experiments, which has the working title \emph{Soothsayer}, consists of two types of modules: context-sensitive ones and context-insensitive ones. 
+The software used for the text prediction experiments, which has the working title \emph{Soothsayer}, consists of two types of modules: context-sensitive ones and context-insensitive ones. 
 
-\textbf{Context-sensitive modules} are a wrapper around \emph{TiMBL}. TiMBL is an open source software package implementing several memory-based learning algorithms ([[ref]]). For reasons of speed, TiMBL's IGTree was used. IGTree is an approximation of IB1-IG (which is k-nearest neighbour classification), but reduces the classification process to a much faster decision tree. We refer to [[ref]] for details about IGTree's exact workings.
+\textbf{Context-sensitive modules} are a wrapper around \emph{TiMBL}. TiMBL is an open source software package implementing several memory-based learning algorithms. For reasons of speed, TiMBL's IGTree was used. IGTree is an approximation of IB1-IG (which is k-nearest neighbour classification), but reduces the classification process to a much faster decision tree. We refer to \newcite{daelemans97} for details about IGTree's exact workings.
 
-Autocompletion is thus treated by these modules as a classification task. First, Soothsayer transforms the training texts into 4-grams. The first three words of each 4-gram are the features, the last one is the class. On the basis of these 4-grams an IGTree is created, henceforth reffered to as the 'language model'. With this language model, new examples can be classified. Classifying a new example means that a 3-gram is given to TiMBL, and that TiMBL responds with a list of words that can possibly follow this 3-gram, along with confidence values. 
+Text prediction is thus treated as a classification task by these modules. First, Soothsayer transforms the training texts into 4-grams. The first three words of each 4-gram are the features, the last one is the class. On the basis of these 4-grams an IGTree is created, henceforth referred to as the 'language model'. With this language model, new examples can be classified. Classifying a new example means that a 3-gram is given to TiMBL, and that TiMBL responds with a list of words that can possibly follow this 3-gram, along with confidence values. 
 
-Soothsayer's job thus is collecting three words to the left of what the user is typing, and asking TiMBL to classify these three words. The resulting class, which is the word that will most likely follow what has been keyed in so far (at least, on the basis of the language model that is being used), is showed to the user. If TiMBL returns multiple possible words (which is almost always the case), the word with the highest confidence value is chosen. When the user has already begun keying in the first letters of the next word, only words that start with exactly these letters are taken into consideration. For example, for both sentence \ref{ilike} and \ref{ilikes} Soothsayer will ask TiMBL to classify the 3-gream \emph{'\_ I like'}.
+Soothsayer's job thus is collecting three words to the left of what the user is typing, and asking TiMBL to classify these three words. The resulting class, which is the word that will most likely follow what has been keyed in so far (at least, on the basis of the language model that is being used), is shown to the user. If TiMBL returns multiple possible words (which is almost always the case), the word with the highest confidence value is chosen. When the user has already begun keying in the first letters of the next word, only words that start with exactly these letters are taken into consideration. For example, for both sentence \ref{ilike} and \ref{ilikes} Soothsayer will ask TiMBL to classify the 3-gream \emph{'\_ I like'}.
 
 \begin{examples}
 \item I like \label{ilike}
@@ -63,64 +57,37 @@ Imagine that TiMBL returns the classes 'soup', 'icecream' and 'sandwiches', with
 
 \textbf{Context-insensitive} modules work with a frequency list based on the training material. Soothsayer looks at the word that is being keyed in, and returns the most frequent word that matches with what has been given so far. For sentence \ref{ilike}, this will be the most frequent word on the list (because nothing has been given so far), for \ref{ilikes} this will be the most frequent word that starts with an s.
 
-Soothsayer's modules can be concatenated. This means that a second modules takes over once the first module no longer has suggestions, the third module takes over once the second no longer has suggestions, etc. For all experiments described here, only two modules have been used: a context-sensitive one followed by a context-insensitve one, both based on the same material.
-
-\subsection{Training and test material: tweets}
-
-By communicating with the Twitter API we were able to follow a manually created set of Dutch Twitter users from January until April 2013, and save every tweet they produced. Retweets were excluded.
-%Meer tweets
-
-To capture the networks of these users as good as possible, we extended our set every 30 minutes with the Twitter user most of the tweets in our collection referred to that was not yet on our list. This way we were able to add Twitter users that were somehow connected to a lot of the Twitter users we were already following. To limit our dataset to Dutch Twitter users, only references in Dutch were counted. Because early tests showed this process often produces famous Twitter users (i.e. people the original users do not know in real life), we also extended our list with the Twitter user that was most referred to in general every 30 minutes. This way, we were able to add the Twitter users that the Twitter users we already were following communicated with a lot. Again, only references in Dutch were counted.
-
-In terms of amount of Tweets, the Twitter users show a Zipfian curve [[ref]]  [[uitzoeken of dat echt zo is!]]; most of the Twitter users we followed only produced a handful of tweets. For that reason, we limited ourselves to the 50 most frequent tweeters in the experiments.
-
-A Twitter user was considered a 'friend' of another Twitter user when both users tweeted to the other person at least three times. We have chosen this number because a total of six tweets from both sides makes it likely that both Twitter users know eachother. So to find out who are the friends of user X, we make a list of which other users he/she addresses at least three times. For each addressee, we count if he/she addresses user X at least three times as well.
-
-As a control corpus, a random selection of the blogs, emails and Wikipedia articles from the SoNaR corpus for written Dutch [[ref]] were used. These texts were chosen because they were believed to be neither very formal nor very informal.
-
-%Hoeveel woorden twitter users? 
-
-\subsection{Evaluation measures}
-The prestations of our autocompletion system were measured in 'percentage of keystrokes saved'. We calculate these in two different ways:
-\begin{itemize}
-\item By only showing the user one prediction at a time, which could be accepted with the spacebar or punctuation, and could be rejected with the tab key. Following [y], 'we do not consider ranked n-best lists of completion suggestions, as in many devices and circumstances it is inefficient or impossible to present these suggestion lists. Inspecting a list of suggestions also poses a larger cognitive load than checking a single suggestion [...].' (ref). The percentage of keystrokes that could have been saved when only one prediction was shown will be referred to as 'Classical Keystrokes Saved' (CKS).
-\item The popular smartphone application SwiftKey always shows the user three predictions, which seem to be (1) what the user has keyed in so far, (2) the most likely prediction and (3) the second most likely prediction. In case the user has not yet started typing the next word, option (1) is replaced by the third most likely prediction. Because smartphones use a touchscreen as an input device, no extra keystrokes are needed. The percentage of keystrokes that could have been saved when two (and sometimes three) predictions were shown will be referred to as 'SwiftKey Keystrokes Saved' (SKKS).
-\end{itemize}
-
-\subsection{Procedure}
-From the 50 selected Twitters used, the 10\% most recent Tweets were used to test on. For \textbf{experiment 1}, which investigated idiolects, 51 language models were created: 50 based on the remaining on the remaining 90\% for each Twitter user, and 1 based on the written Dutch corpus. Soothsayer calculated the CKS and SKKS for all 50 testfiles twice: one when using the general language model, and one when using the language model based on earlier tweets by the same author.
-
-For \textbf{experiment 2}, which investigated sociolects, another 100 language models were created. The first fifty of these were trained on 90\% of the material from the selected Twitter users \emph{and} the tweets by their friends (sociolect 1). The other fifty language models were also trained 90\% of the material from the selected Twitter users \emph{and} the tweets of the friends of a random other Twitter user (sociolect 2). The same 50 test files used in experiment 1 were used to calculate the CKS and SKKS.
-
-\section{Results}
+Soothsayer's modules can be concatenated. This means that a second modules takes over once the first module no longer has suggestions, the third module takes over once the second no longer has suggestions, etc. For all experiments described here, only two modules have been used: a context-sensitive one followed by a context-insensitive one, both based on the same material.
 
 \begin{table*}[t]
 \begin{tabular}{l|*{17}{l}}
-Twitter user&0&1&2&3&4&5&6&7&8&9&10&11&12&13&14&15&16\\
+Twitter user&1&2&3&4&5&6&7&8&9&10&11&12&13&14&15&16\\
 \hline
-Idiolect CKS\\
-Idiolect SKKS\\
+Idiolect CKS&27&33&25&26&24&30&30&24&38&21&34&25&30&25&22&26\\
+Idiolect SKKS&31&37&28&28&28&34&33&27&44&24&38&26&33&29&26&29\\
 \hline
-General Model CKS\\
-General Model SKKS\\
+General model CKS&21&20\\
+General model SKKS&21&20\\
 \hline
-Sociolect 1 CKS\\
-Sociolect 1 SKKS\\
+Sociolect 1 CKS&36&36\\
+Sociolect 1 SKKS&36&39\\
 \hline
-Sociolect 2 CKS\\
-Sociolect 2 SKKS\\
+Sociolect 2 CKS&33&33\\
+Sociolect 2 SKKS&37&37\\
 \end{tabular}
+\caption{Percentages of the for Twitter users 1-16, using 4 different language models.}
+\label{result1}
 \end{table*}
 
 \begin{table*}[t]
 \begin{tabular}{l|*{17}{l}}
 Twitter user&17&18&19&20&21&22&23&24&25&26&27&28&29&30&31&32&33\\
 \hline
-Idiolect CKS\\
-Idiolect SKKS\\
+Idiolect CKS&26&37&27&27&40&27&23&23&26&26&24&25&37&31&27&50&26\\
+Idiolect SKKS&30&41&31&31&48&31&26&27&30&28&27&28&42&35&30&53&30\\
 \hline
-General Model CKS\\
-General Model SKKS\\
+General model CKS\\
+General model SKKS\\
 \hline
 Sociolect 1 CKS\\
 Sociolect 1 SKKS\\
@@ -128,17 +95,19 @@ Sociolect 1 SKKS\\
 Sociolect 2 CKS\\
 Sociolect 2 SKKS\\
 \end{tabular}
+\caption{Percentages of the for Twitter users 17-33, using 4 different language models.}
+\label{result2}
 \end{table*}
 
 \begin{table*}[t]
 \begin{tabular}{l|*{17}{l}}
 Twitter user&34&35&36&37&38&39&40&41&42&43&44&45&46&47&48&49&50\\
 \hline
-Idiolect CKS\\
-Idiolect SKKS\\
+Idiolect CKS&19&23&20&21&24&29&21&36&24&29&28&29&20&26&45&22&27\\
+Idiolect SKKS&23&27&23&30&27&32&28&39&28&35&32&33&23&30&51&25&30\\
 \hline
-General Model CKS\\
-General Model SKKS\\
+General model CKS\\
+General model SKKS\\
 \hline
 Sociolect 1 CKS\\
 Sociolect 1 SKKS\\
@@ -146,8 +115,48 @@ Sociolect 1 SKKS\\
 Sociolect 2 CKS\\
 Sociolect 2 SKKS\\
 \end{tabular}
+\label{result3}
+\caption{Percentages of the for Twitter users 33-50, using 4 different language models.}
 \end{table*}
 
-\section{Conclusion and discussion}
+
+\subsection{Training and test material: tweets}
+
+By communicating with the Twitter API we were able to follow a manually created set of Dutch Twitter users from January until April 2013, and save every tweet they produced. Retweets were excluded.
+%Meer tweets
+
+To capture the networks of these users as good as possible, we extended our set every 30 minutes with (1) the user most of the tweets in our collection referred to and (2) the user that was most referred to in general. This way were able to add users that had (1) a lot of connections to the people we were already following and (2) users at least one of the people we were following communicated with a lot. We limited ourselves to Dutch tweets.
+
+In terms of amount of Tweets, the Twitter users show a Zipfian curve [[ref]]  [[uitzoeken of dat echt zo is!]]; a very small group produced a large amount of tweets and vice versa. For that reason, we limited ourselves to the 50 most frequent tweeters in the experiments described here. The amount of words ranged from 480.000 for the most frequent tweeter to 200.000 for the least frequent tweeter.
+
+For each of these 50 users, a list of 'friends' was created. A Twitter user was considered a friend of another Twitter user when both users tweeted to the other person at least three times. We have chosen this number because a total of six tweets from both sides makes it likely that both Twitter users know eachother. 
+
+As a control corpus, a random selection of the blogs, emails and Wikipedia articles from the SoNaR corpus for written Dutch [[ref]] was used. These texts were chosen because they were believed to be neither very formal nor very informal. The control corpus consisted of 55.212.868 words.
+
+\subsection{Evaluation measures}
+The prestations of our text prediction system were measured in 'percentage of keystrokes saved'. We calculate these in two different ways:
+\begin{itemize}
+\item By only showing the user one prediction at a time, which could be accepted with the spacebar or a punctuation mark, or could be rejected with the tab key. As noted by \newcite{vandenbosch11}, for many devices and applications it might not be possible or practical for the user to inspect a list of multiple suggestions. The percentage of keystrokes that could have been saved when only one prediction was shown will be referred to as 'Classical Keystrokes Saved' (CKS).
+\item The popular smartphone application SwiftKey always shows the user three predictions, which seem to be (1) what the user has keyed in so far, (2) the most likely prediction and (3) the second most likely prediction. In case the user has not yet started typing the next word, option (1) is replaced by the third most likely prediction. Because smartphones use a touchscreen as an input device, no extra keystrokes are needed. The percentage of keystrokes that could have been saved when two (and sometimes three) predictions were shown will be referred to as 'SwiftKey Keystrokes Saved' (SKKS).
+\end{itemize}
+
+\subsection{Procedure}
+For each of the 50 selected Twitter users, the 10\% most recent Tweets were removed and used for testing purposes. It was tested how many keystrokes could have been saved on the basis of four language models: the \textbf{general model}, which was based on written texts by various authors, the \textbf{idiolect}, which was based on the 90\% remaining tweets from the same author, \textbf{sociolect 1}, which was based on 90\% of the remaining tweets from the same author \emph{and} the tweets of his/her friends, and \textbf{sociolect 2}, which was based which was based on 90\% of the remaining tweets from the same author and the tweets of the friends of a random other Twitter user. Sociolect 2 was created as a control model for sociolect 1, so we can tell to what extent any improvements of adding tweets can be attributed to the fact that these are tweets from friends.
+
+\section{Results}
+Table 1, 2 and 3 show the results for each of the 50 users. The users are ordered from most material to least material. A few things to note:
+
+\begin{itemize}
+\item Despite the general model having roughly 200 times as much training material, for every user the language model based on his/her own tweets performed much better.
+\item For all users, adding tweets produced by others improves the results.
+\item In almost all cases, adding tweets produced by friends (sociolect1) has better results than tweets by random twitter users (sociolect 2).
+\item There are a lot of individual differences. For some users it is possible to correctly predict [[x]]\% of the characters, while for others we could only predict [[y]]\%.
+\end{itemize}
+
+\section{Conclusion}
+In this paper we investigated whether our text prediction system could save more keystrokes in a text when it was trained on texts by the same author (question 1), using early tweets to predict more recent tweets. This turned out to be the case: despite the general model having roughly 200 times as much training material, the language models based on early tweets performed much better. Adding tweets by other Twitter users further improved the results (which is in line with \cite{verberne12}), but in most cases language models based on tweets by people related to the author somehow performed best (question 2).
+
+\bibliographystyle{acl}
+\bibliography{wesseltest}
 
 \end{document}
