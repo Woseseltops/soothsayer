@@ -36,17 +36,15 @@ In this study we explore how word completion suggestions based on context-sensit
 \end{abstract}
 
 \section{Introduction}
-Predicting what somebody is going to type in a text editor entails more than just knowledge of the language he or she uses; it is impossible to say what the next sentence of this text is going to be only on the basis of knowledge of English. \newcite{verberne12} show this also true for word prediction applications used in predictive editing (or word completion) systems. Predictive editing has become a regular and popular commodity in text editors on mobile devices and in query completion. These applications try to predict the word the user is currently typing, or is going to type next, with the goal to reduce the number of keystrokes needed to complete the message. According to Verberne {\it et al}., better results can be achieved if their system has been trained on texts from a similar domain, and thus already has some useful expectations of what is going to come. \newcite{vandenbosch11} takes another approach to solve the same problem: he makes the system learn 'on the fly' by adding a recency buffer. This means that a list of the $n$ most recent words is kept in memory. Whenever the word the user is keying in matches a word in this buffer, this word is predicted. For instance, in the sentence \emph{They decided to go swimming because t...}, 'they' will be predicted because it was used recently.
+Predicting what somebody is going to type in a text editor entails more than just generic knowledge of the language he or she uses. \newcite{verberne12} show this true for word prediction applications used in predictive editing (or word completion) systems. Predictive editing has become a regular and popular commodity in text editors on mobile devices and in query completion. These applications try to predict the word the user is currently typing, or is going to type next, with the goal to reduce the number of keystrokes needed to complete the message. According to Verberne {\it et al}., better results can be achieved if their system has been trained on texts from a similar domain, and thus already has some useful expectations of what is going to come. \newcite{vandenbosch11} takes another approach to solve the same problem: he makes the system learn 'on the fly' by adding a recency buffer. This means that a list of the $n$ most recent words is kept in memory. Whenever the word the user is keying in matches a word in this buffer, this word is predicted. For instance, in the sentence \emph{They decided to go swimming because t...}, 'they' will be predicted because it was used recently.
 
 Both approaches help to increase the number of keystrokes saved, but they also have downsides: for the system by \newcite{verberne12} training texts in the same genre are needed, which might not be available, whereas the system by \newcite{vandenbosch11} ignores context information that it should weigh more intelligently. For example, while a context-sensitive text-prediction system will probably be able to predict 'to' for the sentence \emph{Tommy was going t...}, the one with the recency buffer will predict 'Tommy'.
 
-In this paper two alternative approaches are suggested: using texts written by the user earlier as training material, and using texts from the author's social context as additional training material. The former emulates the sociolinguistic notion of ideolect, while the latter approximates the notion of sociolect. Using an idiolect (i.e. the language from only one person) instead of a general language model makes sense from a linguistic point of view as well; a small but growing body of literature suggests there are significant differences between the language of individual language users, on all levels of language \cite[among others]{mollin09,barlow10}. The same is likely to hold for the sociolect, the aggregate of language an individual language user is exposed to in his social communication.
+In this paper two alternative approaches are suggested: using texts written before by the user as training material, and using texts from the author's social context as additional training material. The former emulates the sociolinguistic notion of ideolect, while the latter approximates the notion of sociolect. Using an idiolect (i.e. the language from only one person) instead of a general language model makes sense from a linguistic point of view; a small but growing body of literature suggests there are significant differences between the language of individual language users, on all levels of language \cite[among others]{mollin09,barlow10}. The same is likely to hold for the sociolect, the aggregate of language an individual language user is exposed to in his social communication.
 
-The modeling of an ideolect can be seen as the relatively well-understood notion of personalization, while the second approach, to model sociolect, is novel. To investigate the usefulness of idiolect and sociolect modeling in text prediction, we will use tweets. Twitter provides an excellent data source for researching idiolects and sociolects, as Twitter in essence is a collection of language marked by author, as well as a network of authors. 
+The modeling of an ideolect can be seen as the relatively well-understood notion of personalization, while the second approach, to model sociolect, is novel. To investigate the usefulness of idiolect and sociolect modeling in text prediction, we will use tweets. Twitter provides an excellent data source for researching idiolects and sociolects, as Twitter in essence is a collection of language marked by author, as well as a network of authors. The operationalization of the notion of 'friends' or social contacts on social media such as Twitter is problematic and can only be approximated in an automatic processing setup. We will assume that all users who talk to each other at least six times symmetrically, i.e. three times from user A to B and three times from B to A, are friends. 
 
-The operationalization of the notion of 'friends' or social contacts on social media such as Twitter is problematic and can only be approximated in an automatic processing setup. We will assume that all users who talk to each other at least six times symmetrically, i.e. three times from user A to B and three times from B to A, are friends. 
-
-Note that the concepts of ideolect and sociolect are strongly related. For instance, the model we will call 'ideolect' in our experiments is only based on the \emph{output} of a particular person, but of course, people know much 'more language' than they produce. As an approximation of the language a person knows, it may make sense to harvest some of the the linguistic \emph{input} for a particular individual. Of all input that could have been chosen for a particular Twitter user, we believe that the language of his or her friends (i.e. the language model we will call 'sociolect') is one of the best choices, as it is well known in the field of sociolinguistics that people to some extent align their language use in communication [[refs?]]. 
+Note that the concepts of ideolect and sociolect are strongly related. For instance, the model we will call 'ideolect' in our experiments is only based on the \emph{output} of a particular person, but of course, people know more about language than can be witnessed by their production. As an approximation of the language a person knows, it may make sense to harvest some of the the linguistic \emph{input} for a particular individual. Of all input that could have been chosen for a particular Twitter user, we believe that the language of his or her friends (i.e. the language model we will call 'sociolect') is one of the best choices, as it is well known in the field of sociolinguistics that people to some extent align their language use in communication [[refs?]]. 
 
 The questions we are trying to answer thus are:
 
@@ -61,21 +59,21 @@ The questions we are trying to answer thus are:
 
 The software used for the text prediction experiments, which has the working title \emph{Xxx}\footnote{Name of system is anonymized}, consists of two types of modules: context-sensitive and context-insensitive. 
 
-\textbf{Context-sensitive modules} are based on \emph{TiMBL}. TiMBL is an open source software package implementing several memory-based learning algorithms. For reasons of speed, TiMBL's IGTree was used. IGTree is an approximation of IB1-IG (which is k-nearest neighbour classification), but reduces the classification process to a much faster decision tree. We refer to \newcite{daelemans97} for details about IGTree.
+\textbf{Context-sensitive modules} are based on \emph{TiMBL}. TiMBL is an open source software package implementing several memory-based learning algorithms.\footnote{\url{http://ilk.uvt.nl/timbl}} For reasons of speed, IGTree was used. IGTree is an approximation of weighted $k$-nearest neighbour classification, but reduces the classification process to a much faster decision tree. We refer to \newcite{daelemans97} for details about IGTree.
 
-Text prediction is thus treated as a classification task by these modules. First, Xxx transforms the training texts into word 4-grams. The first three words of each 4-gram are the features, the last one is the class. On the basis of these 4-grams an IGTree is created, henceforth referred to as the 'language model'. With this language model, new examples can be classified. Classifying a new example means that a 3-gram is given to TiMBL, and that TiMBL responds with a list of words that can possibly follow this 3-gram, along with confidence values. 
+Text prediction is thus treated as a classification task by these modules. First, Xxx transforms the training texts into word 4-grams. The first three words of each 4-gram are the features, the last one is the class. On the basis of these 4-grams an IGTree is created, henceforth referred to as the 'language model'. With this language model, new examples can be classified. Classifying a new example means that a 3-gram is given to TiMBL, and that TiMBL responds with a list of words that can possibly follow this 3-gram, along with confidence values. This output can be interpreted as a probabilistic class distribution, and is stored as such at the nodes of the IGTree decision tree. A node at level $n$ of the tree represents all possible continuations after the $n$-gram in a training corpus. Much like a probabilistic $n$-gram model implementing Katz backoff smoothing \cite{katz87}, IGTree attempts to match on the longest possible $n$-gram by traversing the tree downwards, but upon hitting an early end node or no matching edges it backs off to the last matching node.
 
-Xxx's job thus is to collect three words to the left of what the user is typing, and to ask TiMBL to classify these three words. The resulting class, which is the word that will most likely follow what has been keyed in so far according to the language model that is being used, is presented to the user. If TiMBL returns multiple possible words (which is almost always the case), the word with the highest confidence value is chosen. When the user has already begun keying in the first letters of the next word, only words that start with exactly these letters are taken into consideration. For example, for both sentence \ref{ilike} and \ref{ilikes} Xxx will ask TiMBL to classify the 3-gram \emph{'\_ I like'}.
+After having constructed a decision tree on a training corpus, Xxx's job is to keep track of the three words most recently written by the author, and to ask TiMBL to classify these three words. The word that will most likely follow what has been keyed in so far according to the language model that is being used, is presented to the user. If TiMBL returns multiple possible words (which is almost always the case), the word with the highest confidence value is chosen. When the user has already begun keying in the first letters of the next word, only words that start with exactly these letters are taken into consideration. For example, for both sentence \ref{ilike} and \ref{ilikes} Xxx will ask TiMBL to classify the 3-gram \emph{'\_ I like'}.
 
 \begin{examples}
 \item I like \label{ilike}
 \item I like s \label{ilikes}
 \end{examples}
 
-Let's say that TiMBL returns the classes 'soup', 'icecream' and 'sandwiches', with a confidence of 0.5, 0.9 and 0.8 respectively. For sentence \ref{ilike}, 'icecream' will be chosen, because it has the highest confidence value. For \ref{ilikes}, however, the 's' has already been given, which rules out 'icecream'. From the words that are still possible 'sandwich' has the highest confidence value, so that is the one that Xxx will show the user.
+Let us say that TiMBL returns the classes 'soup', 'icecream' and 'sandwiches', with a confidence of 0.5, 0.9 and 0.8 respectively. For sentence \ref{ilike}, 'icecream' will be chosen, because it has the highest confidence value. For \ref{ilikes}, however, the 's' has already been given, which rules out 'icecream'. From the words that are still possible 'sandwich' has the highest confidence value, so that is the one that Xxx will show the user.
 %Confidence uitleggen
 
-\textbf{Context-insensitive modules} work with a frequency list based on the training material. Xxx looks at the word that is being keyed in, and returns the most frequent word that matches with what has been given so far. For sentence \ref{ilike}, this will be the most frequent word on the list (because nothing has been given so far), for \ref{ilikes} this will be the most frequent word that starts with an s.
+\textbf{Context-insensitive modules} work with a frequency list based on the training material. Xxx looks at the word that is being keyed in, and returns the most frequent word that matches with what has been given so far. For sentence \ref{ilike}, this will be the most frequent word on the list (because nothing has been given so far). For \ref{ilikes} this will be the most frequent word that starts with an s.
 
 Xxx's modules can be concatenated. This means that a second modules takes over once the first module no longer has suggestions, the third module takes over once the second no longer has suggestions, etc. For all experiments described here, only two modules have been used: a context-sensitive one followed by a context-insensitive one, both based on the same material.
 
@@ -84,65 +82,73 @@ Xxx's modules can be concatenated. This means that a second modules takes over o
 % hoe waren de users geselecteerd? Zo random mogelijk? Met bepaalde drempels?
 % Nee, ik heb een lijstje gemaakt van wat twittergebruikers (zoals jij) die ik kende, en heb daar nog wat random personen (gevonden door te zoeken op een nl woord) aan toegevoegd. Wie het precies waren is volgens mij niet zo belangrijk, ik had gewoon wat twittergebruikers nodig vanwaar zich het netwerk kon opbouwen. Ik volg op het moment 9435 mensen.
 
-By communicating with the Twitter API we were able to harvest all tweets of a manually created set of Dutch Twitter users from January until April 2013, and save every tweet they produced. Retweets were excluded.
-%Meer tweets
-
-To capture the networks of these users as extensively as possible, we extended our set, repeatedly at 30-minute intervals, with (1) the user most of the tweets in our collection referred to and (2) the user that was most referred to in general. This way were able to add users that had (1) a lot of connections to the people we were already following and (2) users at least one of the people we were following communicated with a lot. We limited ourselves to Dutch tweets.
+By communicating with the Twitter API we were able to harvest all tweets of a manually created seed set of Dutch Twitter users from January until April 2013, and save every tweet they produced. Retweets were excluded. These seed users are the starting point of an interative expansion of the set of crawled Twitter uses by following mentions of other users ('@username'). To capture an extensive network and number of users, we extended our set, repeatedly at 30-minute intervals, with (1) the user most of the tweets in our collection referred to and (2) the user that was most referred to in general. This way were able to add users that had (1) a lot of connections to the people we were already following and (2) users at least one of the people we were following communicated with a lot. We limited ourselves to Dutch tweets using a conservative Dutch word frequency list. Addressees receiving non-Dutch tweets were not followed.
 % hoe? met het Twitter language ID?
 % Nee, alle tweets waaruit addressees zijn gehaald (dus waarin @user stond) zijn tegen een nl frequentielijst gehouden. Als er niet genoeg nederlandse woorden in stonden (= als er in een andere taal tegen een addressee gesproken werd) heb ik die adressee niet geteld.
 
-In terms of amount of Tweets, the Twitter users show a Zipfian curve [[ref]]  [[uitzoeken of dat echt zo is!]]; a very small group produced a large amount of tweets and vice versa. For that reason, we limited ourselves to the 50 most frequent tweeters in the experiments described here. The amount of words ranged from 480.000 for the most frequent tweeter to 200.000 for the least frequent tweeter.
+%In terms of amount of Tweets, the Twitter users show a Zipfian curve [[ref]]  [[uitzoeken of dat echt zo is!]]; 
+The numbers of tweets over users appear to approximate a Pareto distribution: a very small group of users produces a large amount of tweets and vice versa. For that reason, we limited ourselves to the 50 most frequent tweeters in the experiments described here. The total amount of words ranged from 480.000 for the most frequent tweeter to 200.000 for the least frequent tweeter. % misschien zowel aantallen tweets als woorden geven?
 
-For each of these 50 users, a list of 'friends' is created. A Twitter user is considered a friend of another Twitter user when both users tweeted to the other person at least three times. We have chosen this number because a total of six tweets from both sides makes it likely that both Twitter users know each other. 
+For each of these 50 users, a list of 'friends' is created. A Twitter user is considered a friend of another Twitter user when both users addressed the other person at least three times (with a '@username' mention). We have chosen this number because a total of six tweets from both sides makes it likely that the two Twitter users know each other. 
 
 As a background corpus, a random selection of the blogs, emails and Wikipedia articles from the SoNaR corpus for written Dutch [[ref]] was used. These texts were chosen because they were believed to be neither very formal nor very informal. The control corpus consisted of 55,212,868 words.
 
 \subsection{Evaluation measures}
-The prestations of our text prediction system were measured in 'percentage of keystrokes saved'. We calculate these in two different ways:
+The performance of our text prediction system is measured in 'percentage of keystrokes saved'. We calculate these in two different ways:
 \begin{itemize}
 \item Prediction are presented one at a time, and can be accepted with the spacebar or a punctuation mark or be rejected with the tab key. As noted by \newcite{vandenbosch11}, for many devices and applications it might not be possible or practical for the user to inspect a list of multiple suggestions. The percentage of keystrokes that can be saved when only one prediction was shown will be referred to as 'Classical Keystrokes Saved' (CKS).
-\item The popular smartphone application SwiftKey always shows the user three predictions, which seem to be (1) what the user has keyed in so far, (2) the most likely prediction and (3) the second most likely prediction. In case the user has not yet started typing the next word, option (1) is replaced by the third most likely prediction. Because smartphones use a touchscreen as an input device, no extra keystrokes are needed. The percentage of keystrokes that can be saved when two (and sometimes three) predictions were shown will be referred to as 'SwiftKey Keystrokes Saved' (SKKS).
+\item The popular smartphone application SwiftKey\footnote{\url{http://www.swiftkey.net/}} always shows the user three predictions, which seem to be (1) what the user has keyed in so far, (2) the most likely prediction and (3) the second most likely prediction. In case the user has not yet started typing the next word, option (1) is replaced by the third most likely prediction. Because smartphones use a touchscreen as an input device, no extra keystrokes are needed. The percentage of keystrokes that can be saved when two (and sometimes three) predictions were shown will be referred to as 'SwiftKey Keystrokes Saved' (SKKS).
 \end{itemize}
 
 \subsection{Procedure}
-For each of the 50 selected Twitter users, the 10\% most recent Tweets were removed and used for testing purposes. It was tested how many keystrokes can be saved on the basis of four language models: the \textbf{general model}, which was based on written texts by various authors, the \textbf{idiolect}, which was based on the 90\% remaining tweets from the same author, the \textbf{sociolect}, which was based on 90\% of the remaining tweets from the same author \emph{and} the tweets of his/her friends, and the \textbf{idiolect + random Twitter feeds}, which was based on 90\% of the remaining tweets from the same author and the tweets of the friends of a random other Twitter user. The 'idiolect + random Twitter feeds' language model was created as a control model for the sociolect, so we can tell to what extent any improvements of adding tweets can be attributed to the fact that these are tweets from friends.
+For each of the 50 selected Twitter users, the 10\% most recent Tweets were removed and used for testing purposes. It was tested how many keystrokes can be saved on the basis of four language models:
+
+\begin{enumerate}
+\item the \textbf{general model}, based on written texts by various authors;
+\item the \textbf{idiolect}, based on the 90\% remaining tweets from the same author;
+\item the \textbf{sociolect}, based on 90\% of the remaining tweets from the same author \emph{and} the tweets of his/her friends; and
+\item the \textbf{idiolect $+$ random Twitter feeds}, based on 90\% of the remaining tweets from the same author \emph{and} the tweets of the friends of a random other Twitter user.
+\end{enumerate}
+
+The 'idiolect $+$ random Twitter feeds' language model was created as a control model for the sociolect, so that we can tell to what extent any improvements of adding tweets can be attributed to the fact that these are tweets from friends.
 
 \begin{table*}[t]
-
-\begin{tabular}{l|llll}
+\begin{tabular}{l|rr|rr|}
 Language model&CKS mean&CKS std. dev.&SKKS mean&SKKS std. dev.\\
 \hline
-General model&16.25&3.99&16.56&4.25\\
-Idiolect&27.7&6.35&31.58&6.79\\
-Idiolect+random twitter feeds&29.82&5.39&33.18&5.99\\
-Sociolect&31.53&5.59&35&5.81\\
+%General model&16.25&3.99&16.56&4.25\\
+%Idiolect&27.70&6.35&31.58&6.79\\
+%Idiolect+random twitter feeds&29.82&5.39&33.18&5.99\\
+%Sociolect&31.53&5.59&35&5.81\\
+General model & 16.3 & 4.0 & 16.6 & 4.3 \\
+Idiolect & 27.7 & 6.4 & 31.6 & 6.8 \\
+Idiolect $+$ random Twitter feeds & 29.8 & 5.4 & 33.2 & 6.0 \\
+Sociolect & 31.5 & 5.6 & 35.0 & 5.8 \\
 \end{tabular}
-\caption{The percentage of keystrokes saved with four different language models}
+\caption{The percentage of keystrokes saved (CKS and SKKS metrics) with four different language models. Mean and standard deviations are given over the 50 test users.}
 \label{results}
 \end{table*}
 
 \begin{table*}[t]
-
 \begin{tabular}{l|ll}
 Language model&F&Sig.\\
 \hline
-General model \emph{vs} idiolect&85.78&.000\\
-Idiolect + random Twitter feeds \emph{vs} sociolect&23.195&.000\\
+General model \emph{vs} idiolect & 85.78 & .000\\
+Idiolect $+$ random Twitter feeds \emph{vs} sociolect & 23.195 & .000\\
 \end{tabular}
-
-\caption{F-values for and significance values for the contrasts important for research question 1 and 2.}
+\caption{F-values for and significance values for the contrasts relevant for research questions 1 and 2.}
 \label{stat}
 \end{table*}
 
 
 \section{Results}
 
-The results are summarized in tabel \ref{results}. We see that Xxx performed best when using the sociolect, followed by idiolect together with random twitter feeds, followed by the idiolect alone. The idiolect alone performed much better than the general language model, despite the general model having roughly 200 times as much training material. An ANOVA for repeated measures showed that there is indeed an effect of language model used for both CKS, F(3,150) = 140,83, $p > .001$ , and SKKS, F(3,150) = 184,85, $p > .001$. Contrast analyses between general model and the idiolect (research question 1) and the idiolect + random Twitter feeds and the sociolects (research question 2) are summarized in table \ref{stat}. These values show Xxx performs significantly better when it uses the idiolect than when it uses the general model, and that Xxx performs significantly better when it uses the sociolect than when it uses the idiolect + random Twitter feeds.
+The results are summarized in Table~\ref{results}. We see that Xxx performs best when using the sociolect, followed by idiolect together with random twitter feeds, followed by the idiolect alone. The idiolect alone performed much better than the general language model, despite the general model having on average 2 orders of magnitude (200 times) as much training material. An ANOVA for repeated measures shows that there is indeed an effect of language model used for both CKS, $F(3,150) = 140.83, p > .001$ , and SKKS, $F(3,150) = 184.85, p > .001$. Contrast analyses between general model and the idiolect (research question 1) and the idiolect + random Twitter feeds and the sociolects (research question 2) are given in Table \ref{stat}. These values show Xxx performs significantly better when it uses the idiolect than when it uses the general model, and that Xxx performs significantly better when it uses the sociolect than when it uses the idiolect + random Twitter feeds.
 
-Another thing to note is that there were large differences between the Twitter users; for instance, the SKKS of our best model, the sociolect, ranged from 26\% to 52\%. Pearson's \emph{r} showed there was no correlation between the amount of words in the training data based on the tweets and the percentage of keystrokes saved.
+Another thing to note is that we observed substantial differences between the Twitter users; for instance, the SKKS of our best model, the sociolect, ranged from 26\% to 52\%. Pearson's \emph{r} showed there was no correlation between the amount of words in the training data based on the tweets and the percentage of keystrokes saved.
 
 \section{Conclusion}
-In this paper we investigated whether our text prediction system could save more keystrokes in a text when it was trained on texts by the same author, using early tweets to predict more recent tweets. This turned out to be the case: despite the general model having roughly 200 times as much training material, the language models based on the user's own tweets performed significantly better. Adding tweets by other Twitter users further improved the results (which is in line with \cite{verberne12}), but in most cases the language models based on tweets by twitter users the author communicates with, approximating what could be called the user's sociolect, performed significantly better.
+In this paper we investigated whether our text prediction system could save more keystrokes in a text when it was trained on texts by the same author, using early tweets to predict more recent tweets. This turned out to be the case: despite the general model having on average 200 times as much training material, the language models based on the user's own tweets performed significantly better. Adding tweets by other Twitter users further improved the results (which is in line with \cite{verberne12}), but in most cases the language models based on tweets by twitter users the author communicates with, approximating what could be called the user's sociolect, performed significantly better.
 
 \bibliographystyle{acl}
 \bibliography{wesseltest}
