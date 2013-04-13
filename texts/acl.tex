@@ -72,7 +72,6 @@ Upon returning the distribution of possible words, the word with the highest lik
 \end{examples}
 
 Let us say that TiMBL returns the classes 'soup', 'popcorn' and 'sandwiches', with confidence values of 5, 9 and 8 respectively. For sentence \ref{ilike}, 'popcorn' will be chosen, because it has the highest confidence value. For \ref{ilikes}, however, the 's' has already been given, which rules out 'popcorn'. From the words that are still possible 'sandwich' has the highest confidence value, so that is the one that Xxx will show the user.
-%Confidence uitleggen
 
 \textbf{Context-insensitive modules} work with a frequency list based on the training material. Xxx looks at the word that is being keyed in, and returns the most frequent word that matches with what has been given so far. For sentence \ref{ilike}, this will be the most frequent word on the list (because nothing has been given so far). For \ref{ilikes} this will be the most frequent word that starts with an s.
 
@@ -88,7 +87,7 @@ By communicating with the Twitter API we were able to harvest all tweets of a ma
 % Nee, alle tweets waaruit addressees zijn gehaald (dus waarin @user stond) zijn tegen een nl frequentielijst gehouden. Als er niet genoeg nederlandse woorden in stonden (= als er in een andere taal tegen een addressee gesproken werd) heb ik die adressee niet geteld.
 
 The numbers of tweets over users appear to approximate a Pareto distribution: a very small group of users produces a large amount of tweets and vice versa. For that reason, we limited ourselves to the 50 most frequent tweeters in the experiments described here. The total amount of words ranged from 480,000 for the most frequent tweeter (10,317 tweets) to 200,000 for the least frequent tweeter (6,200 tweets). 
-%absolute getallen 10317 - 6160
+%absolute getallen 10317 - 6160 -- geef ook de absolute aantallen woorden.
 
 For each of these 50 users, a list of 'friends' is created. A Twitter user is considered a friend of another Twitter user when both users addressed the other person at least three times (with a '@username' mention). We have chosen this number because a total of six tweets from both sides makes it likely that the two Twitter users know each other. 
 
@@ -152,7 +151,8 @@ Idiolect $+$ random Twitter feeds \emph{vs} sociolect & 23.195 & .000\\
 \end{center}
 \end{table}
 
-Another thing to note is that we observed substantial differences between the Twitter users; for instance, the SKKS of our best model, the sociolect, ranged from 26\% to 52\%. Pearson's \emph{r} showed there was no correlation between the amount of words in the training data based on the tweets and the percentage of keystrokes saved.
+We observed substantial differences between the Twitter users; for instance, the SKKS of our best model, the sociolect, ranged from 26\% to 52\%. Interestingly, Pearson's \emph{r} showed no correlation between the amount of words in the training data and the percentage of keystrokes saved; certain users simply write more predictably.
+% wat was de waarde precies?
 
 \section{Conclusion}
 In this paper we investigated whether our text prediction system could save more keystrokes in a text when it was trained on texts by the same author, using early tweets to predict more recent tweets. This turned out to be the case: despite the general model having on average 200 times as much training material, the language models based on the user's own tweets performed significantly better. Adding tweets by other Twitter users further improved the results (in line with \cite{verberne12}), but the language models based on tweets by twitter users the author communicates with, approximating what could be called the user's sociolect, performed significantly better on average.
