@@ -31,7 +31,6 @@
 \begin{abstract} 
 In this study we explore how word completion suggestions based on context-sensitive word prediction can be improved by incorporating typical language use by the author who uses the system in a social media context, as well as texts from the author's social context. First we show that our word prediction system performs better when it is tested on short messages by the same author it has been trained on. Secondly, we show that these results can further be improved by training on more tweets, in particular on tweets produced by twitter users the author communicates with often. With the latter training model the best individual improvements surpass 50\% of keystrokes saved, the average being 31.5\%.
 
-% Ik heb dit even anders geformuleerd. Was er een reden dat je hier iets commented out had staan?
 
 \end{abstract}
 
@@ -40,11 +39,11 @@ Predicting what somebody is going to type in a text editor entails more than jus
 
 Both approaches help to increase the number of keystrokes saved, but they also have downsides: for the system by \newcite{verberne12} training texts in the same genre are needed, which might not be available, whereas the system by \newcite{vandenbosch11} ignores context information that it should weigh more intelligently. For example, while a context-sensitive text-prediction system will probably be able to predict 'to' for the sentence \emph{Tommy was going t...}, the one with the recency buffer will predict 'Tommy'.
 
-In this paper two alternative approaches are suggested: using texts written before by the user as training material, and using texts from the author's social context as additional training material. The former emulates the sociolinguistic notion of ideolect, while the latter approximates the notion of sociolect. Using an idiolect (i.e. the language from only one person) instead of a general language model makes sense from a linguistic point of view; a small but growing body of literature suggests there are significant differences between the language of individual language users, on all levels of language \cite[among others]{mollin09,barlow10}. The same is likely to hold for the sociolect, the aggregate of language an individual language user is exposed to in his social communication.
+In this paper two alternative approaches are suggested: using texts written before by the user as training material, and using texts from the author's social context as additional training material. The former emulates the sociolinguistic notion of idiolect, while the latter approximates the notion of sociolect. Using an idiolect (i.e. the language from only one person) instead of a general language model makes sense from a linguistic point of view; a small but growing body of literature suggests there are significant differences between the language of individual language users, on all levels of language \cite[among others]{mollin09,barlow10}. The same is likely to hold for the sociolect, the aggregate of language an individual language user is exposed to in his social communication.
 
-The modeling of an ideolect can be seen as the relatively well-understood notion of personalization, while the second approach, to model sociolect, is novel. To investigate the usefulness of idiolect and sociolect modeling in text prediction, we will use tweets. Twitter provides an excellent data source for researching idiolects and sociolects, as Twitter in essence is a collection of language marked by author, as well as a network of authors. The operationalization of the notion of 'friends' or social contacts on social media such as Twitter is problematic and can only be approximated in an automatic processing setup. We will assume that all users who talk to each other at least six times symmetrically, i.e. three times from user A to B and three times from B to A, are friends. 
+The modeling of an idiolect can be seen as the relatively well-understood notion of personalization, while the second approach, to model sociolect, is novel. To investigate the usefulness of idiolect and sociolect modeling in text prediction, we will use tweets. Twitter provides an excellent data source for researching idiolects and sociolects, as Twitter in essence is a collection of language marked by author, as well as a network of authors. The operationalization of the notion of 'friends' or social contacts on social media such as Twitter is problematic and can only be approximated in an automatic processing setup. We will assume that all users who talk to each other at least six times symmetrically, i.e. three times from user A to B and three times from B to A, are friends. 
 
-Note that the concepts of ideolect and sociolect are strongly related. For instance, the model we will call 'ideolect' in our experiments is only based on the \emph{output} of a particular person, but of course, people know more about language than can be witnessed by their production. As an approximation of the language a person knows, it may make sense to harvest some of the the linguistic \emph{input} for a particular individual. Of all input that could have been chosen for a particular Twitter user, we believe that the language of his or her friends (i.e. the language model we will call 'sociolect') is one of the best choices, as it is well known in the field of sociolinguistics that people to some extent align their language use in communication [[refs?]]. 
+Note that the concepts of idiolect and sociolect are strongly related. For instance, the model we will call 'idiolect' in our experiments is only based on the \emph{output} of a particular person, but of course, people know more about language than can be witnessed by their production. As an approximation of the language a person knows, it may make sense to harvest some of the the linguistic \emph{input} for a particular individual. Of all input that could have been chosen for a particular Twitter user, we believe that the language of his or her friends (i.e. the language model we will call 'sociolect') is one of the best choices, as it is well known in the field of sociolinguistics that people to some extent align their language use in communication [[refs?]]. 
 
 The questions we are trying to answer thus are:
 
@@ -86,8 +85,8 @@ By communicating with the Twitter API we were able to harvest all tweets of a ma
 % hoe? met het Twitter language ID?
 % Nee, alle tweets waaruit addressees zijn gehaald (dus waarin @user stond) zijn tegen een nl frequentielijst gehouden. Als er niet genoeg nederlandse woorden in stonden (= als er in een andere taal tegen een addressee gesproken werd) heb ik die adressee niet geteld.
 
-%In terms of amount of Tweets, the Twitter users show a Zipfian curve [[ref]]  [[uitzoeken of dat echt zo is!]]; 
-The numbers of tweets over users appear to approximate a Pareto distribution: a very small group of users produces a large amount of tweets and vice versa. For that reason, we limited ourselves to the 50 most frequent tweeters in the experiments described here. The total amount of words ranged from 480.000 for the most frequent tweeter to 200.000 for the least frequent tweeter. % misschien zowel aantallen tweets als woorden geven?
+The numbers of tweets over users appear to approximate a Pareto distribution: a very small group of users produces a large amount of tweets and vice versa. For that reason, we limited ourselves to the 50 most frequent tweeters in the experiments described here. The total amount of words ranged from 480.000 for the most frequent tweeter (10300 tweets) to 200.000 for the least frequent tweeter (6200 tweets). 
+%absolute getallen 10317 - 6160
 
 For each of these 50 users, a list of 'friends' is created. A Twitter user is considered a friend of another Twitter user when both users addressed the other person at least three times (with a '@username' mention). We have chosen this number because a total of six tweets from both sides makes it likely that the two Twitter users know each other. 
 
@@ -99,18 +98,6 @@ The performance of our text prediction system is measured in 'percentage of keys
 \item Prediction are presented one at a time, and can be accepted with the spacebar or a punctuation mark or be rejected with the tab key. As noted by \newcite{vandenbosch11}, for many devices and applications it might not be possible or practical for the user to inspect a list of multiple suggestions. The percentage of keystrokes that can be saved when only one prediction was shown will be referred to as 'Classical Keystrokes Saved' (CKS).
 \item The popular smartphone application SwiftKey\footnote{\url{http://www.swiftkey.net/}} always shows the user three predictions, which seem to be (1) what the user has keyed in so far, (2) the most likely prediction and (3) the second most likely prediction. In case the user has not yet started typing the next word, option (1) is replaced by the third most likely prediction. Because smartphones use a touchscreen as an input device, no extra keystrokes are needed. The percentage of keystrokes that can be saved when two (and sometimes three) predictions were shown will be referred to as 'SwiftKey Keystrokes Saved' (SKKS).
 \end{itemize}
-
-\subsection{Procedure}
-For each of the 50 selected Twitter users, the 10\% most recent Tweets were removed and used for testing purposes. It was tested how many keystrokes can be saved on the basis of four language models:
-
-\begin{enumerate}
-\item the \textbf{general model}, based on written texts by various authors;
-\item the \textbf{idiolect}, based on the 90\% remaining tweets from the same author;
-\item the \textbf{sociolect}, based on 90\% of the remaining tweets from the same author \emph{and} the tweets of his/her friends; and
-\item the \textbf{idiolect $+$ random Twitter feeds}, based on 90\% of the remaining tweets from the same author \emph{and} the tweets of the friends of a random other Twitter user.
-\end{enumerate}
-
-The 'idiolect $+$ random Twitter feeds' language model was created as a control model for the sociolect, so that we can tell to what extent any improvements of adding tweets can be attributed to the fact that these are tweets from friends.
 
 \begin{table*}[t]
 \begin{tabular}{l|rr|rr|}
@@ -130,20 +117,31 @@ Sociolect & 31.5 & 5.6 & 35.0 & 5.8 \\
 \end{table*}
 
 \begin{table*}[t]
-\begin{tabular}{l|ll}
-Language model&F&Sig.\\
+\begin{tabular}{l|ll|ll|}
+Language model&CKS: F&CKS: Sig.&SKKS: F&SKKS: Sig.\\
 \hline
-General model \emph{vs} idiolect & 85.78 & .000\\
-Idiolect $+$ random Twitter feeds \emph{vs} sociolect & 23.195 & .000\\
+General model \emph{vs} idiolect & 85.78 & .000 & 135.38 & .000 \\
+Idiolect $+$ random Twitter feeds \emph{vs} sociolect & 23.2 & .000 & 15.06 & .000\\
 \end{tabular}
 \caption{F-values for and significance values for the contrasts relevant for research questions 1 and 2.}
 \label{stat}
 \end{table*}
 
+\subsection{Procedure}
+For each of the 50 selected Twitter users, the 10\% most recent Tweets were removed and used for testing purposes. It was tested how many keystrokes can be saved on the basis of four language models:
+
+\begin{enumerate}
+\item the \textbf{general model}, based on written texts by various authors;
+\item the \textbf{idiolect}, based on the 90\% remaining tweets from the same author;
+\item the \textbf{sociolect}, based on 90\% of the remaining tweets from the same author \emph{and} the tweets of his/her friends; and
+\item the \textbf{idiolect $+$ random Twitter feeds}, based on 90\% of the remaining tweets from the same author \emph{and} the tweets of the friends of a random other Twitter user.
+\end{enumerate}
+
+The 'idiolect $+$ random Twitter feeds' language model was created as a control model for the sociolect, so that we can tell to what extent any improvements of adding tweets can be attributed to the fact that these are tweets from friends.
 
 \section{Results}
 
-The results are summarized in Table~\ref{results}. We see that Xxx performs best when using the sociolect, followed by idiolect together with random twitter feeds, followed by the idiolect alone. The idiolect alone performed much better than the general language model, despite the general model having on average 2 orders of magnitude (200 times) as much training material. An ANOVA for repeated measures shows that there is indeed an effect of language model used for both CKS, $F(3,150) = 140.83, p > .001$ , and SKKS, $F(3,150) = 184.85, p > .001$. Contrast analyses between general model and the idiolect (research question 1) and the idiolect + random Twitter feeds and the sociolects (research question 2) are given in Table \ref{stat}. These values show Xxx performs significantly better when it uses the idiolect than when it uses the general model, and that Xxx performs significantly better when it uses the sociolect than when it uses the idiolect + random Twitter feeds.
+The results are summarized in Table~\ref{results}. We see that Xxx performs best when using the sociolect, followed by idiolect together with random twitter feeds, followed by the idiolect alone. The idiolect alone performed much better than the general language model, despite the general model having on average 2 orders of magnitude (200 times) as much training material. An ANOVA for repeated measures shows that there is indeed an effect of language model used for both CKS, $F(1.38,66.34) = 140.85, p > .001$ , and SKKS, $F(1.54,73.97) = 184.85, p > .001$. Contrast analyses between general model and the idiolect (research question 1) and the idiolect + random Twitter feeds and the sociolects (research question 2) are given in Table \ref{stat}. These values show Xxx performs significantly better when it uses the idiolect than when it uses the general model, and that Xxx performs significantly better when it uses the sociolect than when it uses the idiolect + random Twitter feeds.
 
 Another thing to note is that we observed substantial differences between the Twitter users; for instance, the SKKS of our best model, the sociolect, ranged from 26\% to 52\%. Pearson's \emph{r} showed there was no correlation between the amount of words in the training data based on the tweets and the percentage of keystrokes saved.
 
