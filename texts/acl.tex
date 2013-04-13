@@ -35,7 +35,7 @@ In this study we explore how word completion suggestions based on context-sensit
 \end{abstract}
 
 \section{Introduction}
-Predicting what somebody is going to type in a text editor entails more than just generic knowledge of the language he or she uses. \newcite{verberne12} show this true for word prediction applications used in predictive editing (or word completion) systems. Predictive editing has become a regular and popular commodity in text editors on mobile devices and in query completion. These applications try to predict the word the user is currently typing, or is going to type next, with the goal to reduce the number of keystrokes needed to complete the message. According to Verberne {\it et al}., better results can be achieved if their system has been trained on texts from a similar domain, and thus already has some useful expectations of what is going to come. \newcite{vandenbosch11} takes another approach to solve the same problem: he makes the system learn 'on the fly' by adding a recency buffer. This means that a list of the $n$ most recent words is kept in memory. Whenever the word the user is keying in matches a word in this buffer, this word is predicted. For instance, in the sentence \emph{They decided to go swimming because t...}, 'they' will be predicted because it was used recently.
+Predicting what somebody is going to type in a text editor entails more than just generic knowledge of the language he or she uses. \newcite{verberne12} show this true for word prediction applications used in predictive editing (or word completion) systems. Predictive editing has become a regular and popular commodity in text editors on mobile devices and in query completion. The most frequently adopted and most successful approach to the problem has been to use statistical $n$-gram models \cite{Lesher+99,Nantais+01,Matiasek+02,Fazly+03,How+05,Tanaka-Ishii07}. These applications try to predict the word the user is currently typing, or is going to type next, with the goal to reduce the number of keystrokes needed to complete the message. According to Verberne {\it et al}., better results can be achieved if their system has been trained on texts from a similar domain, and thus already has some useful expectations of what is going to come. \newcite{vandenbosch11} takes another approach to solve the same problem: he makes the system learn 'on the fly' by adding a recency buffer. This means that a list of the $n$ most recent words is kept in memory. Whenever the word the user is keying in matches a word in this buffer, this word is predicted. For instance, in the sentence \emph{They decided to go swimming because t...}, 'they' will be predicted because it was used recently.
 
 Both approaches help to increase the number of keystrokes saved, but they also have downsides: for the system by \newcite{verberne12} training texts in the same genre are needed, which might not be available, whereas the system by \newcite{vandenbosch11} ignores context information that it should weigh more intelligently. For example, while a context-sensitive text-prediction system will probably be able to predict 'to' for the sentence \emph{Tommy was going t...}, the one with the recency buffer will predict 'Tommy'.
 
@@ -43,7 +43,7 @@ In this paper two alternative approaches are suggested: using texts written befo
 
 The modeling of an idiolect can be seen as the relatively well-understood notion of personalization, while the second approach, to model sociolect, is novel. To investigate the usefulness of idiolect and sociolect modeling in text prediction, we will use tweets. Twitter provides an excellent data source for researching idiolects and sociolects, as Twitter in essence is a collection of language marked by author, as well as a network of authors. The operationalization of the notion of 'friends' or social contacts on social media such as Twitter is problematic and can only be approximated in an automatic processing setup. We will assume that all users who talk to each other at least six times symmetrically, i.e. three times from user A to B and three times from B to A, are friends. 
 
-Note that the concepts of idiolect and sociolect are strongly related. For instance, the model we will call 'idiolect' in our experiments is only based on the \emph{output} of a particular person, but of course, people know more about language than can be witnessed by their production. As an approximation of the language a person knows, it may make sense to harvest some of the the linguistic \emph{input} for a particular individual. Of all input that could have been chosen for a particular Twitter user, we believe that the language of his or her friends (i.e. the language model we will call 'sociolect') is one of the best choices, as it is well known in the field of sociolinguistics that people to some extent align their language use in communication [[refs?]]. 
+Note that the concepts of idiolect and sociolect are strongly related. For instance, the model we will call 'idiolect' in our experiments is only based on the \emph{output} of a particular person, but of course, people know more about language than can be witnessed by their production. As an approximation of the language a person knows, it may make sense to harvest some of the the linguistic \emph{input} for a particular individual. Of all input that could have been chosen for a particular Twitter user, we believe that the language of his or her friends (i.e. the language model we will call 'sociolect') is one of the best choices, as it is well known in the field of sociolinguistics that people to some extent align their language use in communication \cite[among others]{meshtrie00}. 
 
 The questions we are trying to answer thus are:
 
@@ -90,14 +90,7 @@ The numbers of tweets over users appear to approximate a Pareto distribution: a 
 
 For each of these 50 users, a list of 'friends' is created. A Twitter user is considered a friend of another Twitter user when both users addressed the other person at least three times (with a '@username' mention). We have chosen this number because a total of six tweets from both sides makes it likely that the two Twitter users know each other. 
 
-As a background corpus, a random selection of the blogs, emails and Wikipedia articles from the SoNaR corpus for written Dutch [[ref]] was used. These texts were chosen because they were believed to be neither very formal nor very informal. The control corpus consisted of 55,212,868 words.
-
-\subsection{Evaluation measures}
-The performance of our text prediction system is measured in 'percentage of keystrokes saved'. We calculate these in two different ways:
-\begin{itemize}
-\item Prediction are presented one at a time, and can be accepted with the spacebar or a punctuation mark or be rejected with the tab key. As noted by \newcite{vandenbosch11}, for many devices and applications it might not be possible or practical for the user to inspect a list of multiple suggestions. The percentage of keystrokes that can be saved when only one prediction was shown will be referred to as 'Classical Keystrokes Saved' (CKS).
-\item The popular smartphone application SwiftKey\footnote{\url{http://www.swiftkey.net/}} always shows the user three predictions, which seem to be (1) what the user has keyed in so far, (2) the most likely prediction and (3) the second most likely prediction. In case the user has not yet started typing the next word, option (1) is replaced by the third most likely prediction. Because smartphones use a touchscreen as an input device, no extra keystrokes are needed. The percentage of keystrokes that can be saved when two (and sometimes three) predictions were shown will be referred to as 'SwiftKey Keystrokes Saved' (SKKS).
-\end{itemize}
+As a background corpus, a random selection of the blogs, emails and Wikipedia articles from the SoNaR corpus for written Dutch \cite{oostdijk13} was used. These texts were chosen because they were believed to be neither very formal nor very informal. The control corpus consisted of 55,212,868 words.
 
 \begin{table*}[htb]
 \begin{center}
@@ -118,16 +111,13 @@ Sociolect & 31.5 & 5.6 & 35.0 & 5.8 \\
 \end{center}
 \end{table*}
 
-\begin{table*}[t]
-\begin{tabular}{l|ll|ll|} 
-Language model&CKS: F&CKS: Sig.&SKKS: F&SKKS: Sig.\\
-\hline 
-General model \emph{vs} idiolect & 85.78 & .000 & 135.38 & .000 \\
-Idiolect $+$ random Twitter feeds \emph{vs} sociolect & 23.2 & .000 & 15.06 & .000\\
-\end{tabular}
-\caption{F-values for and significance values for the contrasts relevant for research questions 1 and 2.}
-\label{stat}
-\end{table*}
+
+\subsection{Evaluation measures}
+The performance of our text prediction system is measured in 'percentage of keystrokes saved'. We calculate these in two different ways:
+\begin{itemize}
+\item Prediction are presented one at a time, and can be accepted with the spacebar or a punctuation mark or be rejected with the tab key. As noted by \newcite{vandenbosch11}, for many devices and applications it might not be possible or practical for the user to inspect a list of multiple suggestions. The percentage of keystrokes that can be saved when only one prediction was shown will be referred to as 'Classical Keystrokes Saved' (CKS).
+\item The popular smartphone application SwiftKey\footnote{\url{http://www.swiftkey.net/}} always shows the user three predictions, which seem to be (1) what the user has keyed in so far, (2) the most likely prediction and (3) the second most likely prediction. In case the user has not yet started typing the next word, option (1) is replaced by the third most likely prediction. Because smartphones use a touchscreen as an input device, no extra keystrokes are needed. The percentage of keystrokes that can be saved when two (and sometimes three) predictions were shown will be referred to as 'SwiftKey Keystrokes Saved' (SKKS).
+\end{itemize}
 
 \subsection{Procedure}
 For each of the 50 selected Twitter users, the 10\% most recent Tweets were removed and used for testing purposes. It was tested how many keystrokes can be saved on the basis of four language models:
@@ -145,9 +135,11 @@ The 'idiolect $+$ random Twitter feeds' language model was created as a control 
 
 \section{Results}
 
-The results are summarized in Table~\ref{results}. We see that Xxx performs best when using the sociolect, followed by idiolect together with random twitter feeds, followed by the idiolect alone. The idiolect alone performed much better than the general language model, despite the general model having on average 2 orders of magnitude (200 times) as much training material. An ANOVA for repeated measures shows that there is indeed an effect of language model used for both CKS, $F(3,150) = 140.83,\ p > .001$ , and SKKS, $F(3,150) = 184.85,\ p > .001$. Contrast analyses between general model and the idiolect (research question 1) and the idiolect + random Twitter feeds and the sociolects (research question 2) are given in Table \ref{stat}. These values show Xxx performs significantly better when it uses the idiolect than when it uses the general model, and that Xxx performs significantly better when it uses the sociolect than when it uses the idiolect + random Twitter feeds.
+The results are summarized in Table~\ref{results}. We see that Xxx performs best when using the sociolect, followed by idiolect together with random twitter feeds, followed by the idiolect alone. The idiolect alone performed much better than the general language model, despite the general model having on average 2 orders of magnitude (200 times) as much training material. An ANOVA for repeated measures shows that there is indeed an effect of language model used for both CKS, $F(3,150) = 140.83,\ p > .001$ , and SKKS, $F(3,150) = 184.85,\ p > .001$. 
 
-\begin{table}[t]
+Contrast analyses between general model and the idiolect (research question 1) and the idiolect + random Twitter feeds and the sociolects (research question 2) are given in Table \ref{stat}. These values show Xxx performs significantly better when it uses the idiolect than when it uses the general model, and that Xxx performs significantly better when it uses the sociolect than when it uses the idiolect + random Twitter feeds.
+
+\begin{table}[htb]
 \begin{center}
 \begin{tabular}{p{4.5cm}|ll} 
 Model \emph{vs} model & F & Sig.\\
