@@ -99,14 +99,9 @@ The performance of our text prediction system is measured in 'percentage of keys
 \item The popular smartphone application SwiftKey\footnote{\url{http://www.swiftkey.net/}} always shows the user three predictions, which seem to be (1) what the user has keyed in so far, (2) the most likely prediction and (3) the second most likely prediction. In case the user has not yet started typing the next word, option (1) is replaced by the third most likely prediction. Because smartphones use a touchscreen as an input device, no extra keystrokes are needed. The percentage of keystrokes that can be saved when two (and sometimes three) predictions were shown will be referred to as 'SwiftKey Keystrokes Saved' (SKKS).
 \end{itemize}
 
-<<<<<<< HEAD
 \begin{table*}[htb]
 \begin{center}
 \begin{tabular}{l|rr|rr}
-=======
-\begin{table*}[t]
-\begin{tabular}{l|rr|rr|}
->>>>>>> 7213b3936381d644d68f70c53a576efa4bcb1fc5
 Language model&CKS mean&CKS std. dev.&SKKS mean&SKKS std. dev.\\
 \hline
 %General model&16.25&3.99&16.56&4.25\\
@@ -123,28 +118,16 @@ Sociolect & 31.5 & 5.6 & 35.0 & 5.8 \\
 \end{center}
 \end{table*}
 
-<<<<<<< HEAD
-\subsection{Procedure}
-For each of the 50 selected Twitter users, the 10\% most recent Tweets were removed and used for testing purposes. It was tested how many keystrokes can be saved on the basis of four language models:
-
-\begin{enumerate}
-\item the \textbf{general model}, based on written texts by various authors;
-\item the \textbf{idiolect}, based on the 90\% remaining tweets from the same author;
-\item the \textbf{sociolect}, based on 90\% of the remaining tweets from the same author \emph{and} the tweets of his/her friends; and
-\item the \textbf{idiolect $+$ random Twitter feeds}, based on 90\% of the remaining tweets from the same author \emph{and} the tweets of the friends of a random other Twitter user.
-\end{enumerate}
-=======
 \begin{table*}[t]
-\begin{tabular}{l|ll|ll|}
+\begin{tabular}{l|ll|ll|} 
 Language model&CKS: F&CKS: Sig.&SKKS: F&SKKS: Sig.\\
-\hline
+\hline 
 General model \emph{vs} idiolect & 85.78 & .000 & 135.38 & .000 \\
 Idiolect $+$ random Twitter feeds \emph{vs} sociolect & 23.2 & .000 & 15.06 & .000\\
 \end{tabular}
 \caption{F-values for and significance values for the contrasts relevant for research questions 1 and 2.}
 \label{stat}
 \end{table*}
->>>>>>> 7213b3936381d644d68f70c53a576efa4bcb1fc5
 
 \subsection{Procedure}
 For each of the 50 selected Twitter users, the 10\% most recent Tweets were removed and used for testing purposes. It was tested how many keystrokes can be saved on the basis of four language models:
@@ -161,11 +144,6 @@ The 'idiolect $+$ random Twitter feeds' language model was created as a control 
 The 'idiolect $+$ random Twitter feeds' language model was created as a control model for the sociolect, so that we can tell to what extent any improvements of adding tweets can be attributed to the fact that these are tweets from friends.
 
 \section{Results}
-
-<<<<<<< HEAD
-=======
-The results are summarized in Table~\ref{results}. We see that Xxx performs best when using the sociolect, followed by idiolect together with random twitter feeds, followed by the idiolect alone. The idiolect alone performed much better than the general language model, despite the general model having on average 2 orders of magnitude (200 times) as much training material. An ANOVA for repeated measures shows that there is indeed an effect of language model used for both CKS, $F(1.38,66.34) = 140.85, p > .001$ , and SKKS, $F(1.54,73.97) = 184.85, p > .001$. Contrast analyses between general model and the idiolect (research question 1) and the idiolect + random Twitter feeds and the sociolects (research question 2) are given in Table \ref{stat}. These values show Xxx performs significantly better when it uses the idiolect than when it uses the general model, and that Xxx performs significantly better when it uses the sociolect than when it uses the idiolect + random Twitter feeds.
->>>>>>> 7213b3936381d644d68f70c53a576efa4bcb1fc5
 
 The results are summarized in Table~\ref{results}. We see that Xxx performs best when using the sociolect, followed by idiolect together with random twitter feeds, followed by the idiolect alone. The idiolect alone performed much better than the general language model, despite the general model having on average 2 orders of magnitude (200 times) as much training material. An ANOVA for repeated measures shows that there is indeed an effect of language model used for both CKS, $F(3,150) = 140.83,\ p > .001$ , and SKKS, $F(3,150) = 184.85,\ p > .001$. Contrast analyses between general model and the idiolect (research question 1) and the idiolect + random Twitter feeds and the sociolects (research question 2) are given in Table \ref{stat}. These values show Xxx performs significantly better when it uses the idiolect than when it uses the general model, and that Xxx performs significantly better when it uses the sociolect than when it uses the idiolect + random Twitter feeds.
 
