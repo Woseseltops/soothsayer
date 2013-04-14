@@ -35,7 +35,7 @@ In this study we explore how word completion suggestions based on context-sensit
 \end{abstract}
 
 \section{Introduction}
-Predicting what somebody is going to type in a text editor entails more than just generic knowledge of the language he or she uses. \newcite{verberne12} show this true for word prediction applications used in predictive editing (or word completion) systems. Predictive editing has become a regular and popular commodity in text editors on mobile devices and in query completion. The most frequently adopted and most successful approach to the problem has been to use statistical $n$-gram models \cite{Lesher+99,Nantais+01,Matiasek+02,Fazly+03,How+05,Tanaka-Ishii07}. These applications try to predict the word the user is currently typing, or is going to type next, with the goal to reduce the number of keystrokes needed to complete the message. According to Verberne {\it et al}., better results can be achieved if their system has been trained on texts from a similar domain, and thus already has some useful expectations of what is going to come. \newcite{vandenbosch11} takes another approach to solve the same problem: he makes the system learn 'on the fly' by adding a recency buffer. This means that a list of the $n$ most recent words is kept in memory. Whenever the word the user is keying in matches a word in this buffer, this word is predicted. For instance, in the sentence \emph{They decided to go swimming because t...}, 'they' will be predicted because it was used recently.
+Predictive editing has become a regular and popular commodity in text editors on mobile devices and in query completion. These applications try to predict the word the user is currently typing, or is going to type next, with the goal to reduce the number of keystrokes needed to complete the message. The most frequently adopted and most successful approach has been to use statistical $n$-gram models \cite{Lesher+99,Nantais+01,Matiasek+02,Fazly+03,How+05,Tanaka-Ishii07}. However, predicting what somebody is going to type in a text editor entails more than just generic knowledge of the language he or she uses. \newcite{verberne12} show better results can be achieved if their system has been trained on texts from a similar domain, and thus already has some useful expectations of what is going to come. \newcite{vandenbosch11} takes another approach to solve the same problem: he makes the system learn 'on the fly' by adding a recency buffer. This means that a list of the $n$ most recent words is kept in memory. Whenever the word the user is keying in matches a word in this buffer, this word is predicted. For instance, in the sentence \emph{They decided to go swimming because t...}, 'they' will be predicted because it was used recently.
 
 Both approaches help to increase the number of keystrokes saved, but they also have downsides: for the system by \newcite{verberne12} training texts in the same genre are needed, which might not be available, whereas the system by \newcite{vandenbosch11} ignores context information that it should weigh more intelligently. For example, while a context-sensitive text-prediction system will probably be able to predict 'to' for the sentence \emph{Tommy was going t...}, the one with the recency buffer will predict 'Tommy'.
 
@@ -86,7 +86,7 @@ By communicating with the Twitter API we were able to harvest all tweets of a ma
 % hoe? met het Twitter language ID?
 % Nee, alle tweets waaruit addressees zijn gehaald (dus waarin @user stond) zijn tegen een nl frequentielijst gehouden. Als er niet genoeg nederlandse woorden in stonden (= als er in een andere taal tegen een addressee gesproken werd) heb ik die adressee niet geteld.
 
-The numbers of tweets over users appear to approximate a Pareto distribution: a very small group of users produces a large amount of tweets and vice versa. For that reason, we limited ourselves to the 50 most frequent tweeters in the experiments described here. The total amount of words ranged from 480,000 for the most frequent tweeter (10,317 tweets) to 200,000 for the least frequent tweeter (6,200 tweets). 
+The numbers of tweets over users appear to approximate a Pareto distribution: a very small group of users produces a large amount of tweets and vice versa. For that reason, we limited ourselves to the 50 most frequent tweeters in the experiments described here. The total amount of words ranged from 477,584 for the most frequent tweeter (10,317 tweets) to 201,542 for the least frequent tweeter (6,160 tweets). 
 %absolute getallen 10317 - 6160 -- geef ook de absolute aantallen woorden.
 
 For each of these 50 users, a list of 'friends' is created. A Twitter user is considered a friend of another Twitter user when both users addressed the other person at least three times (with a '@username' mention). We have chosen this number because a total of six tweets from both sides makes it likely that the two Twitter users know each other. 
@@ -113,10 +113,21 @@ Sociolect & 31.5 & 5.6 & 35.0 & 5.8 \\
 \end{table*}
 
 
+\begin{table*}[t]
+\begin{tabular}{l|ll|ll}
+Model \emph{vs} model &CKS: F&CKS: Sig.&SKKS: F&SKKS: Sig.\\
+\hline
+General model \emph{vs} idiolect & 85.78 & .000 & 135.38 & .000 \\
+Idiolect $+$ random Twitter feeds \emph{vs} sociolect & 23.2 & .000 & 15.06 & .000\\
+\end{tabular}
+\caption{F-values for and significance values for the contrasts relevant for research questions 1 and 2.}
+\label{stat}
+\end{table*}
+
 \subsection{Evaluation measures}
 The performance of our text prediction system is measured in 'percentage of keystrokes saved'. We calculate these in two different ways:
 \begin{itemize}
-\item Prediction are presented one at a time, and can be accepted with the spacebar or a punctuation mark or be rejected with the tab key. As noted by \newcite{vandenbosch11}, for many devices and applications it might not be possible or practical for the user to inspect a list of multiple suggestions. The percentage of keystrokes that can be saved when only one prediction was shown will be referred to as 'Classical Keystrokes Saved' (CKS).
+\item Predictions are presented one at a time, and can be accepted with the spacebar or a punctuation mark or be rejected with the tab key. As noted by \newcite{vandenbosch11}, for many devices and applications it might not be possible or practical for the user to inspect a list of multiple suggestions. The percentage of keystrokes that can be saved when only one prediction was shown will be referred to as 'Classical Keystrokes Saved' (CKS).
 \item The popular smartphone application SwiftKey\footnote{\url{http://www.swiftkey.net/}} always shows the user three predictions, which seem to be (1) what the user has keyed in so far, (2) the most likely prediction and (3) the second most likely prediction. In case the user has not yet started typing the next word, option (1) is replaced by the third most likely prediction. Because smartphones use a touchscreen as an input device, no extra keystrokes are needed. The percentage of keystrokes that can be saved when two (and sometimes three) predictions were shown will be referred to as 'SwiftKey Keystrokes Saved' (SKKS).
 \end{itemize}
 
@@ -132,24 +143,22 @@ For each of the 50 selected Twitter users, the 10\% most recent Tweets were remo
 
 The 'idiolect $+$ random Twitter feeds' language model was created as a control model for the sociolect, so that we can tell to what extent any improvements of adding tweets can be attributed to the fact that these are tweets from friends.
 
-The 'idiolect $+$ random Twitter feeds' language model was created as a control model for the sociolect, so that we can tell to what extent any improvements of adding tweets can be attributed to the fact that these are tweets from friends.
-
 \section{Results}
 
-The results are summarized in Table~\ref{results}. We see that Xxx performs best when using the sociolect, followed by idiolect together with random twitter feeds, followed by the idiolect alone. The idiolect alone performed much better than the general language model, despite the general model having on average 2 orders of magnitude (200 times) as much training material. An ANOVA for repeated measures shows that there is indeed an effect of language model used for both CKS, $F(3,150) = 140.83,\ p > .001$ , and SKKS, $F(3,150) = 184.85,\ p > .001$. Contrast analyses between general model and the idiolect (research question 1) and the idiolect + random Twitter feeds and the sociolects (research question 2) are given in Table \ref{stat}. These values show Xxx performs significantly better when it uses the idiolect than when it uses the general model, and that Xxx performs significantly better when it uses the sociolect than when it uses the idiolect + random Twitter feeds.
+The results are summarized in Table~\ref{results}. We see that Xxx performs best when using the sociolect, followed by idiolect together with random twitter feeds, followed by the idiolect alone. The idiolect alone performed much better than the general language model, despite the general model having on average 2 orders of magnitude (200 times) as much training material. An ANOVA for repeated measures shows that there is indeed an effect of language model used for both CKS, $F(1.38,66.34) = 140.85, p > .001$ , and SKKS, $F(1.54,73.97) = 184.85, p > .001$. Contrast analyses between general model and the idiolect (research question 1) and the idiolect + random Twitter feeds and the sociolects (research question 2) are given in Table \ref{stat}. These values show Xxx performs significantly better when it uses the idiolect than when it uses the general model, and that Xxx performs significantly better when it uses the sociolect than when it uses the idiolect + random Twitter feeds.
 
-\begin{table}[htb]
-\begin{center}
-\begin{tabular}{p{4.5cm}|ll} 
-Model \emph{vs} model & F & Sig.\\
-\hline 
-General model \emph{vs} idiolect & 85.78 & .000\\ 
-Idiolect $+$ random Twitter feeds \emph{vs} sociolect & 23.195 & .000\\
-\end{tabular}
-\caption{F-values for and significance values for the contrasts relevant for research questions 1 and 2.}
-\label{stat}
-\end{center}
-\end{table}
+%\begin{table}[htb]
+%\begin{center}
+%\begin{tabular}{p{4.5cm}|ll} 
+%Model \emph{vs} model & F & Sig.\\
+%\hline 
+%General model \emph{vs} idiolect & 85.78 & .000\\ 
+%Idiolect $+$ random Twitter feeds \emph{vs} sociolect & 23.195 & .000\\
+%\end{tabular}
+%\caption{F-values for and significance values for the contrasts relevant for research questions 1 and 2.}
+%\label{stat}
+%\end{center}
+%\end{table}
 
 We observed substantial differences between the Twitter users; for instance, the SKKS of our best model, the sociolect, ranged from 26\% to 52\%. Interestingly, Pearson's \emph{r} showed no correlation between the amount of words in the training data and the percentage of keystrokes saved; certain users simply write more predictably.
 % wat was de waarde precies?
