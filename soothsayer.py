@@ -8,6 +8,7 @@ import math;
 import socket;
 import random;
 import collections;
+import copy;
 
 ############### Functions ###################################
 
@@ -81,7 +82,11 @@ def do_prediction_server(text,model,lexicon,recency_buffer,settings,sockets,nr='
             distr = '';
 
             while distr == '' or 'DISTRIBUTION' not in distr or distr[-1] != '\n':
-                distr += sockets[0].recv(1024).decode();
+                try:
+                    distr += sockets[0].recv(1024).decode();
+                except UnicodeError:
+                    distr = 'DISTRIBUTION { de 0.999 }\n';
+                    print('  Skipped one');
 
             final_distr = '[ word ]' + distr.split('DISTRIBUTION')[1];
             open('predictions/lcontext'+nr+'.'+modelname+'.IGTree.gr.out','w').write(final_distr);
@@ -176,7 +181,7 @@ def do_prediction_server(text,model,lexicon,recency_buffer,settings,sockets,nr='
         source = 'PERS. MODEL/LEXICON';
         pick = read_frequency_file(model,current_word,boundary,settings['limit_personal_lexicon']);
         
-    #Try context-free, personal model
+    #Try context-free, general model
     if pick == '':
         source = 'GEN. MODEL/LEXICON';
         pick = read_frequency_file('wordmodels/nl',current_word,boundary,settings['limit_backup_lexicon']);
@@ -222,7 +227,10 @@ def read_prediction_file(modelname,nr,current_word,boundary,settings,recency_buf
         if last_word == None:
             last_word = i;
         else:
-            predictions.append((last_word,float(i[:-1])));
+            try:
+                predictions.append((last_word,float(i[:-1])));
+            except ValueError:
+                pass;
             last_word = None;
 
     #Pick the best prediction, based on what has been typed so far
@@ -464,9 +472,6 @@ def simulate(model,lexicon,content_rb,teststring,settings,nr,result):
     sockets = start_servers(model,settings);
     recency_buffer = collections.deque(content_rb,settings['recency_buffer']);
 
-    correct_words = open('output/correct'+str(nr),'a+');
-    wrong_words = open('output/wrong'+str(nr),'a+');
-
     #Find out where to start (because of overlap)
     if nr == 0:
         starting_point = 0;
@@ -518,9 +523,6 @@ def simulate(model,lexicon,content_rb,teststring,settings,nr,result):
 
             #If correct, calculate keystrokes saved and put in output
             if current_word == prediction['full_word']:
-
-                if prediction['source'] in ['GEN. MODEL/IGTREE +RB','PERS. MODEL/IGTREE +RB']:
-                    correct_words.write(current_word + '\t'+  prediction['source'] + ' '+ teststring[i-30:i+30] +'\n');
                 
                 output += '\n## FIRST GUESS CORRECT. SKIP. \n';
 #                predictions_marked_file.write('<');
@@ -570,8 +572,6 @@ def simulate(model,lexicon,content_rb,teststring,settings,nr,result):
 
                 skks_got_it_already = True;
             else:
-                if prediction['source'] in ['GEN. MODEL/IGTREE +RB','PERS. MODEL/IGTREE +RB']:
-                    wrong_words.write(prediction['full_word'] + '\t'+ prediction['source'] + teststring[i-30:i+30] + '\n');                
                 pass;
                 
         #Skip if the word was already predicted
@@ -646,8 +646,16 @@ def prepare_training_data(directory,settings):
         if n%1000 == 0:
             print('   ',n/len(files));
 
+        content = open('input/'+directory+i,'r',encoding='utf-8',errors='ignore').read();
+
+        if i == settings['cut_file']:
+            words = content.split();
+            boundary = round(len(words)*0.9);
+            content = ' '.join(words[:boundary]);            
+            print('   Cut file '+i);
+
         if settings['approach'] == 'w':
-            total_text += ' _ _ _ '+open('input/'+directory+i,'r',encoding='utf-8',errors='ignore').read();
+            total_text += ' _ _ _ '+content;
         elif settings['approach'] == 'l':
             total_text += ' ________________ '+open('input/'+directory+i,'r',encoding='utf-8',errors='ignore').read();
 
@@ -1138,6 +1146,13 @@ if '-dks' in sys.argv or '-dcs' in sys.argv:
 else:
     settings['close_server'] = True;
 
+if '-cf' in sys.argv:
+    for n,i in enumerate(sys.argv):
+        if i == '-cf':
+            settings['cut_file'] = sys.argv[n+1];    
+else:
+    settings['cut_file'] = False;
+
 #Set directory reference (add .90 for the simulation mode)
 if settings['mode'] == 'd':
     dir_reference = inp[:-1];
@@ -1173,7 +1188,8 @@ if settings['close_server']:
     command('killall timblserver');
 
 #TODO
-# Lettermodus
+# Pas op bij testfile_preset: je gooit misschien ten onrecte dingen weg
+# Lettermodus: gaat er ergens iets fout?
 # Server modus
 
 # Haakje sluiten in simulatiemodus
