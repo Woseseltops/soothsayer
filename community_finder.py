@@ -1,56 +1,66 @@
 import os
 import tweetlib
 
-files = os.listdir('testfeeds');
-
 def feed_to_addresseelist(feed):
 
-    feed = open(feed);
+    try:
+        feed = open(feed,'r');
+    except IOError:
+        return [];
 
     addressees = [];
     for j in feed:
+        try:
+            tweet = j.split('||')[2];
+        except IndexError:
+            print('Skipped one');
+            continue;
         addressees += tweetlib.get_addressees(j);
 
     return addressees;
 
-def find_loose_networks():
+def find_loose_networks(d):
 
     networks = [];
 
-    for i in files:
+    for i in tweeters:
         if i[-1] != '~':
 
-            name = i[:-4];
-            people_in_network = [name];
+            people_in_network = [i];
 
-            addressees = feed_to_addresseelist('testfeeds/'+i);
+            addressees = feed_to_addresseelist(d+'/'+i);
             
             #For each addressee, see if he talks back
             for j in addressees:
-                other_addressees = feed_to_addresseelist('testfeeds/'+j+'.txt');
-                if name in other_addressees:
-                    people_in_network.append(j);
+                if j not in people_in_network and addressees.count(j) > 2:
+                    other_addressees = feed_to_addresseelist(d+'/'+j);
+                    if other_addressees.count(i) > 2:
+                        print j+' replies to '+i+' '+str(other_addressees.count(i))+' times.';
+                        people_in_network.append(j);
 
             networks.append(people_in_network);
 
     return networks
 
-def find_close_networks():
+def find_close_networks(d):
 
+    #Does not yet do what it is supposed to do
+
+    #files = os.listdir(d);
     networks = [];
 
-    for i in files:
+    for i in tweeters[:3]:
+        print 'Calculating from '+ i;
         if i[-1] != '~':
 
-            name = i[:-4];
             people_in_network = set();
-            people_in_network.add(name);
+            people_in_network.add(i);
 
-            addressees = feed_to_addresseelist('testfeeds/'+i);
+            addressees = feed_to_addresseelist(d+'/'+i);
             
             #For each addressee, see if he talks to all others in the network
             for j in addressees:
-                other_addressees = feed_to_addresseelist('testfeeds/'+j+'.txt');
+                other_addressees = feed_to_addresseelist(d+'/'+j);
                 
                 missed_one = False;
                 
@@ -61,14 +71,33 @@ def find_close_networks():
 
                 if not missed_one:     
                     people_in_network.add(j);
+                    print 'Added '+j+' to '+i;
 
             #Only add your discovered network when it's uniquef
             if not people_in_network in networks:
                 networks.append(people_in_network);
 
-    return networks
+    return networks;
 
-print(find_close_networks());
+tweeters = ['artbysophia','baspaternotte','marktwain2','pinaatje','pienbetuwe',
+            'rider_ot_storm','mrsmartine','chrisklomp','leolewin','contentgirl',
+            'amadeusivan','ongerijmd','umarebru','a_mieke','steephsel','brechtjedeleij',
+            'eetschrijver','esther_305','klapster','goedemorgenman','walterhoekstra',
+            'jasmijn02','miekeinc','sredlums','aldith_hunkar','tien020','karinwinters',
+            'johnschop','lobdozer','theollieworks','wup5','jennekepenneke','rebelsnotes',
+            'puberdochters','knotsbots','dennismons','fluist3r','mariannecramer',
+            'rjvanhouten','superjan','titchener','anniebbarks','fred3012','politicus1',
+            'peterstafleu','jettyvanrooy','mariannezw','jochemgeerdink','nabilfeki',
+            'kos_'];
+
+networks = find_loose_networks('/scratch/wstoop/tweetdata/feeds');
+output = open('communities','w');
         
+for i in networks:
+    for j in i:
+        output.write(j+'\n');
+
+    output.write('\n');
+
 #TODO
 # Minimaal zo vaak tegen elkaar gepraat
