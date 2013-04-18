@@ -74,8 +74,8 @@ def do_prediction_server(text,model,lexicon,recency_buffer,settings,sockets,nr='
             while len(words) < 3:
                 words = ['_'] + words;
 
-#            lcontext = ('c '+attenuate_string_simple(' '.join(words) + ' _',lexicon) + '\n').encode();
-            lcontext = ('c ' + ' '.join(words) + ' _\n').encode();
+            lcontext = ('c '+attenuate_string_simple(' '.join(words) + ' _',lexicon) + '\n').encode();
+#            lcontext = ('c ' + ' '.join(words) + ' _\n').encode();
 
             #Personal model
             sockets[0].sendall(lcontext);
@@ -100,7 +100,7 @@ def do_prediction_server(text,model,lexicon,recency_buffer,settings,sockets,nr='
 
             final_distr = '[ word ]' + distr.split('DISTRIBUTION')[1];
             open('predictions/lcontext'+nr+'.nlsave.IGTree.gr.out','w').write(final_distr);
-
+            
         else:
             current_word = words[-1];
             words = words[-4:-1];
@@ -166,8 +166,7 @@ def do_prediction_server(text,model,lexicon,recency_buffer,settings,sockets,nr='
     #Try context-sensitive, general model
     if pick == '':
         source = 'GEN. MODEL/IGTREE';
-        pick, second_pick, third_pick, predictions,used_rb = read_prediction_file('nl',nr,current_word,boundary,settings,recency_buffer);
-
+        pick, second_pick, third_pick, predictions,used_rb = read_prediction_file('nlsave',nr,current_word,boundary,settings,recency_buffer);
         if used_rb:
             source += ' +RB';
 
@@ -179,12 +178,12 @@ def do_prediction_server(text,model,lexicon,recency_buffer,settings,sockets,nr='
     #Try context-free, personal model
     if pick == '':
         source = 'PERS. MODEL/LEXICON';
-        pick = read_frequency_file(model,current_word,boundary,settings['limit_personal_lexicon']);
+        pick,second_pick = read_frequency_file(model,current_word,boundary,settings['limit_personal_lexicon']);
         
     #Try context-free, general model
     if pick == '':
         source = 'GEN. MODEL/LEXICON';
-        pick = read_frequency_file('wordmodels/nl',current_word,boundary,settings['limit_backup_lexicon']);
+        pick,second_pick = read_frequency_file('wordmodels/nlsave',current_word,boundary,settings['limit_backup_lexicon']);
 
     #Admit that you don't know
     if pick == '':
@@ -264,20 +263,20 @@ def read_prediction_file(modelname,nr,current_word,boundary,settings,recency_buf
                 third_pick = i[0];
                 third_highest_confidence = i[1];
 
-    if settings['approach'] == 'l' and highest_confidence < 0.5:
-        pick = '';
-        second_pick = '';
-    else:
-        #Recency_buffer overrules with the word approach
-        if recency_buffer:
-            for i in recency_buffer:
-                if i[:boundary] == current_word:
-                    for j in predictions:
-                        if i == j[0]:
-                            if pick != i:
-                                pick = i;
-                                used_rb = True;
-                            break;
+#    if settings['approach'] == 'l' and highest_confidence < 0.5:
+#        pick = '';
+#        second_pick = '';
+#    else:
+#        #Recency_buffer overrules with the word approach
+#        if recency_buffer:
+#            for i in recency_buffer:
+#                if i[:boundary] == current_word:
+#                    for j in predictions:
+#                        if i == j[0]:
+#                            if pick != i:
+#                                pick = i;
+#                                used_rb = True;
+#                            break;
             
     return pick, second_pick, third_pick, predictions, used_rb;
 
@@ -285,21 +284,25 @@ def read_frequency_file(model,current_word,boundary,cut_off_lexicon):
     """Returns the most frequent word that starts with current_word"""
 
     pick = '';
+    second_pick = '';
     lexicon = open(model+'.lex.txt');
 
     if len(current_word) == 0:
-        return '';
+        return '','';
     
     for i in lexicon:
         if i[0] == current_word[0]: #quick check before you do more heavy stuff
             word, freq = i.split();
             if word[:boundary] == current_word:
-                pick = word;
-                break;
+                if pick == '':
+                    pick = word;
+                elif second_pick == '':
+                    second_pick = word;
+                    break;
             elif int(freq) < cut_off_lexicon:
                 break;
 
-    return pick;
+    return pick,second_pick;
 
 def read_recency_buffer(rb,current_word,boundary):
     """Gets the latest word from the recency buffer that matches what you were typing""";
@@ -353,6 +356,8 @@ def demo_mode(model,lexicon,settings):
     busy = True;
     text_so_far = '';
     text_so_far_colored = '';
+    last_prediction = '';
+    repeats = 0;
 
     while busy:
         rejected = False;
@@ -400,6 +405,19 @@ def demo_mode(model,lexicon,settings):
         if not rejected:
             prediction = do_prediction_server(text_so_far,model,lexicon,recency_buffer,settings,sockets);
 
+        #Keep track of how often you did a prediction
+
+        if last_prediction == prediction['full_word']:
+            repeats += 1;
+        else:
+            repeats = 1;
+
+        last_prediction = prediction['full_word'];
+
+        #Show second best if you did a prediction too often
+        if len(prediction['second_guess']) > 3 and repeats > 3:
+            prediction['full_word'] = prediction['second_guess'];
+            
         #Show the prediction
         clear();
 
@@ -409,6 +427,7 @@ def demo_mode(model,lexicon,settings):
         print(prediction['second_guess']+', '+prediction['third_guess']+', '+ \
               str(prediction['nr_options'])+' options, source:',colors[prediction['source']],
               prediction['source'],colors['white']);
+        print(last_prediction,repeats);
 
         #Check for quit
         if 'quit' in text_so_far.split():
@@ -1188,9 +1207,13 @@ if settings['close_server']:
     command('killall timblserver');
 
 #TODO
+# Broodjesprobleem:
+#  Sim modus
+    
 # Pas op bij testfile_preset: je gooit misschien ten onrecte dingen weg
+# Mogelijk: werkt het beter als je na lang doorgaan stop met suggereren?
+# Second guess al uit de volgende module halen
 # Lettermodus: gaat er ergens iets fout?
 # Server modus
-
 # Haakje sluiten in simulatiemodus
 # Backspace: houdt rekening met recency buffer, als je over de kleurgrenzen heen backspacet gaan de kleuren raar doen
