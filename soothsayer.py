@@ -71,7 +71,7 @@ class Soothsayer():
         self.cut_file = cut_file;
         self.punctuation = ['.',',',':','!',';','?'];
 
-    def do_prediction_server(self,text,model,lexicon,recency_buffer,nr=''):
+    def do_prediction(self,text,model,lexicon,recency_buffer,nr=''):
         """Returns a prediction by TiMBL and related info""";
 
         words = text.split();
@@ -238,13 +238,13 @@ class Soothsayer():
             source = 'I GIVE UP';
 
         #If it ends with punctuation, remove that
-        elif full_word[-1] in settings['punctuation']:
+        elif full_word[-1] in self.punctuation:
             full_word = full_word[:-1];
 
-        if len(second_guess) > 1 and second_guess[-1] in settings['punctuation']:
+        if len(second_guess) > 1 and second_guess[-1] in self.punctuation:
             second_guess = second_guess[:-1];
 
-        if len(third_guess) > 1 and third_guess[-1] in settings['punctuation']:
+        if len(third_guess) > 1 and third_guess[-1] in self.punctuation:
             third_guess = third_guess[:-1];
         
         return {'full_word':full_word,'word_so_far':current_word,'nr_options':len(predictions),
@@ -466,7 +466,7 @@ class Soothsayer():
         else:
             lexicon_filename = foldername+'/'+directory[:-1]+'.lex.txt'; 
         self.string_to_lexicon(total_text,lexicon_filename);
-        lexicon = self.load_lexicon(lexicon_filename,self.att_threshold);
+        lexicon = self.load_lexicon(lexicon_filename);
 
         #In simulation mode, cut away 10 percent for testing later
         print('  Make test file if needed');
@@ -580,7 +580,7 @@ class Soothsayer():
 
         open(outputfilename,'w').write(lines);
 
-    def load_lexicon(self,filename,threshold):
+    def load_lexicon(self,filename):
         """Returns a list of all words more frequent than threshold""";
 
         lexicon = open(filename,'r');
@@ -590,7 +590,7 @@ class Soothsayer():
             word,frequency = i.split();
             frequency = int(frequency);
 
-            if frequency > threshold:
+            if frequency > self.att_threshold:
                 try:
                     frequent_words[len(word)].append(word);
                 except KeyError:
@@ -726,7 +726,7 @@ def demo_mode(model,lexicon,settings):
     ss.start_servers(model,True);
 
     #Predict starting word
-    prediction = ss.do_prediction_server('',model,lexicon,recency_buffer);
+    prediction = ss.do_prediction('',model,lexicon,recency_buffer);
 
     #Ask for first char    
     print('Start typing whenever you want');
@@ -783,7 +783,7 @@ def demo_mode(model,lexicon,settings):
 
         #Predict new word
         if not rejected:
-            prediction = ss.do_prediction_server(text_so_far,model,lexicon,recency_buffer);
+            prediction = ss.do_prediction(text_so_far,model,lexicon,recency_buffer);
 
         #Keep track of how often you did a prediction
 
@@ -908,7 +908,7 @@ def simulate(model,lexicon,content_rb,teststring,settings,nr,result):
             nr_chars_typed = i - starting_point +1;
 
             #Do prediction
-            prediction = ss.do_prediction_server(text_so_far,model,lexicon,recency_buffer,nr=str(nr));
+            prediction = ss.do_prediction(text_so_far,model,lexicon,recency_buffer,nr=str(nr));
 
             #Keep track of how often you did a prediction
             if last_prediction == prediction['full_word']:
@@ -1070,7 +1070,7 @@ def server_mode(settings):
             #Prepare predicting for this channel
             print('Starting servers and loading lexicon');
             channel_timbl[channel] = start_servers(channels[channel],settings);
-            channel_lexicon[channel] = load_lexicon(channels[channel]+'.lex.txt',settings['att_threshold']);
+            channel_lexicon[channel] = load_lexicon(channels[channel]+'.lex.txt');
 
             #Communicate the chosen channel            
             print('Using channel',channel);
@@ -1081,7 +1081,7 @@ def server_mode(settings):
             char = message[:-1];
             channel = int(message[-1]);
             channel_texts[channel] += char;
-            prediction = do_prediction_server(channel_texts[channel],channels[channel],
+            prediction = do_prediction(channel_texts[channel],channels[channel],
                                  channel_lexicon[channel],'',settings,
                                  channel_timbl[channel]);            
 
@@ -1321,7 +1321,7 @@ if __name__ == "__main__":
 
             testfile = modelfolder+'/'+inp[:-1] + '.10.test.txt';
             model = modelfolder+'/'+dir_reference;
-            lexicon = ss.load_lexicon(modelfolder+'/'+dir_reference+'.lex.txt',settings['att_threshold']);
+            lexicon = ss.load_lexicon(modelfolder+'/'+dir_reference+'.lex.txt');
         except IOError:
             print('Model not found. Prepare data to create a new one:');
             training_file, testfile, lexicon = ss.prepare_training_data(inp);
