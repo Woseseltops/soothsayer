@@ -155,20 +155,39 @@ def do_prediction_server(text,model,lexicon,recency_buffer,settings,sockets,nr='
     predictions = [];
     used_rb = False;
 
+    full_word = '';
+    second_guess = '';
+    third_guess = '';
+
     #Try context-sensitive, personal model
-    if pick == '':
-        source = 'PERS. MODEL/IGTREE';
+    if '' in [full_word,second_guess,third_guess]:
         pick, second_pick, third_pick, predictions, used_rb = read_prediction_file(modelname,nr,current_word,boundary,settings);
 
         if used_rb:
             source += ' +RB';
 
+        if full_word == '':
+            full_word = pick;
+            source = 'PERS. MODEL/IGTREE';
+        if second_guess == '':
+            second_guess = second_pick;
+        if third_guess == '':
+            third_guess = third_pick;
+
     #Try context-sensitive, general model
-    if pick == '':
-        source = 'GEN. MODEL/IGTREE';
+    if '' in [full_word,second_guess,third_guess]:
         pick, second_pick, third_pick, predictions,used_rb = read_prediction_file('nlsave',nr,current_word,boundary,settings,recency_buffer);
+
         if used_rb:
             source += ' +RB';
+
+        if full_word == '':
+            full_word = pick;
+            source = 'GEN. MODEL/IGTREE';
+        if second_guess == '':
+            second_guess = second_pick;
+        if third_guess == '':
+            third_guess = third_pick;
 
     #Try the recency_buffer
 #    if pick == '' and boundary > 0:
@@ -176,25 +195,45 @@ def do_prediction_server(text,model,lexicon,recency_buffer,settings,sockets,nr='
 #        pick = read_recency_buffer(recency_buffer,current_word,boundary);
 
     #Try context-free, personal model
-    if pick == '':
-        source = 'PERS. MODEL/LEXICON';
+    if '' in [full_word,second_guess,third_guess]:
         pick,second_pick = read_frequency_file(model,current_word,boundary,settings['limit_personal_lexicon']);
+
+        if full_word == '':
+            full_word = pick;
+            source = 'PERS. MODEL/LEXICON';
+        if second_guess == '':
+            second_guess = second_pick;
+        if third_guess == '':
+            third_guess = third_pick;
         
     #Try context-free, general model
-    if pick == '':
-        source = 'GEN. MODEL/LEXICON';
+    if '' in [full_word,second_guess,third_guess]:
         pick,second_pick = read_frequency_file('wordmodels/nlsave',current_word,boundary,settings['limit_backup_lexicon']);
 
+        if full_word == '':
+            full_word = pick;
+            source = 'GEN. MODEL/LEXICON';
+        if second_guess == '':
+            second_guess = second_pick;
+        if third_guess == '':
+            third_guess = third_pick;
+
     #Admit that you don't know
-    if pick == '':
+    if full_word == '':
         source = 'I GIVE UP';
 
     #If it ends with punctuation, remove that
-    elif pick[-1] in settings['punctuation']:
-        pick = pick[:-1];
+    elif full_word[-1] in settings['punctuation']:
+        full_word = full_word[:-1];
+
+    if len(second_guess) > 1 and second_guess[-1] in settings['punctuation']:
+        second_guess = second_guess[:-1];
+
+    if len(third_guess) > 1 and third_guess[-1] in settings['punctuation']:
+        third_guess = third_guess[:-1];
     
-    return {'full_word':pick,'word_so_far':current_word,'nr_options':len(predictions),
-            'second_guess':second_pick,'third_guess':third_pick, 'source': source}; 
+    return {'full_word':full_word,'word_so_far':current_word,'nr_options':len(predictions),
+            'second_guess':second_guess,'third_guess':third_guess, 'source': source}; 
 
 def read_prediction_file(modelname,nr,current_word,boundary,settings,recency_buffer=False):
     """Reads and orders the predictions by TiMBL""";
@@ -427,7 +466,6 @@ def demo_mode(model,lexicon,settings):
         print(prediction['second_guess']+', '+prediction['third_guess']+', '+ \
               str(prediction['nr_options'])+' options, source:',colors[prediction['source']],
               prediction['source'],colors['white']);
-        print(last_prediction,repeats);
 
         #Check for quit
         if 'quit' in text_so_far.split():
@@ -504,11 +542,10 @@ def simulate(model,lexicon,content_rb,teststring,settings,nr,result):
     total_keystrokes_saved_sk = 0; #Swiftkey measure
     already_predicted = False;
     skks_got_it_already = False;
+    repeats = 1;
+    last_prediction = '';
 
     output = '#############################\n##   CORE '+str(nr)+' STARTS HERE    ##\n#############################\n\n';
-
-#    open('predictions_marked','w');
-#    predictions_marked_file = open('predictions_marked'+str(nr),'a');
 
     #Go through the testfile letter for letter
     for i in range(starting_point,len(teststring)):
@@ -528,8 +565,22 @@ def simulate(model,lexicon,content_rb,teststring,settings,nr,result):
             text_so_far = teststring[:i];
             nr_chars_typed = i - starting_point +1;
 
-            #Do prediction and compare with what the user was actually writing
+            #Do prediction
             prediction = do_prediction_server(text_so_far,model,lexicon,recency_buffer,settings,sockets,nr=str(nr));
+
+            #Keep track of how often you did a prediction
+            if last_prediction == prediction['full_word']:
+                repeats += 1;
+            else:
+                repeats = 1;
+
+            last_prediction = prediction['full_word'];
+
+            #Show second best if you did a prediction too often
+            if len(prediction['second_guess']) > 3 and repeats > 3:
+                prediction['full_word'] = prediction['second_guess'];
+                
+            #Get and show what is written now
             current_word = find_current_word(teststring,i);
 
             if len(current_word) > 0 and current_word[-1] in settings['punctuation']:
@@ -537,14 +588,12 @@ def simulate(model,lexicon,content_rb,teststring,settings,nr,result):
                 had_punc = True;
             else:
                 had_punc = False;
-            
-            output += prediction['word_so_far']+', '+ current_word+', '+prediction['full_word']+'\n';
 
-            #If correct, calculate keystrokes saved and put in output
+            #If correct, calculate keystrokes saved and put in output            
+            output += prediction['word_so_far']+', '+ current_word+', '+prediction['full_word']+'\n';
             if current_word == prediction['full_word']:
                 
                 output += '\n## FIRST GUESS CORRECT. SKIP. \n';
-#                predictions_marked_file.write('<');
 
                 keystrokes_saved = calculate_keystrokes_saved(prediction['word_so_far'],current_word);
 
@@ -567,7 +616,7 @@ def simulate(model,lexicon,content_rb,teststring,settings,nr,result):
                 if teststring[i] != ' ':
                     already_predicted = True;
 
-            elif current_word == prediction['second_guess']:
+            elif not skks_got_it_already and current_word == prediction['second_guess']:
                 output += '\n## SECOND GUESS CORRECT \n';
 
                 keystrokes_saved = calculate_keystrokes_saved(prediction['word_so_far'],prediction['second_guess']);
@@ -597,8 +646,6 @@ def simulate(model,lexicon,content_rb,teststring,settings,nr,result):
         else:
             if teststring[i] == ' ':
                 already_predicted = False;
-
-#        predictions_marked_file.write(teststring[i]);   
 
     nr_chars_typed = len(teststring) - starting_point;
 
@@ -648,6 +695,55 @@ def find_current_word(string, position):
         c += 1;
 
     return word.strip();
+
+def server_mode(settings):
+
+    channels = {};
+    channel_texts = {};
+    channel_timbl = {};
+    channel_lexicon = {};
+    
+    port = get_free_port();
+    s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM);
+    s.bind(('localhost',port));
+    print('Started on port',port);
+
+    print('Waiting for channel requests');
+    busy = True;
+
+    while busy:
+        data, addr = s.recvfrom(1024);
+        data = data.decode();
+        mtype = data[0];
+        message = data[1:];
+
+        if mtype == 'R':
+            print('Channel requested with model',message);
+
+            #Look for a chanenl
+            channel = find_free_channel(channels);
+            channels[channel] = 'wordmodels/'+message;
+            channel_texts[channel] = '';
+
+            #Prepare predicting for this channel
+            print('Starting servers and loading lexicon');
+            channel_timbl[channel] = start_servers(channels[channel],settings);
+            channel_lexicon[channel] = load_lexicon(channels[channel]+'.lex.txt',settings['att_threshold']);
+
+            #Communicate the chosen channel            
+            print('Using channel',channel);
+            channel = str(channel);
+            s.sendto(channel.encode(),addr);
+
+        elif mtype == 'C':
+            char = message[:-1];
+            channel = int(message[-1]);
+            channel_texts[channel] += char;
+            prediction = do_prediction_server(channel_texts[channel],channels[channel],
+                                 channel_lexicon[channel],'',settings,
+                                 channel_timbl[channel]);            
+
+            s.sendto(prediction['full_word'].encode(),addr);
 
 def prepare_training_data(directory,settings):
 
@@ -1028,7 +1124,7 @@ def start_servers(model,settings):
 
     while not succeeded:
 
-        if settings['mode'] == 'd':
+        if settings['mode'] in ['d','server']:
             port = get_port_for_timblserver(model+'.training.txt.IGTree');
         else:
             port = False;
@@ -1051,7 +1147,7 @@ def start_servers(model,settings):
 
     while not succeeded:
 
-        if settings['mode'] == 'd':
+        if settings['mode'] in ['d','server']:
             port = get_port_for_timblserver(foldername+'/'+backupname+'.training.txt.IGTree');
         else:
             port = False;
@@ -1100,6 +1196,21 @@ def add_to_recency_buffer(rb,text):
         rb.appendleft(last_word);
     return rb
 
+def find_free_channel(channels):
+    """Finds a free channel, using the list of channels currently in use""";
+
+    c = 0;
+    found = False;
+
+    while not found:
+        try:
+            channels[c];
+            c += 1;
+        except KeyError:
+            found = True;
+
+    return c;
+
 ######### Colors ##############
 colors = {'PERS. MODEL/IGTREE': '\033[0;35m', 'PERS. MODEL/LEXICON': '\033[1;34m',
           'GEN. MODEL/IGTREE': '\033[0;32m', 'GEN. MODEL/LEXICON': '\033[1;31m',
@@ -1122,6 +1233,8 @@ if '-d' in sys.argv:
     settings['mode'] = 'd';
 elif '-s' in sys.argv:
     settings['mode'] = 's';
+elif '-server' in sys.argv:
+    settings['mode'] = 'server';
 else:
     settings['mode'] = input('Mode (d = demo, s = simulation): ');    
 
@@ -1143,7 +1256,7 @@ if '-id' in sys.argv:
     for n,i in enumerate(sys.argv):
         if i == '-id':
             inp = sys.argv[n+1] + '/';
-else:
+elif settings['mode'] != 'server':
     inp = input('Input directory: ') + '/';
 
 if '-tf' in sys.argv:
@@ -1179,18 +1292,19 @@ elif settings['mode'] == 's':
     dir_reference = inp[:-1] + '.90';
 
 #Try opening the language model (and testfile), or create one if it doesn't exist
-try:
-    open(modelfolder+'/'+dir_reference+'.training.txt','r');
-    print('Loading existing model for '+dir_reference+'.');
+if settings['mode'] != 'server':
+    try:
+        open(modelfolder+'/'+dir_reference+'.training.txt','r');
+        print('Loading existing model for '+dir_reference+'.');
 
-    testfile = modelfolder+'/'+inp[:-1] + '.10.test.txt';
-    model = modelfolder+'/'+dir_reference;
-    lexicon = load_lexicon(modelfolder+'/'+dir_reference+'.lex.txt',settings['att_threshold']);
-except IOError:
-    print('Model not found. Prepare data to create a new one:');
-    training_file, testfile, lexicon = prepare_training_data(inp,settings);
-    print('Training model');
-    model = train_model(training_file);
+        testfile = modelfolder+'/'+inp[:-1] + '.10.test.txt';
+        model = modelfolder+'/'+dir_reference;
+        lexicon = load_lexicon(modelfolder+'/'+dir_reference+'.lex.txt',settings['att_threshold']);
+    except IOError:
+        print('Model not found. Prepare data to create a new one:');
+        training_file, testfile, lexicon = prepare_training_data(inp,settings);
+        print('Training model');
+        model = train_model(training_file);
 
 #If the user has his own testfile, abandon the automatically generated one
 if testfile_preset:
@@ -1201,19 +1315,16 @@ if settings['mode'] == 'd':
     demo_mode(model,lexicon,settings);
 elif settings['mode'] == 's':
     simulation_mode(model,lexicon,testfile,settings);
+elif settings['mode'] == 'server':
+    server_mode(settings);
 
 #Close everything
 if settings['close_server']:
     command('killall timblserver');
 
 #TODO
-# Broodjesprobleem:
-#  Sim modus
-    
-# Pas op bij testfile_preset: je gooit misschien ten onrecte dingen weg
-# Mogelijk: werkt het beter als je na lang doorgaan stop met suggereren?
-# Second guess al uit de volgende module halen
-# Lettermodus: gaat er ergens iets fout?
 # Server modus
+# Mogelijk: werkt het beter als je na lang doorgaan stopt met suggereren?
+# Lettermodus: gaat er ergens iets fout?
 # Haakje sluiten in simulatiemodus
-# Backspace: houdt rekening met recency buffer, als je over de kleurgrenzen heen backspacet gaan de kleuren raar doen
+# Backspace: fout als je over de kleurgrenzen heen backspacet gaan de kleuren raar doen
