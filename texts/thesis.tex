@@ -63,7 +63,7 @@ Period&Spring 2013\\
 \subsubsection{Soothsayer}
 The goal of this chapter is to build the best word prediction algorithm possible, from the ground up. We will start with a very basic application that uses word uniqueness thresholds to predict the word the user is keying in, and add more components and smaller improvements step by step. I have given the resulting system the working title \emph{Soothsayer}, for ease of reference.
 
-An important thing to note is that Soothsayer works with independent modules. A module can be seen as a function that takes some input (for example, the letters of the word the user is currently keying in), uses a language model to generate:
+An important thing to note is that Soothsayer works with independent modules. A module can be seen as a function that takes some input (for example, the letters of the word the user is currently keying in) and uses a language model to generate:
 
 \begin{enumerate}
 \item The most likely prediction
@@ -90,17 +90,17 @@ In this chapter, I will propose an addition to Soothsayer and then measure to wh
 
 %CKS SKKS
 
-A thing to notice is that both measures reflect the percentage of keystrokes saved in an ideal situation; that is, when the user accepted a correct prediction immediately once it is available. As will be discussed further in section \ref{early}, this is not necessarily the case. 
+A thing to notice is that both measures reflect the percentage of keystrokes saved in an ideal situation; that is, when the user accepts a correct prediction immediately once it is available. As will be discussed further in section \ref{early}, this is not necessarily the case. 
 
 %wordt dat echt discussed?
 
 \subsubsection{What Soothsayer is not}
-There are many possible approaches to take when building an autocompletion system. Because it would take too much time to try all of these approaches (and all combinations of them), I had to decide. Therefore, before I explain and defend the workings of Soothsayer, I therefore would like to list these decisions, so the reader has a rough idea of what is coming. 
+There are many possible approaches to take when building an autocompletion system. Because it would take too much time to try all of these approaches (and all combinations of them), I had to set limitations. Therefore, before I explain and defend the workings of Soothsayer, I therefore would like to list the most importat decisions, so the reader has a rough idea of what is coming. 
 
 \begin{itemize}
 \item Soothsayer does not use hand-made rules and is fully language independent.
 %blabla, parsers, voorbeeld
-As a result of this, Soothsayer is fully language independent: if it is trained on Dutch data, is will predict Dutch words, if it is trained on Swahili, it will predict Swahili words. In fact, the context-sensitive modules will give correct predictions even with mixed training data.
+As a result of this, Soothsayer is fully language independent: if it is trained on Dutch data, is will predict Dutch words, if it is trained on Swahili, it will predict Swahili words. In fact, the context-sensitive modules will often give correct predictions even with mixed training data.
 \item Soothsayer is not designed for mobile phones.
 
 %T9
@@ -111,7 +111,7 @@ As a result of this, Soothsayer is fully language independent: if it is trained 
 
 \subsection{Context-insensitive modules} \label{ci}
 
-Context-insensitive modules only use information of the word the users is currently keying in. In sentence \ref{only_c}, for example, only the c will be used for prediction. 
+Context-insensitive modules only use information of the word the user is currently keying in. In sentence \ref{only_c}, for example, only the c will be used for prediction. 
 
 \begin{examples}
 \item I ate too much c \label{only_c}
@@ -119,7 +119,7 @@ Context-insensitive modules only use information of the word the users is curren
 
 This means that a prediction like \emph{communication} is fully possible, despite the context, just because \emph{communication} starts with a c. This also means that at the beginning of a each new word no prediction will be available, because the module has no material to work with.
 
-Desprite these limitations, context-insensitive modules can already save a lot of keystrokes, because the first few letters of a word impose enormous limitations on what letters can possibly follow.
+Despite these limitations, context-insensitive modules can already save a lot of keystrokes, because the first few letters of a word impose enormous limitations on what letters can possibly follow.
 
 \begin{examples}
 \item This is good communic \label{communic}
@@ -127,15 +127,61 @@ Desprite these limitations, context-insensitive modules can already save a lot o
 
 In sentence \ref{communic}, we already know from \emph{communic} that \emph{ation} or \emph{ative} will follow, simply because these are the only two words that start with \emph{communic}. The first iteration of the context-insensitive module I will propose will be based on this idea: at a certain point in a word, other words are no longer an option. This point is called the \emph{uniqueness threshold}.
 
-\subsubsection{Using uniqueness threshold}
+\subsubsection{First iteration: using uniqueness thresholds}
 
-\subsubsection{Using word frequencies}
+The first iteration of the context-insensitive module will take the word the user is currently keying in as the input. If, on the basis of what has been given, only one word is still possible, this word will be returned as a prediction. To know which words are 'possible', the context-insensitive module uses a lexicon. An important characteristic of this approach is that is does not or rarely make mistakes (assuming a large enough lexicon): only words the system is 100\% sure about are predicted.
+
+To test this, I exported all emails I have sent between February 2009 and February 2013, formed a lexicon on the basis of the first 90\% of the material, and tested on the remaining 10\% - the most recent emails. The testing was done by simulating a user keying in the material letter by letter. Once the correct prediction was available, the remaining letters of that word were skipped. The percentage was calculated by dividing the amount of skipped letters by the total amount of letters.
+
+This resulted in a \textbf{CKS of \%} and an \textbf{SKKS of \%}. These are relatively low percentages, but that can be explained by the fact that many of the words are too short to reach their uniqueness thresholds. For example, the word \emph{the} will never be predicted because even when the word is finished, alternatives are still possible (\emph{these}, \emph{there}, etc.).
+
+%1 voorkomen-woorden eraf geknipt?
+
+\subsubsection{Second iteration: using word frequencies}
+A solution to the fact that short words never reach their uniqueness threshold can be to give the prediction \emph{before} the word has reached its recency threshold. This can lead to situations where the correct word is predicted long before the uniqueness threshold is reached, which increases the number of keystrokes saved. However, this also means many incorrect predictions will given; we sacrifice the accuracy of the system. To what extent this is a problem is unclear: at the one hand, the user is forced to accept and reject more predictions while typing, which probably increases the cognitive load, at the other hand all the user has to do to reject a prediction is to continue typing; no extra actions are needed. A systematic investigation of the extra cognitive load during typing while using a word prediction system is beyond the scope of this thesis; because no extra actions are needed to reject the prediction it will be assumed the saved keystrokes are worth the extra cognitive load.
+
+If a prediction is given when multiple words are still a possibility, a system that picks the word with the highest chance of occurring will of course have the best results. These chances are reflected by the frequency of the words in the language. Therefore, each time the users keys in a new letter, Soothsayer will go through a frequency list. The first (and thus most frequent and most likely) word that matches with what has been keyed in so far will be given as a prediction.
+
+To test this, the email corpus from the previous section was used. The simulation showed a much higher percentage of keystrokes can be saved this way: a \textbf{CKS of \%} and a \textbf{SKKS of \%}. For this reason, this second iteration of the algorithm is the algorithm that will be used when referring to the 'context-insensitive' module in the remainder of this thesis.
 
 \subsection{Context-sensitive modules} \label{cs}
 
+Context-sensitive modules make use of the words that came before the current word to limit what words are predicted. For sentence \ref{only_c}, repeated here as \ref{only_c_r}, the context would be the words \emph{ate}, \emph{too} and \emph{much}.
+
+\begin{examples}
+\item I ate too much c \label{only_c_r}
+\end{examples}
+
+This context is compared with a training corpus, which results in a list of words which often occur together with the words from the context. This approach probably returns words like \emph{cookies} or \emph{cake} (because of the word \emph{ate}), while the word \emph{communication} is no longer an option because it probably did not occur in this context.
+
 \subsubsection{Word prediction as a classification task}
 
+To make use of the context, Soothsayer approaches word prediction as a classification task. Classification means finding a \emph{class} for an \emph{instance} on the basis of its \emph{features}. For instance, you could say a person (instance) is a man (class) because he has a beard, a low voice, short hair and is tall (features). In some cases, classification is simple: when sorting garbage, you use only 1 feature (material) which results in the correct class (paper, glass, plastic, biodegradable, miscellaneous) 100\% of the time, but in most cases it is not; for instance, for a person with a beard you can be pretty sure it is a man, but not all men have beards. And for the other features, there also are women with low voices, women with short hair and women who are tall. In cases like this, it is the combination of features that will result in the correct class.
+
+For word prediction, we use the context as instances, the words in the context as features, and the word which follows this context as class. This means that instead of only two classes (as in the gender example), we have a separate class for every word that could possibly be predicted. Thus, if we want to predict that \emph{cookies} follows the context \emph{ate too much}, we hope that classifying the instance \emph{ate too much} on the basis of its features (the words \emph{ate}, \emph{too} or \emph{much}) will result in the correct class label \emph{cookies}.
+
 \subsubsection{Nearest neighbour classification}
+
+There are many algorithms to do classification automatically. Soothsayer uses $k$-nearest neighbour classification. $k$-nearest neighbour classification means that the class is determined on the basis of similar cases in a training corpus. How many cases are taken into consideration, $k$, can be determined beforehand. For example, let us set $k$ to 1 and take the following instances as a training corpus:
+
+\begin{examples}
+\item one two three (four)
+\item two three four (five)
+\item three four five (four)
+\end{examples}
+
+The first three words are the instances, the fourth word (between parentheses) is used as the class label. If we then classify a new instance \emph{two three four}, it will look at these training instances, and discover that the instance \emph{two three four} is extremely similar: 3 of the 3 features match. We then look at the class of this similar example (five), and give this as a result. 
+
+If we set $k$ to 2, both \emph{one two three} and \emph{three four five} become a possibility as well: they both have two matching features. If we count instances with the same amount of matching features as 1, we now end up with three similar cases. Because most of these cases have \emph{four} as a class label, four will be predicted.
+
+Because the many class labels used for word prediction, Soothsayer always uses a $k$ of 1.
+
+% IB-1?
+%Confidence niet vergeten
+
+\subsubsection{IGTree}
+
+While the classification in the example be done can be done in a split second, this is not the case for word prediction system based on a lot of training material: a training corpus of a ten thousand words means that a new instance has to be compared to a few thousand training instances every word. This takes too long, even for powerful computers, and is not necessary: in the example above, if we know that the word \emph{two} is in the instance we want to classify, we no longer need to consider the training instance \emph{three four five}. And if we then...
 
 \subsection{Other decisions}
 
@@ -158,6 +204,8 @@ In sentence \ref{communic}, we already know from \emph{communic} that \emph{atio
 \subsubsection{Collecting the data}
 
 \subsubsection{Limitations of Twitter data}
+
+\subsubsection{The experiments}
 
 \subsection{Language input and networks}
 
