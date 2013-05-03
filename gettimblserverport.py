@@ -1,8 +1,8 @@
 import psutil
 import sys
 
-"""Find a specific Timbl-process and return its listening port"""
 def getport(modelfile):
+    """Find a specific Timbl-process and return its listening port"""
     pidlist = psutil.get_pid_list();
     port = 0
     
@@ -16,4 +16,4 @@ def getport(modelfile):
     
 if __name__ == "__main__":
     modelfile = sys.argv[1]
-    print getport(modelfile)
+    print(getport(modelfile));
