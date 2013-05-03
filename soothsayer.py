@@ -1194,15 +1194,15 @@ def get_free_port():
     return int(port);
 
 def get_port_for_timblserver(arg):
+    import gettimbleserverport
+    port = gettimbleserverport.getport(arg)
 
-    result = int(command('python gettimblserverport.py '+arg,True));
-
-    if result == 0:
+    if port == 0:
         print('  No server found, starting a new one');
         return False; 
     else:
         print('  Using running server');
-        return result;
+        return port;
 
 def add_to_recency_buffer(rb,text):
     """Adds the latest word in a string to the recency buffer""";
