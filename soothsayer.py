@@ -1086,6 +1086,31 @@ def server_mode(settings):
                                  channel_timbl[channel]);            
 
             s.sendto(prediction['full_word'].encode(),addr);
+
+def httpserver_mode(settings):
+
+    import cherrypy
+
+    class httpserver(object):
+
+        def index(self):
+            return "<h1>Hello!</h1>"
+        index.exposed = True
+
+        def predict(self,text,model):
+            return 'Sending '+text+' to '+model;
+        predict.exposed = True;
+
+        def load_model(self,model):
+            return 'Starting '+model;
+        load_model.exposed = True;
+            
+    cherrypy.config.update({
+            'server.socket_host': '0.0.0.0',
+            'server.socket_port': 4431
+        })
+
+    cherrypy.quickstart(httpserver())
             
 def window_string(string,verbose = False):
     """Return the string as a list of 4-grams""";
@@ -1254,6 +1279,8 @@ if __name__ == "__main__":
         settings['mode'] = 's';
     elif '-server' in sys.argv:
         settings['mode'] = 'server';
+    elif '-httpserver' in sys.argv:
+        settings['mode'] = 'httpserver';
     else:
         settings['mode'] = input('Mode (d = demo, s = simulation): ');    
 
@@ -1311,7 +1338,7 @@ if __name__ == "__main__":
         dir_reference = inp[:-1] + '.90';
 
     #Try opening the language model (and testfile), or create one if it doesn't exist
-    if settings['mode'] != 'server':
+    if settings['mode'] in ['s','d']:
 
         ss = Soothsayer(**settings);
 
@@ -1339,12 +1366,15 @@ if __name__ == "__main__":
         simulation_mode(model,lexicon,testfile,settings);
     elif settings['mode'] == 'server':
         server_mode(settings);
+    elif settings['mode'] == 'httpserver':
+        httpserver_mode(settings);
 
     #Close everything
     if settings['close_server']:
         command('killall timblserver');
 
 #TODO
+# Uitzoeken: hoe vaak komt het voor dat woorden gelijke confidence hebben?
 # Server modus
 # Mogelijk: werkt het beter als je na lang doorgaan stopt met suggereren?
 # Lettermodus: gaat er ergens iets fout?
