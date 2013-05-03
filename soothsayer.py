@@ -371,6 +371,8 @@ class Soothsayer():
     def start_servers(self,model,look_for_existing):
         """Starts the necessary servers and connects to them""";
 
+        import gettimblserverport
+        
         if self.approach == 'w':
             foldername = 'wordmodels';
             backupname = 'nlsave';
@@ -384,13 +386,16 @@ class Soothsayer():
         while not succeeded:
 
             if look_for_existing:
-                port = get_port_for_timblserver(model+'.training.txt.IGTree');
+                port = gettimblserverport.getport(model+'.training.txt.IGTree');
             else:
                 port = False;
 
-            if not port:        
+            if port:
+                print('Connected to an existing server running',model);
+            else:
                 port = get_free_port();
                 command('timblserver -i '+model+'.training.txt.IGTree +vdb +D -a1 -G +vcf -S '+str(port)+' -C 1000');
+                print('No server found. Started a new server running',model);
                 
             s1 = socket.socket(socket.AF_INET,socket.SOCK_STREAM);
 
@@ -407,13 +412,16 @@ class Soothsayer():
         while not succeeded:
 
             if look_for_existing:
-                port = get_port_for_timblserver(foldername+'/'+backupname+'.training.txt.IGTree');
+                port = gettimblserverport.getport(foldername+'/'+backupname+'.training.txt.IGTree');
             else:
                 port = False;
 
-            if not port:                
+            if port:
+                print('Connected to an existing server running',backupname);
+            else:
                 port = get_free_port();
                 command('timblserver -i '+foldername+'/'+backupname+'.training.txt.IGTree +vdb +D -a1 -G +vcf -S '+str(port)+' -C 1000');
+                print('No server found. Started a new server running',backupname);
                 
             s2 = socket.socket(socket.AF_INET,socket.SOCK_STREAM);
 
@@ -1192,17 +1200,6 @@ def get_free_port():
     s.close();
 
     return int(port);
-
-def get_port_for_timblserver(arg):
-    import gettimbleserverport
-    port = gettimbleserverport.getport(arg)
-
-    if port == 0:
-        print('  No server found, starting a new one');
-        return False; 
-    else:
-        print('  Using running server');
-        return port;
 
 def add_to_recency_buffer(rb,text):
     """Adds the latest word in a string to the recency buffer""";
