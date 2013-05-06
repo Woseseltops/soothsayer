@@ -1218,7 +1218,7 @@ if __name__ == "__main__":
     elif '-server' in sys.argv:
         settings['mode'] = 'server'
     else:
-        settings['mode'] = input('Mode (d = demo, s = server): ')
+        settings['mode'] = input('Mode (d = demo, s = simulation): ')
 
     if '-l' in sys.argv:
         settings['approach'] = 'l'
