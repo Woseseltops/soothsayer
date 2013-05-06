@@ -87,12 +87,19 @@ Modules can be concatenated in such a way that a second module takes over once t
 \subsubsection{Evaluation}
 In this chapter, I will propose an addition to Soothsayer and then measure to what extent it improves the number of keystrokes saved several times. But how does one measure how many keystrokes are saved exactly? In other words, what is the best way to evaluate a word prediction system?
 
-%Lit
+One possibility is to provide the user with a list of the $n$ most likely predictions \cite{Lesher+99,Fazly+03}. This approach has the advantage that it results in high percentages of keystrokes saved (in particular when $n$ is set to a high value, because this means the system can do multiple guesses at once, while only one has to be correct), but also has downsides. As \citeA{vandenbosch11} notes: 
 
-%CKS SKKS
+\begin{quotation}
+[I]n many devices and circumstances it is inefficient or impossible to present [...] suggestion lists. Inspecting a list of suggestions also poses a larger cognitive load than checking a single suggestion, and furthermore it is unclear how scrolling, browsing and selecting items from this list should be counted in terms of keystrokes.
+\end{quotation}
+
+For this reason, I will follow \citeA{vandenbosch11} and always calculate the number of keystrokes that could have been saved when the user was presented only one prediction at a time. Predictions can be accepted with the space key. Because this is sometimes problematic (for instance, if the user wanted to type \emph{sun}, but Soothsayer predicts \emph{sunday}, hitting space would lead to the wrong word), a rejection is also calculated as a keystroke. The number of keystrokes that can be saved if the autocompletion application works this way will be called \textbf{Classical Keystrokes Saved} (CKS) in the remainder of this thesis.
+
+On the other hand, current popular smartphone applications suggest this approach might be too strict. The popular smartphone application SwiftKey\footnote{\url{http://www.swiftkey.net/}} always shows the user three predictions, which seem to be (1) what the user has keyed in so far, (2) the most likely prediction and (3) the second most likely prediction. In case the user has not yet started typing the next word, option (1) is replaced by the third most likely prediction. Because smartphones use a touchscreen as an input device, no extra keystrokes are needed. The percentage of keystrokes that can be saved when two (and sometimes three) predictions were shown will be referred to as \textbf{SwiftKey Keystrokes Saved} (SKKS).
 
 A thing to notice is that both measures reflect the percentage of keystrokes saved in an ideal situation; that is, when the user accepts a correct prediction immediately once it is available. As will be discussed further in section \ref{early}, this is not necessarily the case. 
 
+%referenties nalezen, meer toevoegen
 %wordt dat echt discussed?
 
 \subsubsection{What Soothsayer is not}
@@ -133,18 +140,16 @@ In sentence \ref{communic}, we already know from \emph{communic} that \emph{atio
 
 The first iteration of the context-insensitive module will take the word the user is currently keying in as the input. If, on the basis of what has been given, only one word is still possible, this word will be returned as a prediction. To know which words are 'possible', the module uses a lexicon. An important characteristic of this approach is that is does not or rarely make mistakes (assuming a large enough lexicon): only words the system is 100\% sure about are predicted.
 
-To test this, I exported all emails I have sent between February 2009 and February 2013, formed a lexicon on the basis of the first 90\% of the material, and tested on the remaining 10\% - the most recent emails. The testing was done by simulating a user keying in the material letter by letter. Once the correct prediction was available, the remaining letters of that word were skipped. The percentages were calculated by dividing the amount of skipped letters by the total amount of letters.
+To test this, I exported all emails I have sent between February 2009 and February 2013, containing [[x]] words. I formed a lexicon on the basis of the first 90\% of the material, and tested on the remaining 10\% - the most recent emails. The testing was done by simulating a user keying in the material letter by letter. Once the correct prediction was available, the remaining letters of that word were skipped. The percentages were calculated by dividing the amount of skipped letters by the total amount of letters.
 
-This resulted in a \textbf{CKS of \%} and an \textbf{SKKS of \%}. These are relatively low percentages, but that can be explained by the fact that many of the words are too short to reach their uniqueness thresholds. For example, the word \emph{the} will never be predicted because even when the word is finished, alternatives are still possible (\emph{these}, \emph{there}, etc.).
-
-%1 voorkomen-woorden eraf geknipt?
+This resulted in a \textbf{CKS of 5\%} and an \textbf{SKKS of 5\%}. These are relatively low percentages, but that can be explained by the fact that many of the words are too short to reach their uniqueness thresholds. For example, the word \emph{the} will never be predicted because even when the word is finished, alternatives are still possible (\emph{these}, \emph{there}, etc.).
 
 \subsubsection{Second iteration: using word frequencies}
 A solution to the fact that short words never reach their uniqueness threshold can be to give the prediction \emph{before} the word has reached its recency threshold. This can lead to situations where the correct word is predicted long before the uniqueness threshold is reached, which increases the number of keystrokes saved. However, this also means many incorrect predictions will be given; we sacrifice the accuracy of the system. To what extent this is a problem is unclear: at the one hand, the user is forced to accept and reject more predictions while typing, which probably increases the cognitive load, at the other hand all the user has to do to reject a prediction is to continue typing; no extra actions are needed. A systematic investigation of the extra cognitive load during typing while using a word prediction system is beyond the scope of this thesis; because no extra actions are needed to reject the prediction it will be assumed the saved keystrokes are worth the extra cognitive load.
 
 If a prediction is given when multiple words are still a possibility, a system that picks the word with the highest chance of occurring will of course have the best results. These chances are reflected by the frequency of the words in the language. Therefore, each time the users keys in a new letter, Soothsayer will go through a frequency list. The first (and thus most frequent and most likely) word that matches with what has been keyed in so far will be given as a prediction.
 
-To test this, the email corpus from the previous section was used. The simulation showed a much higher percentage of keystrokes can be saved this way: a \textbf{CKS of \%} and an \textbf{SKKS of \%}. For this reason, this second iteration of the algorithm is the algorithm that will be used when referring to the 'context-insensitive' module in the remainder of this thesis.
+To test this, the email corpus from the previous section was used. The simulation showed a much higher percentage of keystrokes can be saved this way: a \textbf{CKS of 20 \%} and an \textbf{SKKS of 27 \%}. For this reason, this second iteration of the algorithm is the algorithm that will be used when referring to the 'context-insensitive' module in the remainder of this thesis.
 
 \subsection{Context-sensitive modules} \label{cs}
 
@@ -218,9 +223,28 @@ In practice, what Soothsayer's context-sensitive modules do is:
 
 \subsubsection{The experiment}
 
-To investigate how many keystrokes can be saved when using context information, as described in the previous paragraphs, an experiment very similar to the experiment for the context-insensitive modules was carried out: a training corpus was created on the basis of 90\% of all of the emails I sent between February 2009 and February 2013, and the results were tested on the remaining 10\%. The percentage were calculated by dividing the amount of skipped letters by the total amount of letters. This resulted in a \textbf{CKS of \%} and an \textbf{SKKS of \%}.
+To investigate how many keystrokes can be saved when using context information, as described in the previous paragraphs, an experiment very similar to the experiment for the context-insensitive modules was carried out: a training corpus was created on the basis of 90\% of all of the emails I sent between February 2009 and February 2013, and the results were tested on the remaining 10\%. The percentage were calculated by dividing the amount of skipped letters by the total amount of letters. This resulted in a \textbf{CKS of 24\%} and an \textbf{SKKS of 27\%}.
 
 \subsection{Other decisions}
+
+\subsubsection{Concatenating context-sensitive and context-insensitive modules}
+In the previous two sections, we saw that the context-insensitive had a CKS of 20 \% and an SKKS of 27\%, whereas the context-sensitive one had a CKS of 24\% and an SKKS 27\%. This means that using a context-sensitive module over an context-intensive only gives us an improvement of 4\% for the CKS and no improvement for the SKKS, while it is much more complicated and computationally expensive. Is using context-sensitive modules worth that?
+
+The answer, as I will show, is yes. The context-sensitive module learns about which words in the training texts typically follow eachother, and thus is powerful when it comes to the more frequent, fixed combinations of words and words that often occur in eachother's context, but fails when it comes to words that are also frequent, but were not used earlier int his context. The context-insensitive module, on the other hand, can predict any word, as long as it has been used before, but knows nothing about fixed combinations. In other words, one module succeeds where the other fails, and vice versa; there is very little overlap in the situations in which they both do the correct prediction. 
+
+This means that it would make sense to concenate context-sensitive and context-insensitive modules, but in which order? Should the context-insensitive module take over when the context-insensitive module no longer has suggestions, or the other way around? Based on the fact that the context-sensitive module alone performs a bit better, it is likely that the results will be slightly better when the context-sensitive module is tried first. Two simulations, one which each of the orderings, confirmed this, as shown in table \ref{results_concat}.
+
+\begin{table}[h]
+\begin{tabular}{l|ll} 
+&CKS&SKKS\\
+\hline
+Context-insensitive$\rightarrow$context-sensitive&30&35\\
+Context-sensitive$\rightarrow$context-insensitive&33&37\\
+\end{tabular} 
+\caption{Percentage of keystrokes saved for the two orderings} \label{results_concat}
+\end{table}
+
+For this reason context-sensitive modules will always be ranked before context-insensitive ones in the remainder of this thesis.
 
 \subsubsection{Attenuation}
 
@@ -258,5 +282,13 @@ To investigate how many keystrokes can be saved when using context information, 
 
 %TODO
 % Ergens 'damn you autocompletion' noemen
+% Hoeveel woorden in allmail?
+
+%uitgezet:
+%-punc
+%-broodjes
+%-att
+
+%tijden noemen
 
 \end{document}
