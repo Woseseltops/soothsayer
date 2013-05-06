@@ -10,6 +10,9 @@ import random
 import collections
 import copy
 
+# Soothsayer classes
+import terminal
+
 ############### Functions ###################################
 
 def command(command,piped = False):
@@ -22,40 +25,6 @@ def command(command,piped = False):
         result.wait()
 
     return(result)
-
-def get_character_function():
-    """Return a function which gets a single char from the input"""
-
-    try:
-        #Windows variant
-
-        import msvcrt
-
-        def function():
-            import msvcrt
-            return msvcrt.getch().decode()
-
-    except ImportError:
-        #Unix variant
-
-        def function():
-            import sys, tty, termios
-            fd = sys.stdin.fileno()
-            old_settings = termios.tcgetattr(fd)
-            try:
-                tty.setraw(sys.stdin.fileno())
-                ch = sys.stdin.read(1)
-            finally:
-                termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-            return ch            
-
-    return function
-       
-
-def clear():
-    """Clears the screen"""
-
-    os.system(['clear','cls'][os.name == 'nt'])
 
 class Soothsayer():
 
@@ -369,7 +338,6 @@ class Soothsayer():
         for i in rb:
             if i[:boundary] == current_word:
                 return i
-                break
 
         return ''
 
@@ -735,17 +703,15 @@ def demo_mode(model,lexicon,settings):
 
     #Ask for first char    
     print('Start typing whenever you want')
-    get_character = get_character_function()
 
     #Start the process
     text_so_far = ''
     text_so_far_colored = ''
     last_prediction = ''
     repeats = 0
-
     while True:
         rejected = False
-        char = str(get_character())
+        char = terminal.get_character()
 
         #Accept prediction
         if char in [' ',')'] + settings['punctuation']:
@@ -803,7 +769,7 @@ def demo_mode(model,lexicon,settings):
             prediction['full_word'] = prediction['second_guess']
             
         #Show the prediction
-        clear()
+        terminal.clear()
 
         chars_typed = len(prediction['word_so_far'])
         print(text_so_far_colored+'|'+prediction['full_word'][chars_typed:])
@@ -1242,6 +1208,7 @@ if __name__ == "__main__":
     settings['limit_backup_lexicon'] = 30
     settings['punctuation'] = ['.',',',':','!',';','?']
     settings['test_cores'] = 10
+
 
     #Figure out dynamic settings
     if '-d' in sys.argv:
