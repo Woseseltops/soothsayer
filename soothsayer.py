@@ -738,13 +738,12 @@ def demo_mode(model,lexicon,settings):
     get_character = get_character_function()
 
     #Start the process
-    busy = True
     text_so_far = ''
     text_so_far_colored = ''
     last_prediction = ''
     repeats = 0
 
-    while busy:
+    while True:
         rejected = False
         char = str(get_character())
 
@@ -815,7 +814,7 @@ def demo_mode(model,lexicon,settings):
 
         #Check for quit
         if 'quit' in text_so_far.split():
-            busy = False
+            break
 
 def simulation_mode(model,lexicon,testfile,settings):
     """Simulates someone typing, multicore"""
@@ -1056,9 +1055,8 @@ def server_mode(settings):
     print('Started on port',port)
 
     print('Waiting for channel requests')
-    busy = True
 
-    while busy:
+    while True:
         data, addr = s.recvfrom(1024)
         data = data.decode()
         mtype = data[0]
