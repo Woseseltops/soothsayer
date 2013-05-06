@@ -1009,7 +1009,7 @@ def find_current_word(string, position):
     return word.strip()
 
 def server_mode(settings):
-
+    ss = Soothsayer(**settings)
     channels = {}
     channel_texts = {}
     channel_timbl = {}
@@ -1038,8 +1038,8 @@ def server_mode(settings):
 
             #Prepare predicting for this channel
             print('Starting servers and loading lexicon')
-            channel_timbl[channel] = start_servers(channels[channel],settings)
-            channel_lexicon[channel] = load_lexicon(channels[channel]+'.lex.txt')
+            channel_timbl[channel]   = ss.start_servers(channels[channel],settings)
+            channel_lexicon[channel] = ss.load_lexicon(channels[channel]+'.lex.txt')
 
             #Communicate the chosen channel            
             print('Using channel',channel)
@@ -1050,7 +1050,7 @@ def server_mode(settings):
             char = message[:-1]
             channel = int(message[-1])
             channel_texts[channel] += char
-            prediction = do_prediction(channel_texts[channel],channels[channel],
+            prediction = ss.do_prediction(channel_texts[channel],channels[channel],
                                  channel_lexicon[channel],'',settings,
                                  channel_timbl[channel])
 
