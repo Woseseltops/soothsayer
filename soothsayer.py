@@ -59,17 +59,19 @@ def clear():
 class Soothsayer():
 
     def __init__(self,approach = 'w', att_threshold=3, limit_personal_lexicon=3,
-                 limit_backup_lexicon =30, test_cores = 10, punctuation = '',
+                 limit_backup_lexicon =30, test_cores = 10, punctuation = None,
                 cut_file = '', close_server = '', recency_buffer = False, mode = ''):
 
-        
-        self.approach = approach;
-        self.att_threshold = att_threshold;
+        if punctuation is None:
+            punctuation = ['.',',',':','!',';','?']
+
+        self.approach       = approach;
+        self.att_threshold  = att_threshold;
         self.limit_personal_lexicon = limit_personal_lexicon;
-        self.limit_backup_lexicon = limit_backup_lexicon;
-        self.test_cores = test_cores;
-        self.cut_file = cut_file;
-        self.punctuation = ['.',',',':','!',';','?'];
+        self.limit_backup_lexicon   = limit_backup_lexicon;
+        self.test_cores     = test_cores;
+        self.cut_file       = cut_file;
+        self.punctuation    = punctuation;
 
     def do_prediction(self,text,model,lexicon,recency_buffer,nr=''):
         """Returns a prediction by TiMBL and related info""";
