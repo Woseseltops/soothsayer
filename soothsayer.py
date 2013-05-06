@@ -1218,17 +1218,10 @@ def add_to_recency_buffer(rb,text):
 def find_free_channel(channels):
     """Finds a free channel, using the list of channels currently in use""";
 
-    c = 0;
-    found = False;
-
-    while not found:
-        try:
-            channels[c];
-            c += 1;
-        except KeyError:
-            found = True;
-
-    return c;
+    c=0
+    while c in channels:
+        c+=1
+    return c
 
 ######### Standalone code ######################
 
