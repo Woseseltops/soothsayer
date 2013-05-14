@@ -25,3 +25,15 @@ except ImportError:
 def clear():
     """Clears the screen"""
     os.system(['clear','cls'][os.name == 'nt'])
+
+
+def command(command,piped = False):
+
+    if piped:
+        result = subprocess.Popen(command, shell=True,stdout=subprocess.PIPE).communicate()[0].decode()
+    else:
+        f = open('TiMBL_output','w')
+        result = subprocess.Popen(command, shell=True,stdout=f,stderr=f)
+        result.wait()
+
+    return(result)

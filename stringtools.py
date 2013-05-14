@@ -91,8 +91,8 @@ def window_string(string,verbose = False):
         if i[-1] == '_':
             ngrams_to_remove.append(i)
 
-#    for i in ngrams_to_remove:
-#        ngrams.remove(i)
+    #for i in ngrams_to_remove:
+    #    ngrams.remove(i)
 
     return ngrams
 
@@ -123,8 +123,65 @@ def window_string_letters(string,verbose = False):
         if i[-1] == '_' or len(words) != 16 or i == ngrams[-1]:
             ngrams_to_remove.append(i)
 
-#    for i in ngrams_to_remove:
-#        ngrams.remove(i)
+    #for i in ngrams_to_remove:
+    #    ngrams.remove(i)
 
     return ngrams[1:-1]
 
+def make_ngrams(self,text):
+        """Transforms a string into a list of 4-grams, using multiple cores"""
+
+        result = multiprocessing.Queue()
+
+        #Starts the workers
+        def worker(nr,string,result):
+
+            if self.approach == 'w':
+                if nr == 0:
+                    ngrams = window_string(string,True)
+                else:
+                    ngrams = window_string(string)
+            elif self.approach == 'l':
+                if nr == 0:
+                    ngrams = window_string_letters(string,True)
+                else:
+                    ngrams = window_string_letters(string)
+
+            result.put((nr,ngrams))
+
+        if self.approach == 'w':
+            substrings = divide_iterable(text.split(),10,3)
+        elif self.approach == 'l':
+            substrings = divide_iterable(text,10,15)
+
+        for n,i in enumerate(substrings):
+            t = multiprocessing.Process(target=worker,args=[n,i,result])
+            t.start()
+
+        #Wait until all results are in
+        resultlist = []
+
+        while len(resultlist) < 10:
+
+            while not result.empty():
+                resultlist.append(result.get())
+
+            time.sleep(1)
+
+        #Sort and merge the results
+        resultlist = sorted(resultlist,key=lambda x:x[0])
+        between_result = [x[1] for x in resultlist]
+        end_result = []
+        for i in between_result:
+            end_result += i
+
+        return end_result
+
+def ucto(string):
+    import terminal
+    """Tokenizes a string with Ucto"""
+
+    open('uctofile','w').write(string)
+    result = terminal.command('ucto -L nl uctofile',True)
+    os.remove('uctofile')
+    return result.replace('<utt>','')

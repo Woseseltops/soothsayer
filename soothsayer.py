@@ -14,18 +14,6 @@ import copy
 import terminal
 import stringtools
 
-############### Functions ###################################
-
-def command(command,piped = False):
-
-    if piped:
-        result = subprocess.Popen(command, shell=True,stdout=subprocess.PIPE).communicate()[0].decode()
-    else:
-        f = open('TiMBL_output','w')
-        result = subprocess.Popen(command, shell=True,stdout=f,stderr=f)
-        result.wait()
-
-    return(result)
 
 class Soothsayer():
 
@@ -63,7 +51,7 @@ class Soothsayer():
                     words = ['_'] + words
 
                 lcontext = ('c '+self.attenuate_string_simple(' '.join(words) + ' _',lexicon) + '\n').encode()
-    #            lcontext = ('c ' + ' '.join(words) + ' _\n').encode()
+                #lcontext = ('c ' + ' '.join(words) + ' _\n').encode()
 
                 #Personal model
                 self.sockets[0].sendall(lcontext)
@@ -178,9 +166,9 @@ class Soothsayer():
                 third_guess = third_pick
 
         #Try the recency_buffer
-    #    if pick == '' and boundary > 0:
-    #        source = 'RECENCY BUFFER'
-    #        pick = read_recency_buffer(recency_buffer,current_word,boundary)
+        #if pick == '' and boundary > 0:
+        #    source = 'RECENCY BUFFER'
+        #    pick = read_recency_buffer(recency_buffer,current_word,boundary)
 
         #Try context-free, personal model
         if '' in [full_word,second_guess,third_guess]:
@@ -292,20 +280,20 @@ class Soothsayer():
                     third_pick = i[0]
                     third_highest_confidence = i[1]
 
-    #    if settings['approach'] == 'l' and highest_confidence < 0.5:
-    #        pick = ''
-    #        second_pick = ''
-    #    else:
-    #        #Recency_buffer overrules with the word approach
-    #        if recency_buffer:
-    #            for i in recency_buffer:
-    #                if i[:boundary] == current_word:
-    #                    for j in predictions:
-    #                        if i == j[0]:
-    #                            if pick != i:
-    #                                pick = i
-    #                                used_rb = True
-    #                            break
+        #if settings['approach'] == 'l' and highest_confidence < 0.5:
+        #    pick = ''
+        #    second_pick = ''
+        #else:
+        #    #Recency_buffer overrules with the word approach
+        #    if recency_buffer:
+        #        for i in recency_buffer:
+        #            if i[:boundary] == current_word:
+        #                for j in predictions:
+        #                    if i == j[0]:
+        #                        if pick != i:
+        #                            pick = i
+        #                            used_rb = True
+        #                        break
                 
         return pick, second_pick, third_pick, predictions, used_rb
 
@@ -364,7 +352,7 @@ class Soothsayer():
 
             if not port:        
                 port = get_free_port()
-                command('timblserver -i '+model+'.training.txt.IGTree +vdb +D -a1 -G +vcf -S '+str(port)+' -C 1000')
+                terminal.command('timblserver -i '+model+'.training.txt.IGTree +vdb +D -a1 -G +vcf -S '+str(port)+' -C 1000')
                 
             s1 = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 
@@ -387,7 +375,7 @@ class Soothsayer():
 
             if not port:                
                 port = get_free_port()
-                command('timblserver -i '+foldername+'/'+backupname+'.training.txt.IGTree +vdb +D -a1 -G +vcf -S '+str(port)+' -C 1000')
+                terminal.command('timblserver -i '+foldername+'/'+backupname+'.training.txt.IGTree +vdb +D -a1 -G +vcf -S '+str(port)+' -C 1000')
                 
             s2 = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 
@@ -430,7 +418,7 @@ class Soothsayer():
                 total_text += ' ________________ '+open('input/'+directory+i,'r',encoding='utf-8',errors='ignore').read()
 
         #Tokenize
-    #    total_text = ucto(total_text)
+        #total_text = stringtools.ucto(total_text)
 
         #Create and load lexicon
         print('  Create lexicon')
@@ -465,7 +453,7 @@ class Soothsayer():
 
         #Make into ngrams, and save the file
         print('  Make ngrams')
-        ngrams = self.make_ngrams(total_text)
+        ngrams = stringtools.make_ngrams(total_text)
 
         print('  Create file')
         training_file_content = '\n'.join(ngrams)
@@ -474,59 +462,12 @@ class Soothsayer():
         #Return the filenames
         return training_filename, testfilename, lexicon
 
-    def make_ngrams(self,text):
-        """Transforms a string into a list of 4-grams, using multiple cores"""
-
-        result = multiprocessing.Queue()
-
-        #Starts the workers
-        def worker(nr,string,result):
-
-            if self.approach == 'w':
-                if nr == 0:
-                    ngrams = stringtools.window_string(string,True)
-                else:
-                    ngrams = stringtools.window_string(string)
-            elif self.approach == 'l':
-                if nr == 0:
-                    ngrams = stringtools.window_string_letters(string,True)
-                else:
-                    ngrams = stringtools.window_string_letters(string)
-
-            result.put((nr,ngrams))
-
-        if self.approach == 'w':
-            substrings = divide_iterable(text.split(),10,3)
-        elif self.approach == 'l':
-            substrings = divide_iterable(text,10,15)
-
-        for n,i in enumerate(substrings):
-            t = multiprocessing.Process(target=worker,args=[n,i,result])
-            t.start()
-
-        #Wait until all results are in
-        resultlist = []
-
-        while len(resultlist) < 10:
-
-            while not result.empty():
-                resultlist.append(result.get())
-
-            time.sleep(1)
-
-        #Sort and merge the results
-        resultlist = sorted(resultlist,key=lambda x:x[0])
-        between_result = [x[1] for x in resultlist]
-        end_result = []
-        for i in between_result:
-            end_result += i
-
-        return end_result
+    
 
     def train_model(self,filename):
         """Train a model on the basis of these ngrams"""
 
-        command('timbl -f '+filename+' -I '+filename+'.IGTree +D +vdb -a1 -p 1000000',False)
+        terminal.command('timbl -f '+filename+' -I '+filename+'.IGTree +D +vdb -a1 -p 1000000',False)
 
         return filename.replace('.training.txt','')
 
@@ -789,7 +730,7 @@ def simulation_mode(model,lexicon,testfile,settings):
     result = multiprocessing.Queue()
 
     #Starts the workers
-#    teststring = ucto(open(testfile,'r').read())
+    #teststring = stringtools.ucto(open(testfile,'r').read())
     teststring = ' ' + open(testfile,'r').read()
     substrings = divide_iterable(teststring.split(),settings['test_cores'],3)
 
@@ -1021,14 +962,6 @@ def server_mode(settings):
             s.sendto(prediction['full_word'].encode(),addr)
 
 
-def ucto(string):
-    """Tokenizes a string with Ucto"""
-
-    open('uctofile','w').write(string)
-    result = command('ucto -L nl uctofile',True)
-    os.remove('uctofile')
-    return result.replace('<utt>','')
-
 def get_free_port():
     
     s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
@@ -1177,7 +1110,7 @@ if __name__ == "__main__":
 
     #Close everything
     if settings['close_server']:
-        command('killall timblserver')
+        terminal.command('killall timblserver')
 
 #TODO
 # Server modus
