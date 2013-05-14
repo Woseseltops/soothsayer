@@ -31,6 +31,7 @@ class Soothsayer():
         self.test_cores     = test_cores
         self.cut_file       = cut_file
         self.punctuation    = punctuation
+        self.model          = None
 
     def do_prediction(self,text,model,lexicon,recency_buffer,nr=''):
         """Returns a prediction by TiMBL and related info"""
@@ -1084,12 +1085,14 @@ if __name__ == "__main__":
         ss = Soothsayer(**settings)
 
         try:
-            open(modelfolder+'/'+dir_reference+'.training.txt','r')
+            model = modelfolder+'/'+dir_reference
+            
+            open(model+'.training.txt','r')
             print('Loading existing model for '+dir_reference+'.')
 
             testfile = modelfolder+'/'+inp[:-1] + '.10.test.txt'
-            model = modelfolder+'/'+dir_reference
-            lexicon = ss.load_lexicon(modelfolder+'/'+dir_reference+'.lex.txt')
+            
+            lexicon = ss.load_lexicon(model+'.lex.txt')
         except IOError:
             print('Model not found. Prepare data to create a new one:')
             training_file, testfile, lexicon = ss.prepare_training_data(inp)
