@@ -32,6 +32,7 @@ class Soothsayer():
         self.cut_file       = cut_file
         self.punctuation    = punctuation
         self.model          = None
+        self.recency_buffer = recency_buffer
 
     def do_prediction(self,text,model,lexicon,recency_buffer,nr=''):
         """Returns a prediction by TiMBL and related info"""
@@ -634,11 +635,11 @@ def add_prediction(text,text_colored,prediction,source):
         
     return text, text_colored, last_input
     
-def demo_mode(model,lexicon,settings):
+def demo_mode(soothsayer,lexicon):
 
     #Start stuff needed for prediction
-    recency_buffer = collections.deque(maxlen=settings['recency_buffer'])
-    ss = Soothsayer(**settings)
+    recency_buffer = collections.deque(maxlen=ss.recency_buffer)
+    ss = soothsayer
     ss.start_servers(model,True)
 
     #Predict starting word
@@ -657,7 +658,7 @@ def demo_mode(model,lexicon,settings):
         char = terminal.get_character()
 
         #Accept prediction
-        if char in [' ',')'] + settings['punctuation']:
+        if char in [' ',')'] + ss.punctuation:
             if prediction['full_word'] != '':
                 text_so_far, text_so_far_colored, last_input = add_prediction(text_so_far,
                                                                               text_so_far_colored,
@@ -1086,7 +1087,7 @@ if __name__ == "__main__":
 
         try:
             model = modelfolder+'/'+dir_reference
-            
+
             open(model+'.training.txt','r')
             print('Loading existing model for '+dir_reference+'.')
 
@@ -1098,6 +1099,8 @@ if __name__ == "__main__":
             training_file, testfile, lexicon = ss.prepare_training_data(inp)
             print('Training model')
             model = ss.train_model(training_file)
+        finally:
+            ss.model = model
 
     #If the user has his own testfile, abandon the automatically generated one
     if testfile_preset:
@@ -1105,7 +1108,7 @@ if __name__ == "__main__":
 
     #Go do the prediction in one of the modes, with the model
     if settings['mode'] == 'd':
-        demo_mode(model,lexicon,settings)
+        demo_mode(ss,lexicon)
     elif settings['mode'] == 's':
         simulation_mode(model,lexicon,testfile,settings)
     elif settings['mode'] == 'server':
