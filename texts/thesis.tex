@@ -36,7 +36,11 @@ Period&Spring 2013\\
 
 \tableofcontents
 
-\section{Summary}
+\section{Summary/samenvatting}
+
+\subsection{English}
+
+\subsection{Nederlands}
 
 \section{Introduction}
 
@@ -100,13 +104,16 @@ On the other hand, current popular smartphone applications suggest this approach
 A thing to notice is that both measures reflect the percentage of keystrokes saved in an ideal situation; that is, when the user accepts a correct prediction immediately once it is available. As will be discussed further in section \ref{early}, this is not necessarily the case. 
 
 %referenties nalezen, meer toevoegen
-%wordt dat echt discussed?
+%wordt dat echt discussed? NEE
+%Hit ratio. Time-saving, person saving.
 
 \subsubsection{What Soothsayer is not}
 There are many possible approaches to take when building an autocompletion system. Because it would take too much time to try all of these approaches (and all combinations of them), I had to set limitations. Therefore, before I explain and defend the workings of Soothsayer, I therefore would like to list the most importat decisions, so the reader has a rough idea of what is coming. 
 
 \begin{itemize}
 \item \textbf{Soothsayer does not predict more than one word at a time}. Some scholars have investigated the possibility to predict multiple words at the same time [[refs]]. This can very fruitful: if a word prediction system knows that \emph{on the b} should be \emph{on the basis of} it makes more sense to offer this as a whole, instead of first asking whether \emph{basis} is correct. However, multiword prediction comes with a lot of downsides: every extra word that is predicted doubles the chance of making an incorrect prediction, it is unclear what a user should do if he/she accepts the first word, but the not the second word (or vice versa), and how this should be counted in terms of keystrokes, and giving multiple words forces the user to plan ahead a few words while typing, which might not be how the user prefers to write. %kijken wat antal zegt
+
+\item \textbf{Soothsayer does not focus on one specific domain of word prediction, but works for word prediction is general}. Niet Google.
 
 \item \textbf{Soothsayer is not designed for mobile phones, but can be integrated into any kind of software, on any device}. When discussing this subject with others, I noted that word prediction is often confused with T9. T9 is a system in which every number corresponds with 3 or 4 characters (\emph{1} = \emph{.,!}, \emph{2} = \emph{abc}, \emph{3} = \emph{def}, etc.). A T9 system allows the users to press all numbers only once, and tries to figure out which word the writer probably intended; for example, \emph{233} can correspond to \emph{bed}. Although there is some language technology involved in systems like these (the system should know enough about language to figure out \emph{aef}, \emph{cfe} \emph{bde}, etc. or not words), this is not what Soothsayer does; Soothsayer does try to guess what the user wanted to say \emph{after} the user keyed it in, but \emph{before}. 
 
@@ -248,14 +255,63 @@ For this reason context-sensitive modules will always be ranked before context-i
 
 \subsubsection{Attenuation}
 
-\subsubsection{Punctuation as acceptance key}
+[[Literature attenuation: bij grote corpora. Zipf noemen.]]
 
-\subsubsection{Early prediction switching ???} \label{early}
+In the experiments presented so far speed has not really been an issue, because the training corpus was relatively small (686577 words). However, in section \ref{simple_exp} we will use a background corpus that is considerably larger ([[x]] words), which would make attenuation useful; see [[x]] for more detailed information about the corpus and how attenuation affects its prediction speeds. For now, it suffices to say that Soothsayer uses a default attenuation threshold of 3 because this speeds up the predictions, while it has very little effect on the prediction accuracy. For the training corpus used in this chapter, the effects of attenuation are summarized in table \ref{results_att}.
 
+\begin{table}[h]
+\begin{tabular}{l|lll} 
+
+&CKS&SKKS&Duration in seconds\\
+\hline
+Without attenuation&33&37&752\\
+With attenuation&33&38&660\\
+\end{tabular} 
+\caption{Percentage of keystrokes saved and simulation times with and without attenuation.} \label{results_att}
+\end{table}
+
+As the table shows, the duration of the simulation decreased when the attenuation was turned on. As noted before, however, for this relatively small training corpus this was not needed: with a test text of 105922 characters, the 752 seconds Soothsayer takes for the simulation without attenuation already mean an average 141 of keystrokes per second could be achieved. This is well above the 7 keystrokes per second for fast typists, according to Wikipedia\footnote{\url{en.wikipedia.org/wiki/Words\_per\_minute}}.
+
+\subsubsection{Handling morphology}
+%Vit-nogwat bespreekt allemaal morfologiesystemen, een beetje doornemen als dat nog niet eerder is gedaan? Daarna laten zien dat het niet goed genoeg werkt, en dus voor het Nederlands uitstaat.
+
+%Uitleggen wat er misgaat
+%Vergelijking maken met het vroeg voorspellen, VOORDAT je het zeker weet
+
+\begin{table}[h]
+\begin{tabular}{l|lll} 
+
+&CKS&SKKS\\
+\hline
+Without early prediction switching&33&38\\
+Early prediction switching after 1 key&35&38\\
+Early prediction switching after 2 keys&35&38\\
+Early prediction switching after 3 keys&33&38\\
+\end{tabular} 
+\caption{Percentage of keystrokes saved with and without early prediction switching.} \label{results_epd}
+\end{table}
+
+\subsubsection{Recency}
+
+\begin{table}[h]
+\begin{tabular}{l|lll} 
+
+&CKS&SKKS\\
+\hline
+Without recency buffer&33&38\\
+Recency buffer$\rightarrow$context-sensitive module$\rightarrow$context-insensitive module&32&38\\
+Context-sensitive module$\rightarrow$recency buffer$\rightarrow$context-insensitive module&34&39\\
+Context-sensitive module$\rightarrow$context-insensitive module$\rightarrow$recency buffer&34&39\\
+\end{tabular} 
+\caption{Percentage of keystrokes saved with and without a recency buffer.} \label{results_rb}
+\end{table}
+
+\subsection{Overview}
+In this chapter, I started with 1 simple context-insensitive module based on uniqueness thresholds, and added improvements step by step. The results of these additions are summarized in the graph below.
 
 \section{The model: idiolects} \label{model}
 
-\subsection{A simple experiment}
+\subsection{A simple experiment} \label{simple_xp}
 
 \subsection{Using Twitter for idiolects}
 
@@ -269,26 +325,16 @@ For this reason context-sensitive modules will always be ranked before context-i
 
 \section{Conclusion}
 
+\section{Acknowledgements/dankwoord}
+
 \bibliography{thesisbib}{}
 \bibliographystyle{apacite}
 
-\section*{Acknowledgements/dankwoord}
 % Eenzaam, 'gevecht tussen man en computer'. Bedank Jacintha, Hanna, Iris, Kobie, Ali en Florian.
 % Véronique onderwerp, en Lieke voor idiolect ipv ideolect.
 % Maarten, Florian en Bouke voor de vele dingen programmeren.
 % Antal: mails. Tegelijkertijd waren we met nog veel andere dingen bezig.
 % Is ook afsluiting van mijn studententijd. Helen, als tutor en zo ongeveer driekwart van mijn cursussen. G&C
 % Hilde: laat Soothsayer spreken
-
-%TODO
-% Ergens 'damn you autocompletion' noemen
-% Hoeveel woorden in allmail?
-
-%uitgezet:
-%-punc
-%-broodjes
-%-att
-
-%tijden noemen
 
 \end{document}
