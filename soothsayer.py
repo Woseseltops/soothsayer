@@ -1,27 +1,27 @@
 # -*- coding: utf-8 -*-
-import os;
-import subprocess;
-import sys;
-import time;
-import multiprocessing;
-import math;
-import socket;
-import random;
-import collections;
-import copy;
+import os
+import subprocess
+import sys
+import time
+import multiprocessing
+import math
+import socket
+import random
+import collections
+import copy
 
 ############### Functions ###################################
 
 def command(command,piped = False):
 
     if piped:
-        result = subprocess.Popen(command, shell=True,stdout=subprocess.PIPE).communicate()[0].decode();
+        result = subprocess.Popen(command, shell=True,stdout=subprocess.PIPE).communicate()[0].decode()
     else:
-        f = open('TiMBL_output','w');
-        result = subprocess.Popen(command, shell=True,stdout=f,stderr=f);
-        result.wait();
+        f = open('TiMBL_output','w')
+        result = subprocess.Popen(command, shell=True,stdout=f,stderr=f)
+        result.wait()
 
-    return(result);
+    return(result)
 
 def get_character_function():
     """Return a function which gets a single char from the input"""
@@ -49,12 +49,12 @@ def get_character_function():
                 termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
             return ch            
 
-    return function;        
+    return function        
 
 def clear():
-    """Clears the screen""";
+    """Clears the screen"""
 
-    os.system(['clear','cls'][os.name == 'nt']);
+    os.system(['clear','cls'][os.name == 'nt'])
 
 class Soothsayer():
 
@@ -62,21 +62,21 @@ class Soothsayer():
                  limit_backup_lexicon =30, test_cores = 10, punctuation = None,
                 cut_file = '', close_server = '', recency_buffer = False, mode = ''):
 
-        self.approach       =   approach;
-        self.att_threshold  =   att_threshold;
-        self.test_cores     =   test_cores;
-        self.cut_file       =   cut_file;
-        self.limit_personal_lexicon = limit_personal_lexicon;
-        self.limit_backup_lexicon   = limit_backup_lexicon;
+        self.approach       =   approach
+        self.att_threshold  =   att_threshold
+        self.test_cores     =   test_cores
+        self.cut_file       =   cut_file
+        self.limit_personal_lexicon = limit_personal_lexicon
+        self.limit_backup_lexicon   = limit_backup_lexicon
 
         if punctuation == None:
-            self.punctuation = ['.',',',':','!',';','?'];
+            self.punctuation = ['.',',',':','!','','?']
 
-        self.modules = [];
+        self.modules = []
 
     def setup_basic_modules(self,model):
 
-        modelname = model.split('/')[1];
+        modelname = model.split('/')[1]
     
         self.modules = [Module(self,'PERS. MODEL/IGTREE',modelname,'igtree'),
                         Module(self,'GEN. MODEL/IGTREE','nlsave','igtree'),
@@ -85,592 +85,592 @@ class Soothsayer():
                         ]
 
     def do_prediction(self,text,lexicon,recency_buffer,nr=''):
-        """Returns a prediction by TiMBL and related info""";
+        """Returns a prediction by TiMBL and related info"""
 
-        words = text.split();
-        modelname = model.split('/')[1];
+        words = text.split()
+        modelname = model.split('/')[1]
 
         if self.approach == 'w':
 
             if text == '' or text[-1] == ' ':
 
                 #Figure out the left context and the word being worked on
-                current_word = '';
-                words = words[-3:];
+                current_word = ''
+                words = words[-3:]
 
                 #Preprocessing for Timbl
                 while len(words) < 3:
-                    words = ['_'] + words;
+                    words = ['_'] + words
 
-                lcontext = ('c '+self.attenuate_string_simple(' '.join(words) + ' _',lexicon) + '\n').encode();
-    #            lcontext = ('c ' + ' '.join(words) + ' _\n').encode();
+                lcontext = ('c '+self.attenuate_string_simple(' '.join(words) + ' _',lexicon) + '\n').encode()
+    #            lcontext = ('c ' + ' '.join(words) + ' _\n').encode()
 
                 #Personal model
-                self.sockets[0].sendall(lcontext);
-                distr = '';
+                self.sockets[0].sendall(lcontext)
+                distr = ''
 
                 while distr == '' or 'DISTRIBUTION' not in distr or distr[-1] != '\n':
                     try:
-                        distr += self.sockets[0].recv(1024).decode();
+                        distr += self.sockets[0].recv(1024).decode()
                     except UnicodeError:
-                        distr = 'DISTRIBUTION { de 0.999 }\n';
-                        print('  Skipped one');
+                        distr = 'DISTRIBUTION { de 0.999 }\n'
+                        print('  Skipped one')
 
-                final_distr = '[ word ]' + distr.split('DISTRIBUTION')[1];
-                open('predictions/lcontext'+nr+'.'+modelname+'.IGTree.gr.out','w').write(final_distr);
+                final_distr = '[ word ]' + distr.split('DISTRIBUTION')[1]
+                open('predictions/lcontext'+nr+'.'+modelname+'.IGTree.gr.out','w').write(final_distr)
 
                 #General back-up model
-                self.sockets[1].sendall(lcontext);
-                distr = '';
+                self.sockets[1].sendall(lcontext)
+                distr = ''
 
                 while distr == '' or 'DISTRIBUTION' not in distr or distr[-1] != '\n':
-                    distr += self.sockets[1].recv(1024).decode();
+                    distr += self.sockets[1].recv(1024).decode()
 
-                final_distr = '[ word ]' + distr.split('DISTRIBUTION')[1];
-                open('predictions/lcontext'+nr+'.nlsave.IGTree.gr.out','w').write(final_distr);
+                final_distr = '[ word ]' + distr.split('DISTRIBUTION')[1]
+                open('predictions/lcontext'+nr+'.nlsave.IGTree.gr.out','w').write(final_distr)
                 
             else:
-                current_word = words[-1];
-                words = words[-4:-1];
+                current_word = words[-1]
+                words = words[-4:-1]
 
         elif self.approach == 'l':
 
             if text == '' or text[-1] == ' ':
-                current_word = '';
+                current_word = ''
             else:
-                current_word = words[-1];
+                current_word = words[-1]
 
             #Preprocessing for Timbl
-            newstring = text.replace(' ','_').replace('\n','');
-            letters_before = ' '.join(newstring[-15:]);
+            newstring = text.replace(' ','_').replace('\n','')
+            letters_before = ' '.join(newstring[-15:])
 
             while len(letters_before) < 29:
-                letters_before = '_ ' + letters_before;
+                letters_before = '_ ' + letters_before
 
             if len(current_word) > 0:
-                letters_before = current_word[0] + letters_before[1:];
+                letters_before = current_word[0] + letters_before[1:]
 
-            lcontext = ('c '+ letters_before + ' _\n').encode();
+            lcontext = ('c '+ letters_before + ' _\n').encode()
 
             #Personal model
-            self.sockets[0].sendall(lcontext);
-            distr = '';
+            self.sockets[0].sendall(lcontext)
+            distr = ''
 
             while distr == '' or 'DISTRIBUTION' not in distr or distr[-1] != '\n':
-                distr += self.sockets[0].recv(1024).decode();
+                distr += self.sockets[0].recv(1024).decode()
 
-            final_distr = '[ word ]' + distr.split('DISTRIBUTION')[1];
-            open('predictions/lcontext'+nr+'.'+modelname+'.IGTree.gr.out','w').write(final_distr);
+            final_distr = '[ word ]' + distr.split('DISTRIBUTION')[1]
+            open('predictions/lcontext'+nr+'.'+modelname+'.IGTree.gr.out','w').write(final_distr)
 
             #General back-up model
-            self.sockets[1].sendall(lcontext);
-            distr = '';
+            self.sockets[1].sendall(lcontext)
+            distr = ''
 
             while distr == '' or 'DISTRIBUTION' not in distr or distr[-1] != '\n':
-                distr += self.sockets[1].recv(1024).decode();
+                distr += self.sockets[1].recv(1024).decode()
 
-            final_distr = '[ word ]' + distr.split('DISTRIBUTION')[1];
-            open('predictions/lcontext'+nr+'.nl.IGTree.gr.out','w').write(final_distr);
+            final_distr = '[ word ]' + distr.split('DISTRIBUTION')[1]
+            open('predictions/lcontext'+nr+'.nl.IGTree.gr.out','w').write(final_distr)
         
                 
         #Figure out how much has been typed so far
-        boundary = len(current_word);
+        boundary = len(current_word)
 
         #Standard vrs
-        pick = '';
-        second_pick = '';
-        third_pick = '';
-        predictions = [];
+        pick = ''
+        second_pick = ''
+        third_pick = ''
+        predictions = []
 
-        full_word = '';
-        second_guess = '';
-        third_guess = '';
+        full_word = ''
+        second_guess = ''
+        third_guess = ''
 
         for i in self.modules:
 
-            pick, second_pick, third_pick, predictions = i.run(current_word,boundary,nr);
+            pick, second_pick, third_pick, predictions = i.run(current_word,boundary,nr)
 
             if full_word == '':
-                full_word = pick;
-                source = i.name;
+                full_word = pick
+                source = i.name
             if second_guess == '':
-                second_guess = second_pick;
+                second_guess = second_pick
             if third_guess == '':
-                third_guess = third_pick;
+                third_guess = third_pick
 
             if '' not in [full_word,second_guess,third_guess]:
-                break;
+                break
 
         #Admit that you don't know
         if full_word == '':
-            source = 'I GIVE UP';
+            source = 'I GIVE UP'
 
         #If it ends with punctuation, remove that
         elif full_word[-1] in self.punctuation:
-            full_word = full_word[:-1];
+            full_word = full_word[:-1]
 
         if len(second_guess) > 1 and second_guess[-1] in self.punctuation:
-            second_guess = second_guess[:-1];
+            second_guess = second_guess[:-1]
 
         if len(third_guess) > 1 and third_guess[-1] in self.punctuation:
-            third_guess = third_guess[:-1];
+            third_guess = third_guess[:-1]
         
         return {'full_word':full_word,'word_so_far':current_word,'nr_options':len(predictions),
-                'second_guess':second_guess,'third_guess':third_guess, 'source': source}; 
+                'second_guess':second_guess,'third_guess':third_guess, 'source': source} 
 
     def read_prediction_file(self,modelname,nr,current_word,boundary):
-        """Reads and orders the predictions by TiMBL""";
+        """Reads and orders the predictions by TiMBL"""
 
         #See if prediction is ready, if not wait
-        ready = False;
+        ready = False
                 
         while not ready:
             try:
-                raw_distr = open('predictions/lcontext'+nr+'.'+ modelname+'.IGTree.gr.out','r').read().split('] {');
+                raw_distr = open('predictions/lcontext'+nr+'.'+ modelname+'.IGTree.gr.out','r').read().split('] {')
                 if len(raw_distr) > 1:
-                    ready = True;
+                    ready = True
                 else:
-                    time.sleep(0.3);
+                    time.sleep(0.3)
             except IOError:
-                time.sleep(0.3);
+                time.sleep(0.3)
 
         #Turn prediction into list of tuples
 
-        raw_distr = raw_distr[1];
-        distr = raw_distr.strip()[:-2].split();
+        raw_distr = raw_distr[1]
+        distr = raw_distr.strip()[:-2].split()
 
-        last_word = None;
-        predictions = [];
+        last_word = None
+        predictions = []
         for i in distr:
 
             if last_word == None:
-                last_word = i;
+                last_word = i
             else:
                 try:
-                    predictions.append((last_word,float(i[:-1])));
+                    predictions.append((last_word,float(i[:-1])))
                 except ValueError:
-                    pass;
-                last_word = None;
+                    pass
+                last_word = None
 
         #Pick the best prediction, based on what has been typed so far
-        pick = '';
-        highest_confidence = 0;
+        pick = ''
+        highest_confidence = 0
 
-        second_pick = '';
-        second_highest_confidence = 0;
+        second_pick = ''
+        second_highest_confidence = 0
 
-        third_pick = '';
-        third_highest_confidence = 0;
+        third_pick = ''
+        third_highest_confidence = 0
 
         for i in predictions:
             if i[0] != '#DUMMY' and (i[0][:boundary] == current_word or self.approach == 'l'):
                 if i[1] > highest_confidence:
-                    third_pick = second_pick;
-                    third_highest_confidence = second_highest_confidence;
+                    third_pick = second_pick
+                    third_highest_confidence = second_highest_confidence
 
-                    second_pick = pick;
-                    second_highest_confidence = highest_confidence;
+                    second_pick = pick
+                    second_highest_confidence = highest_confidence
                     
-                    pick = i[0];
-                    highest_confidence = i[1];
+                    pick = i[0]
+                    highest_confidence = i[1]
                 elif i[1] > second_highest_confidence:
-                    third_pick = second_pick;
-                    third_highest_confidence = second_highest_confidence;
+                    third_pick = second_pick
+                    third_highest_confidence = second_highest_confidence
 
-                    second_pick = i[0];
-                    second_highest_confidence = i[1];                
+                    second_pick = i[0]
+                    second_highest_confidence = i[1]                
                 elif i[1] > third_highest_confidence:
-                    third_pick = i[0];
-                    third_highest_confidence = i[1];
+                    third_pick = i[0]
+                    third_highest_confidence = i[1]
                 
-        return pick, second_pick, third_pick, predictions;
+        return pick, second_pick, third_pick, predictions
 
     def read_frequency_file(self,model,current_word,boundary):
         """Returns the most frequent word that starts with current_word"""
 
-        pick = '';
-        second_pick = '';
-        lexicon = open('wordmodels/'+model+'.lex.txt');
+        pick = ''
+        second_pick = ''
+        lexicon = open('wordmodels/'+model+'.lex.txt')
 
         if len(current_word) == 0:
-            return '','';
+            return '',''
         
         for i in lexicon:
             if i[0] == current_word[0]: #quick check before you do more heavy stuff
-                word, freq = i.split();
+                word, freq = i.split()
                 if word[:boundary] == current_word:
                     if pick == '':
-                        pick = word;
+                        pick = word
                     elif second_pick == '':
-                        second_pick = word;
-                        break;
+                        second_pick = word
+                        break
                 elif int(freq) < self.limit_backup_lexicon:
-                    break;
+                    break
 
-        return pick,second_pick;
+        return pick,second_pick
 
     def only_one_word_possible(self,model,current_word,boundary):
         """Returns the most frequent word that starts with current_word"""
 
-        pick = '';
-        lexicon = open(model+'.lex.txt');
+        pick = ''
+        lexicon = open(model+'.lex.txt')
 
         if len(current_word) == 0:
-            return '';
+            return ''
         
         for i in lexicon:
             if i[0] == current_word[0]: #quick check before you do more heavy stuff
-                word, freq = i.split();
+                word, freq = i.split()
                 if word[:boundary] == current_word:
                     if pick == '':
-                        pick = word;
+                        pick = word
                     else:
-                        return '';
+                        return ''
 
-        return pick;
+        return pick
 
     def read_recency_buffer(self,rb,current_word,boundary):
-        """Gets the latest word from the recency buffer that matches what you were typing""";
+        """Gets the latest word from the recency buffer that matches what you were typing"""
 
         for i in rb:
             if i[:boundary] == current_word:
-                return i;
-                break;
+                return i
+                break
 
-        return '';
+        return ''
 
     def start_servers(self,model,look_for_existing):
-        """Starts the necessary servers and connects to them""";
+        """Starts the necessary servers and connects to them"""
 
         import gettimblserverport
         
         if self.approach == 'w':
-            foldername = 'wordmodels';
-            backupname = 'nlsave';
+            foldername = 'wordmodels'
+            backupname = 'nlsave'
         elif self.approach == 'l':
-            foldername = 'lettermodels';
-            backupname = 'nlsmall';
+            foldername = 'lettermodels'
+            backupname = 'nlsmall'
 
         #Personal model
-        succeeded = False;
+        succeeded = False
 
         while not succeeded:
 
             if look_for_existing:
-                port = gettimblserverport.getport(model+'.training.txt.IGTree');
+                port = gettimblserverport.getport(model+'.training.txt.IGTree')
             else:
-                port = False;
+                port = False
 
             if port:
-                print('Connected to an existing server running',model);
+                print('Connected to an existing server running',model)
             else:
-                port = get_free_port();
-                command('timblserver -i '+model+'.training.txt.IGTree +vdb +D -a1 -G +vcf -S '+str(port)+' -C 1000');
-                print('No server found. Started a new server running',model);
+                port = get_free_port()
+                command('timblserver -i '+model+'.training.txt.IGTree +vdb +D -a1 -G +vcf -S '+str(port)+' -C 1000')
+                print('No server found. Started a new server running',model)
                 
-            s1 = socket.socket(socket.AF_INET,socket.SOCK_STREAM);
+            s1 = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 
             try:
-                s1.connect(('',port));
-                s1.recv(1024);
-                succeeded = True;
+                s1.connect(('',port))
+                s1.recv(1024)
+                succeeded = True
             except socket.error:
-                pass;
+                pass
 
         #General model
-        succeeded = False;
+        succeeded = False
 
         while not succeeded:
 
             if look_for_existing:
-                port = gettimblserverport.getport(foldername+'/'+backupname+'.training.txt.IGTree');
+                port = gettimblserverport.getport(foldername+'/'+backupname+'.training.txt.IGTree')
             else:
-                port = False;
+                port = False
 
             if port:
-                print('Connected to an existing server running',backupname);
+                print('Connected to an existing server running',backupname)
             else:
-                port = get_free_port();
-                command('timblserver -i '+foldername+'/'+backupname+'.training.txt.IGTree +vdb +D -a1 -G +vcf -S '+str(port)+' -C 1000');
-                print('No server found. Started a new server running',backupname);
+                port = get_free_port()
+                command('timblserver -i '+foldername+'/'+backupname+'.training.txt.IGTree +vdb +D -a1 -G +vcf -S '+str(port)+' -C 1000')
+                print('No server found. Started a new server running',backupname)
                 
-            s2 = socket.socket(socket.AF_INET,socket.SOCK_STREAM);
+            s2 = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 
             try:
-                s2.connect(('',port));
-                s2.recv(1024);
-                succeeded = True;
+                s2.connect(('',port))
+                s2.recv(1024)
+                succeeded = True
             except socket.error:
-                pass;
+                pass
         
-        self.sockets = [s1,s2];
+        self.sockets = [s1,s2]
 
     def prepare_training_data(self,directory,make_testfile=False):
 
         if self.approach == 'w':
-            foldername = 'wordmodels';
+            foldername = 'wordmodels'
         elif self.approach == 'l':
-            foldername = 'lettermodels';
+            foldername = 'lettermodels'
 
         #Paste all texts in the directory into one string
-        print('  Grab all files');
-        files = os.listdir('input/'+directory);
-        total_text = '';
+        print('  Grab all files')
+        files = os.listdir('input/'+directory)
+        total_text = ''
 
         for n,i in enumerate(files):
             if n%1000 == 0:
-                print('   ',n/len(files));
+                print('   ',n/len(files))
 
-            content = open('input/'+directory+i,'r',encoding='utf-8',errors='ignore').read();
+            content = open('input/'+directory+i,'r',encoding='utf-8',errors='ignore').read()
 
             if i == self.cut_file:
-                words = content.split();
-                boundary = round(len(words)*0.9);
-                content = ' '.join(words[:boundary]);            
-                print('   Cut file '+i);
+                words = content.split()
+                boundary = round(len(words)*0.9)
+                content = ' '.join(words[:boundary])            
+                print('   Cut file '+i)
 
             if self.approach == 'w':
-                total_text += ' _ _ _ '+content;
+                total_text += ' _ _ _ '+content
             elif self.approach == 'l':
-                total_text += ' ________________ '+open('input/'+directory+i,'r',encoding='utf-8',errors='ignore').read();
+                total_text += ' ________________ '+open('input/'+directory+i,'r',encoding='utf-8',errors='ignore').read()
 
         #Tokenize
-    #    total_text = ucto(total_text);
+    #    total_text = ucto(total_text)
 
         #Create and load lexicon
-        print('  Create lexicon');
+        print('  Create lexicon')
 
         if make_testfile:
-            lexicon_filename = foldername+'/'+directory[:-1]+'.90.lex.txt'; 
+            lexicon_filename = foldername+'/'+directory[:-1]+'.90.lex.txt' 
         else:
-            lexicon_filename = foldername+'/'+directory[:-1]+'.lex.txt'; 
-        self.string_to_lexicon(total_text,lexicon_filename);
-        lexicon = self.load_lexicon(lexicon_filename);
+            lexicon_filename = foldername+'/'+directory[:-1]+'.lex.txt' 
+        self.string_to_lexicon(total_text,lexicon_filename)
+        lexicon = self.load_lexicon(lexicon_filename)
 
         #In simulation mode, cut away 10 percent for testing later
-        print('  Make test file if needed');
+        print('  Make test file if needed')
         if make_testfile:
-            testfilename = foldername+'/'+directory[:-1]+'.10.test.txt';
-            training_filename = foldername+'/'+directory[:-1]+'.90.training.txt';
+            testfilename = foldername+'/'+directory[:-1]+'.10.test.txt'
+            training_filename = foldername+'/'+directory[:-1]+'.90.training.txt'
 
-            words = total_text.split();
-            boundary = round(len(words)*0.9);
+            words = total_text.split()
+            boundary = round(len(words)*0.9)
 
-            open(testfilename,'w').write(' '.join(words[boundary:]));
-            total_text = ' '.join(words[:boundary]);
+            open(testfilename,'w').write(' '.join(words[boundary:]))
+            total_text = ' '.join(words[:boundary])
 
         #In demo mode, just take all
         else:
-            testfilename = '';
-            training_filename = foldername+'/'+directory[:-1]+'.training.txt';
+            testfilename = ''
+            training_filename = foldername+'/'+directory[:-1]+'.training.txt'
 
         #Attenuate the string with the training text
-        print('  Attenuate string');
-        total_text = self.attenuate_string_multicore(total_text,lexicon);
+        print('  Attenuate string')
+        total_text = self.attenuate_string_multicore(total_text,lexicon)
 
         #Make into ngrams, and save the file
-        print('  Make ngrams');
-        ngrams = self.make_ngrams(total_text);
+        print('  Make ngrams')
+        ngrams = self.make_ngrams(total_text)
 
-        print('  Create file');
-        training_file_content = '\n'.join(ngrams);
-        open(training_filename,'w').write(training_file_content);
+        print('  Create file')
+        training_file_content = '\n'.join(ngrams)
+        open(training_filename,'w').write(training_file_content)
 
         #Return the filenames
-        return training_filename, testfilename, lexicon;
+        return training_filename, testfilename, lexicon
 
     def make_ngrams(self,text):
-        """Transforms a string into a list of 4-grams, using multiple cores""";
+        """Transforms a string into a list of 4-grams, using multiple cores"""
 
-        result = multiprocessing.Queue();
+        result = multiprocessing.Queue()
 
         #Starts the workers
         def worker(nr,string,result):
 
             if self.approach == 'w':
                 if nr == 0:
-                    ngrams = window_string(string,True);
+                    ngrams = window_string(string,True)
                 else:
-                    ngrams = window_string(string);
+                    ngrams = window_string(string)
             elif self.approach == 'l':
                 if nr == 0:
-                    ngrams = window_string_letters(string,True);
+                    ngrams = window_string_letters(string,True)
                 else:
-                    ngrams = window_string_letters(string);
+                    ngrams = window_string_letters(string)
 
-            result.put((nr,ngrams));
+            result.put((nr,ngrams))
 
         if self.approach == 'w':
-            substrings = divide_iterable(text.split(),10,3);
+            substrings = divide_iterable(text.split(),10,3)
         elif self.approach == 'l':
-            substrings = divide_iterable(text,10,15);    
+            substrings = divide_iterable(text,10,15)    
 
         for n,i in enumerate(substrings):
-            t = multiprocessing.Process(target=worker,args=[n,i,result]);
-            t.start();
+            t = multiprocessing.Process(target=worker,args=[n,i,result])
+            t.start()
 
         #Wait until all results are in
-        resultlist = [];
+        resultlist = []
 
         while len(resultlist) < 10:
 
             while not result.empty():
-                resultlist.append(result.get());
+                resultlist.append(result.get())
 
-            time.sleep(1);
+            time.sleep(1)
 
         #Sort and merge the results
-        resultlist = sorted(resultlist,key=lambda x:x[0]);
-        between_result = [x[1] for x in resultlist];    
-        end_result = [];
+        resultlist = sorted(resultlist,key=lambda x:x[0])
+        between_result = [x[1] for x in resultlist]    
+        end_result = []
         for i in between_result:
-            end_result += i;
+            end_result += i
 
-        return end_result;
+        return end_result
 
     def train_model(self,filename):
-        """Train a model on the basis of these ngrams""";
+        """Train a model on the basis of these ngrams"""
 
-        command('timbl -f '+filename+' -I '+filename+'.IGTree +D +vdb -a1 -p 1000000',False);
+        command('timbl -f '+filename+' -I '+filename+'.IGTree +D +vdb -a1 -p 1000000',False)
 
-        return filename.replace('.training.txt','');
+        return filename.replace('.training.txt','')
 
     def string_to_lexicon(self,string,outputfilename):
-        """Creates a lexicon from a string""";
+        """Creates a lexicon from a string"""
 
         #Counts words
-        words = string.replace('\n','').split();
-        counts = {};
+        words = string.replace('\n','').split()
+        counts = {}
 
         for i in words:
             try:
-                counts[i] += 1;
+                counts[i] += 1
             except KeyError:
-                counts[i] = 1;
+                counts[i] = 1
 
         #Sort words, most frequent first
-        counts = sorted(list(counts.items()),key=lambda x: x[1],reverse=True);
+        counts = sorted(list(counts.items()),key=lambda x: x[1],reverse=True)
 
         #Save results
-        lines = '';
+        lines = ''
 
         for i in counts:
-            lines += i[0] + ' ' +str(i[1]) + '\n';
+            lines += i[0] + ' ' +str(i[1]) + '\n'
 
-        open(outputfilename,'w').write(lines);
+        open(outputfilename,'w').write(lines)
 
     def load_lexicon(self,filename):
-        """Returns a list of all words more frequent than threshold""";
+        """Returns a list of all words more frequent than threshold"""
 
-        lexicon = open(filename,'r');
-        frequent_words = {};
+        lexicon = open(filename,'r')
+        frequent_words = {}
 
         for i in lexicon:
-            word,frequency = i.split();
-            frequency = int(frequency);
+            word,frequency = i.split()
+            frequency = int(frequency)
 
             if frequency > self.att_threshold:
                 try:
-                    frequent_words[len(word)].append(word);
+                    frequent_words[len(word)].append(word)
                 except KeyError:
                     frequent_words[len(word)] = [word]
 
-        return frequent_words;
+        return frequent_words
 
     def attenuate_string_simple(self,string,lex):
-        """Replaces infrequent words in string with #DUMMY, using one core""";
+        """Replaces infrequent words in string with #DUMMY, using one core"""
 
-        words = string.split();
-        result = '';
+        words = string.split()
+        result = ''
 
         for i in words:
             try:
                 if i not in lex[len(i)]:
-                    result += ' #DUMMY';
+                    result += ' #DUMMY'
                 else:
-                    result += ' ' + i;
+                    result += ' ' + i
             except KeyError:
-                result += ' #DUMMY';
+                result += ' #DUMMY'
 
-        return result.strip();
+        return result.strip()
 
     def attenuate_string_multicore(self,string,lex):
-        """Replaces infrequent words in string with #DUMMY, using multiple cores""";
+        """Replaces infrequent words in string with #DUMMY, using multiple cores"""
 
         #Prepare input and output
-        words = string.split();
-        word_nr = len(words);
-        result = multiprocessing.Queue();
+        words = string.split()
+        word_nr = len(words)
+        result = multiprocessing.Queue()
 
         #The actual work
         def dummify(n,word):        
             try:
                 if not word in lex[len(word)] and word not in ['_']:
-                    return '#DUMMY';
+                    return '#DUMMY'
                 else:
-                    return word;
+                    return word
 
             except KeyError:
-                return '#DUMMY';
+                return '#DUMMY'
 
         #Starts the workers
         def worker(nr,words,result):
-            resultstring = '';
-            wordtotal = len(words);
+            resultstring = ''
+            wordtotal = len(words)
 
             for n,i in enumerate(words):
                 
-                resultstring += ' ' + dummify(n,i);
+                resultstring += ' ' + dummify(n,i)
 
                 #Report progress of the first worker
                 if nr == 0 and n%100000 == 0:
-                    print('  ',n / wordtotal);
+                    print('  ',n / wordtotal)
 
-            result.put((nr,resultstring));
+            result.put((nr,resultstring))
 
-        substrings = divide_iterable(words,10);
+        substrings = divide_iterable(words,10)
         
         for n,i in enumerate(substrings):
-            t = multiprocessing.Process(target=worker,args=[n,i,result]);
-            t.start();
+            t = multiprocessing.Process(target=worker,args=[n,i,result])
+            t.start()
 
         #Wait until all results are in
-        resultlist = [];
+        resultlist = []
 
         while len(resultlist) < 10:
 
             while not result.empty():
-                resultlist.append(result.get());
+                resultlist.append(result.get())
 
-            time.sleep(1);
+            time.sleep(1)
 
         #Sort and merge the results
-        resultlist = sorted(resultlist,key=lambda x:x[0]);
-        actual_result = [x[1] for x in resultlist];
+        resultlist = sorted(resultlist,key=lambda x:x[0])
+        actual_result = [x[1] for x in resultlist]
             
-        return ' '.join(actual_result).strip();
+        return ' '.join(actual_result).strip()
 
     def attenuate_training_file(self,filename,lexicon):
-        """Replaces infrequent words in trainingfile with #DUMMY""";
+        """Replaces infrequent words in trainingfile with #DUMMY"""
 
-        f = open(filename,'r');
+        f = open(filename,'r')
 
-        newlines = [];
+        newlines = []
             
         for i in f:
-            words = i.replace('\n','').split();
-            result = '';
+            words = i.replace('\n','').split()
+            result = ''
             
             for j in words[:-1]:
                 if j not in lexicon and j not in ['_']:
-                    result += ' #DUMMY';
+                    result += ' #DUMMY'
                 else:
-                    result += ' '+j;
+                    result += ' '+j
 
-            result += ' '+words[-1];
-            newlines.append(result.strip());
+            result += ' '+words[-1]
+            newlines.append(result.strip())
 
-        open(filename,'w').write('\n'.join(newlines));
+        open(filename,'w').write('\n'.join(newlines))
 
 class Module():
 
@@ -682,80 +682,79 @@ class Module():
 
     def run(self,current_word,boundary,nr):
 
-        pick = '';
-        second_pick = '';
-        third_pick = '';
-        predictions = [];
+        pick = ''
+        second_pick = ''
+        third_pick = ''
+        predictions = []
 
-        full_word = '';
-        second_guess = '';
-        third_guess = '';
+        full_word = ''
+        second_guess = ''
+        third_guess = ''
 
         if self.kind == 'igtree':
-            pick, second_pick, third_pick, predictions = self.ss.read_prediction_file(self.model,nr,current_word,boundary);
+            pick, second_pick, third_pick, predictions = self.ss.read_prediction_file(self.model,nr,current_word,boundary)
 
         elif self.kind == 'lex':
-            pick,second_pick = self.ss.read_frequency_file(self.model,current_word,boundary);
+            pick,second_pick = self.ss.read_frequency_file(self.model,current_word,boundary)
 
         elif self.kind == 'unique':
-            pick = self.ss.only_one_word_possible(self.model,current_word,boundary);
+            pick = self.ss.only_one_word_possible(self.model,current_word,boundary)
 
         elif self.kind == 'rb':
             if boundary > 0:
-                pick = self.ss.read_recency_buffer(recency_buffer,current_word,boundary);                
+                pick = self.ss.read_recency_buffer(recency_buffer,current_word,boundary)                
 
-        return pick, second_pick, third_pick, predictions;
+        return pick, second_pick, third_pick, predictions
 
 def add_prediction(text,text_colored,prediction,source):
 
     if text[-1] == ' ':
-        text += prediction;
-        text_colored += colors[source] + prediction + colors['white'];
-        last_input = '';
+        text += prediction
+        text_colored += colors[source] + prediction + colors['white']
+        last_input = ''
 
     else:
-        words = text.split();
-        last_input = words[-1];        
-        words = words[:-1];
-        words.append(prediction);
+        words = text.split()
+        last_input = words[-1]        
+        words = words[:-1]
+        words.append(prediction)
 
-        words_colored = text_colored.split();
-        already_typed = words_colored[-1];
+        words_colored = text_colored.split()
+        already_typed = words_colored[-1]
         words_colored = words_colored[:-1]
         prediction = already_typed + colors[source] + \
-                     prediction[len(already_typed):] + colors['white'];
-        words_colored.append(prediction);        
+                     prediction[len(already_typed):] + colors['white']
+        words_colored.append(prediction)        
 
-        text = ' '.join(words);
-        text_colored = ' '.join(words_colored);
+        text = ' '.join(words)
+        text_colored = ' '.join(words_colored)
         
-    return text, text_colored, last_input;
+    return text, text_colored, last_input
     
 def demo_mode(model,lexicon,settings):
 
     #Start stuff needed for prediction
-    recency_buffer = collections.deque(maxlen=settings['recency_buffer']);
-    ss = Soothsayer(**settings);
-    ss.setup_basic_modules(model);
-    ss.start_servers(model,True);
+    recency_buffer = collections.deque(maxlen=settings['recency_buffer'])
+    ss = Soothsayer(**settings)
+    ss.setup_basic_modules(model)
+    ss.start_servers(model,True)
 
     #Predict starting word
-    prediction = ss.do_prediction('',lexicon,recency_buffer);
+    prediction = ss.do_prediction('',lexicon,recency_buffer)
 
     #Ask for first char    
-    print('Start typing whenever you want');
-    get_character = get_character_function();
+    print('Start typing whenever you want')
+    get_character = get_character_function()
 
     #Start the process
-    busy = True;
-    text_so_far = '';
-    text_so_far_colored = '';
-    last_prediction = '';
-    repeats = 0;
+    text_so_far = ''
+    text_so_far_colored = ''
+    last_prediction = ''
+    repeats = 0
 
-    while busy:
-        rejected = False;
-        char = str(get_character());
+    while True:
+        rejected = False
+        char = str(get_character())
 
         #Accept prediction
         if char in [' ',')'] + settings['punctuation']:
@@ -763,344 +762,343 @@ def demo_mode(model,lexicon,settings):
                 text_so_far, text_so_far_colored, last_input = add_prediction(text_so_far,
                                                                               text_so_far_colored,
                                                                               prediction['full_word'],
-                                                                              prediction['source']);
-            text_so_far += char;
-            text_so_far_colored += char;
+                                                                              prediction['source'])
+            text_so_far += char
+            text_so_far_colored += char
 
             if char not in [' ',')']:
-                text_so_far += ' ';
-                text_so_far_colored += ' ';
+                text_so_far += ' '
+                text_so_far_colored += ' '
 
-            recency_buffer = add_to_recency_buffer(recency_buffer,text_so_far);
+            recency_buffer = add_to_recency_buffer(recency_buffer,text_so_far)
 
         #Reject prediction
         elif char == '\t':
             prediction = {'full_word': '', 'source':  'USER', 'second_guess': '', 'third_guess': '',
-                          'nr_options': '', 'word_so_far': ''};
-            rejected = True;
+                          'nr_options': '', 'word_so_far': ''}
+            rejected = True
 
         #Hit backspace
         elif char == '\x7f':
-            text_so_far = text_so_far[:-1];
-            text_so_far_colored = text_so_far_colored[:-1];          
+            text_so_far = text_so_far[:-1]
+            text_so_far_colored = text_so_far_colored[:-1]          
 
             while text_so_far_colored[-4:] in colors.values():
-                text_so_far_colored = text_so_far_colored[:-4];
+                text_so_far_colored = text_so_far_colored[:-4]
 
             while text_so_far_colored[-10:] in colors.values():
-                text_so_far_colored = text_so_far_colored[:-10];
+                text_so_far_colored = text_so_far_colored[:-10]
 
         #Don't accept prediction
         else:
-            text_so_far += char;
-            text_so_far_colored += char;
+            text_so_far += char
+            text_so_far_colored += char
 
         #Predict new word
         if not rejected:
-            prediction = ss.do_prediction(text_so_far,lexicon,recency_buffer);
+            prediction = ss.do_prediction(text_so_far,lexicon,recency_buffer)
 
         #Keep track of how often you did a prediction
 
         if last_prediction == prediction['full_word']:
-            repeats += 1;
+            repeats += 1
         else:
-            repeats = 1;
+            repeats = 1
 
-        last_prediction = prediction['full_word'];
+        last_prediction = prediction['full_word']
 
         #Show second best if you did a prediction too often
         if len(prediction['second_guess']) > 3 and repeats > 3:
-            prediction['full_word'] = prediction['second_guess'];
+            prediction['full_word'] = prediction['second_guess']
             
         #Show the prediction
-        clear();
+        clear()
 
-        chars_typed = len(prediction['word_so_far']);
-        print(text_so_far_colored+'|'+prediction['full_word'][chars_typed:]);
-        print();
+        chars_typed = len(prediction['word_so_far'])
+        print(text_so_far_colored+'|'+prediction['full_word'][chars_typed:])
+        print()
         print(prediction['second_guess']+', '+prediction['third_guess']+', '+ \
               str(prediction['nr_options'])+' options, source:',colors[prediction['source']],
-              prediction['source'],colors['white']);
+              prediction['source'],colors['white'])
 
         #Check for quit
         if 'quit' in text_so_far.split():
-            busy = False;
+            break;
 
 def simulation_mode(model,lexicon,testfile,settings):
-    """Simulates someone typing, multicore""";
+    """Simulates someone typing, multicore"""
 
-    result = multiprocessing.Queue();
+    result = multiprocessing.Queue()
 
     #Starts the workers
-#    teststring = ucto(open(testfile,'r').read());
-    teststring = ' ' + open(testfile,'r').read();
-    substrings = divide_iterable(teststring.split(),settings['test_cores'],3);
+#    teststring = ucto(open(testfile,'r').read())
+    teststring = ' ' + open(testfile,'r').read()
+    substrings = divide_iterable(teststring.split(),settings['test_cores'],3)
 
     for n,i in enumerate(substrings):
-        buffersize = settings['recency_buffer'];
-        content_rb = substrings[n-1][-buffersize:];
-        i = ' '.join(i);
-        t = multiprocessing.Process(target=simulate,args=[model,lexicon,content_rb,i,settings,n,result]);
-        t.start();
+        buffersize = settings['recency_buffer']
+        content_rb = substrings[n-1][-buffersize:]
+        i = ' '.join(i)
+        t = multiprocessing.Process(target=simulate,args=[model,lexicon,content_rb,i,settings,n,result])
+        t.start()
 
     #Wait until all results are in
-    resultlist = [];
+    resultlist = []
 
     while len(resultlist) < len(substrings):
 
         while not result.empty():
-            resultlist.append(result.get());
+            resultlist.append(result.get())
 
-        time.sleep(1);
+        time.sleep(1)
 
     #Sort and merge the results
-    resultlist = sorted(resultlist,key=lambda x:x[0]);
-    between_result = [x[1:] for x in resultlist];    
-    ks_saved_cks = 0;
-    ks_saved_skks = 0;
-    nr_ks = 0;
-    duration = 0;
-    end_result = '';
+    resultlist = sorted(resultlist,key=lambda x:x[0])
+    between_result = [x[1:] for x in resultlist]    
+    ks_saved_cks = 0
+    ks_saved_skks = 0
+    nr_ks = 0
+    duration = 0
+    end_result = ''
     
     for i in between_result:
-        end_result += i[0];
-        ks_saved_cks += i[1][0];
-        ks_saved_skks += i[1][1];
-        nr_ks += i[1][2];
-        duration += i[1][3];
+        end_result += i[0]
+        ks_saved_cks += i[1][0]
+        ks_saved_skks += i[1][1]
+        nr_ks += i[1][2]
+        duration += i[1][3]
 
     end_result = 'Total CKS: '+str(ks_saved_cks/nr_ks)+'\n'+\
         'Total SKKS: '+str(ks_saved_skks/nr_ks)+'\n'+\
         'Total duration: '+str(duration)+'\n\n'+\
-        end_result;
+        end_result
         
-    open('output/Soothsayer_output','w').write(end_result);  
+    open('output/Soothsayer_output','w').write(end_result)  
 
-    print('Done');
+    print('Done')
 
 def simulate(model,lexicon,content_rb,teststring,settings,nr,result):
 
     #Start the necessary things for the prediction
-    recency_buffer = collections.deque(content_rb,settings['recency_buffer']);
-    ss = Soothsayer(**settings);    
-    ss.setup_basic_modules(model);
-    ss.start_servers(model,False);
+    recency_buffer = collections.deque(content_rb,settings['recency_buffer'])
+    ss = Soothsayer(**settings)    
+    ss.setup_basic_modules(model)
+    ss.start_servers(model,False)
 
     #Find out where to start (because of overlap)
     if nr == 0:
-        starting_point = 0;
+        starting_point = 0
     else:
-        first_words = teststring[:60].split()[:3];
-        starting_point = len(first_words[0]) + len(first_words[1]) + len(first_words[2]) + 3;
+        first_words = teststring[:60].split()[:3]
+        starting_point = len(first_words[0]) + len(first_words[1]) + len(first_words[2]) + 3
 
     #Prepare vars and output
-    starttime = time.time();
-    total_keystrokes_saved = 0;
-    total_keystrokes_saved_sk = 0; #Swiftkey measure
-    already_predicted = False;
-    skks_got_it_already = False;
-    repeats = 1;
-    last_prediction = '';
+    starttime = time.time()
+    total_keystrokes_saved = 0
+    total_keystrokes_saved_sk = 0 #Swiftkey measure
+    already_predicted = False
+    skks_got_it_already = False
+    repeats = 1
+    last_prediction = ''
 
-    output = '#############################\n##   CORE '+str(nr)+' STARTS HERE    ##\n#############################\n\n';
+    output = '#############################\n##   CORE '+str(nr)+' STARTS HERE    ##\n#############################\n\n'
 
     #Go through the testfile letter for letter
     for i in range(starting_point,len(teststring)):
 
         if nr == 0 and i%10 == 0:
-             print(i/len(teststring));
+             print(i/len(teststring))
 
         #word finished
         if teststring[i] == ' ':
-            skks_got_it_already = False;
-            recency_buffer = add_to_recency_buffer(recency_buffer,teststring[:i]);
+            skks_got_it_already = False
+            recency_buffer = add_to_recency_buffer(recency_buffer,teststring[:i])
 
         #If the word was not already predicted, guess (again)
         if not already_predicted:
 
             #Figure out what has been said so far
-            text_so_far = teststring[:i];
-            nr_chars_typed = i - starting_point +1;
+            text_so_far = teststring[:i]
+            nr_chars_typed = i - starting_point +1
 
             #Do prediction
-            prediction = ss.do_prediction(text_so_far,lexicon,recency_buffer,nr=str(nr));
+            prediction = ss.do_prediction(text_so_far,lexicon,recency_buffer,nr=str(nr))
 
             #Keep track of how often you did a prediction
             if last_prediction == prediction['full_word']:
-                repeats += 1;
+                repeats += 1
             else:
-                repeats = 1;
+                repeats = 1
 
-            last_prediction = prediction['full_word'];
+            last_prediction = prediction['full_word']
 
             #Show second best if you did a prediction too often
 #            if len(prediction['second_guess']) > 1 and repeats > 1:
-#                prediction['full_word'] = prediction['second_guess'];
+#                prediction['full_word'] = prediction['second_guess']
                 
             #Get and show what is written now
-            current_word = find_current_word(teststring,i);
+            current_word = find_current_word(teststring,i)
 
             if len(current_word) > 0 and current_word[-1] in settings['punctuation']:
-                current_word = current_word[:-1];
-                had_punc = True;
+                current_word = current_word[:-1]
+                had_punc = True
             else:
-                had_punc = False;
+                had_punc = False
 
             #If correct, calculate keystrokes saved and put in output            
-            output += prediction['word_so_far']+', '+ current_word+', '+prediction['full_word']+'\n';
+            output += prediction['word_so_far']+', '+ current_word+', '+prediction['full_word']+'\n'
             if current_word == prediction['full_word']:
                 
-                output += '\n## FIRST GUESS CORRECT. SKIP. \n';
+                output += '\n## FIRST GUESS CORRECT. SKIP. \n'
 
-                keystrokes_saved = calculate_keystrokes_saved(prediction['word_so_far'],current_word);
+                keystrokes_saved = calculate_keystrokes_saved(prediction['word_so_far'],current_word)
 
                 if had_punc:
-                    keystrokes_saved += 1;
+                    keystrokes_saved += 1
                     
-                output += '## KEYSTROKES SAVED ' + str(keystrokes_saved)+' \n';
+                output += '## KEYSTROKES SAVED ' + str(keystrokes_saved)+' \n'
 
-                total_keystrokes_saved += keystrokes_saved;
-                perc = str(total_keystrokes_saved / nr_chars_typed);
-                output += '## CKS ' + str(total_keystrokes_saved) + ' of ' + str(nr_chars_typed) + ' (' +perc+'%) \n';
+                total_keystrokes_saved += keystrokes_saved
+                perc = str(total_keystrokes_saved / nr_chars_typed)
+                output += '## CKS ' + str(total_keystrokes_saved) + ' of ' + str(nr_chars_typed) + ' (' +perc+'%) \n'
 
                 if not skks_got_it_already:
-                    total_keystrokes_saved_sk += keystrokes_saved;            
-                    perc = str(total_keystrokes_saved_sk / nr_chars_typed);
-                    output += '## SKKS ' + str(total_keystrokes_saved_sk) + ' of ' + str(nr_chars_typed) + ' (' +perc+'%) \n';
+                    total_keystrokes_saved_sk += keystrokes_saved            
+                    perc = str(total_keystrokes_saved_sk / nr_chars_typed)
+                    output += '## SKKS ' + str(total_keystrokes_saved_sk) + ' of ' + str(nr_chars_typed) + ' (' +perc+'%) \n'
 
-                output += '## DURATION: '+str(time.time() - starttime)+' seconds \n\n';
+                output += '## DURATION: '+str(time.time() - starttime)+' seconds \n\n'
 
                 if teststring[i] != ' ':
-                    already_predicted = True;
+                    already_predicted = True
 
             elif not skks_got_it_already and current_word == prediction['second_guess']:
-                output += '\n## SECOND GUESS CORRECT \n';
+                output += '\n## SECOND GUESS CORRECT \n'
 
-                keystrokes_saved = calculate_keystrokes_saved(prediction['word_so_far'],prediction['second_guess']);
+                keystrokes_saved = calculate_keystrokes_saved(prediction['word_so_far'],prediction['second_guess'])
 
-                total_keystrokes_saved_sk += keystrokes_saved;            
+                total_keystrokes_saved_sk += keystrokes_saved            
 
-                perc = str(total_keystrokes_saved_sk / nr_chars_typed);
-                output += '## SKKS ' + str(total_keystrokes_saved_sk) + ' of ' + str(nr_chars_typed) + ' (' +perc+'%) \n\n';
+                perc = str(total_keystrokes_saved_sk / nr_chars_typed)
+                output += '## SKKS ' + str(total_keystrokes_saved_sk) + ' of ' + str(nr_chars_typed) + ' (' +perc+'%) \n\n'
 
-                skks_got_it_already = True;
+                skks_got_it_already = True
 
             elif teststring[i-1] == ' ' and current_word == prediction['third_guess']:
-                output += '\n## THIRD GUESS CORRECT \n';
+                output += '\n## THIRD GUESS CORRECT \n'
 
-                keystrokes_saved = calculate_keystrokes_saved(prediction['word_so_far'],prediction['third_guess']);
+                keystrokes_saved = calculate_keystrokes_saved(prediction['word_so_far'],prediction['third_guess'])
 
-                total_keystrokes_saved_sk += keystrokes_saved;            
+                total_keystrokes_saved_sk += keystrokes_saved            
 
-                perc = str(total_keystrokes_saved_sk / nr_chars_typed);
-                output += '## SKKS ' + str(total_keystrokes_saved_sk) + ' of ' + str(nr_chars_typed) + ' (' +perc+'%) \n\n';
+                perc = str(total_keystrokes_saved_sk / nr_chars_typed)
+                output += '## SKKS ' + str(total_keystrokes_saved_sk) + ' of ' + str(nr_chars_typed) + ' (' +perc+'%) \n\n'
 
-                skks_got_it_already = True;
+                skks_got_it_already = True
             else:
-                pass;
+                pass
                 
         #Skip if the word was already predicted
         else:
             if teststring[i] == ' ':
-                already_predicted = False;
+                already_predicted = False
 
-    nr_chars_typed = len(teststring) - starting_point;
+    nr_chars_typed = len(teststring) - starting_point
 
-    output += '## FINAL CKS ' + str(total_keystrokes_saved) + ' of ' + str(nr_chars_typed) + '\n';
-    output += '## FINAL SKKS ' + str(total_keystrokes_saved_sk) + ' of ' + str(nr_chars_typed) + '\n';
-    output += '## FINAL DURATION: '+str(time.time() - starttime)+' seconds \n\n';
+    output += '## FINAL CKS ' + str(total_keystrokes_saved) + ' of ' + str(nr_chars_typed) + '\n'
+    output += '## FINAL SKKS ' + str(total_keystrokes_saved_sk) + ' of ' + str(nr_chars_typed) + '\n'
+    output += '## FINAL DURATION: '+str(time.time() - starttime)+' seconds \n\n'
 
-    results = [total_keystrokes_saved,total_keystrokes_saved_sk,len(text_so_far),time.time() - starttime];
+    results = [total_keystrokes_saved,total_keystrokes_saved_sk,len(text_so_far),time.time() - starttime]
 
-    result.put((nr,output,results));          
+    result.put((nr,output,results))          
 
 def find_current_word(string, position):
-    """Returns which word the user was typing at this position""";
+    """Returns which word the user was typing at this position"""
 
     #If starting, just give the first word
     if position == 0:
-        return string[:30].split()[0];
+        return string[:30].split()[0]
 
     #If not, do complicated stuff
 
     try:
-        word = string[position-1];
+        word = string[position-1]
     except IndexError:
-        return '';
+        return ''
 
-    separators = [' ','_'];
+    separators = [' ','_']
 
     #If starting with a space, give the next word
     while word in separators:
         try:
-            position += 1;
-            word = string[position-1];
+            position += 1
+            word = string[position-1]
         except IndexError:
-            return '';
+            return ''
 
-    c = 2;
+    c = 2
     while word[0] not in separators and position-c > -1:
-        word = string[position-c] + word;
-        c += 1;
+        word = string[position-c] + word
+        c += 1
 
-    c = 0;
+    c = 0
     while word[-1] not in separators:
         try:
-            word +=  string[position+c];
+            word +=  string[position+c]
         except IndexError:
-            break;
-        c += 1;
+            break
+        c += 1
 
-    return word.strip();
+    return word.strip()
 
 def server_mode(settings):
 
-    channels = {};
-    channel_texts = {};
-    channel_timbl = {};
-    channel_lexicon = {};
+    channels = {}
+    channel_texts = {}
+    channel_timbl = {}
+    channel_lexicon = {}
     
-    port = get_free_port();
-    s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM);
-    s.bind(('localhost',port));
-    print('Started on port',port);
+    port = get_free_port()
+    s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+    s.bind(('localhost',port))
+    print('Started on port',port)
 
-    print('Waiting for channel requests');
-    busy = True;
+    print('Waiting for channel requests')
 
-    while busy:
-        data, addr = s.recvfrom(1024);
-        data = data.decode();
-        mtype = data[0];
-        message = data[1:];
+    while True:
+        data, addr = s.recvfrom(1024)
+        data = data.decode()
+        mtype = data[0]
+        message = data[1:]
 
         if mtype == 'R':
-            print('Channel requested with model',message);
+            print('Channel requested with model',message)
 
             #Look for a chanenl
-            channel = find_free_channel(channels);
-            channels[channel] = 'wordmodels/'+message;
-            channel_texts[channel] = '';
+            channel = find_free_channel(channels)
+            channels[channel] = 'wordmodels/'+message
+            channel_texts[channel] = ''
 
             #Prepare predicting for this channel
-            print('Starting servers and loading lexicon');
-            channel_timbl[channel] = start_servers(channels[channel],settings);
-            channel_lexicon[channel] = load_lexicon(channels[channel]+'.lex.txt');
+            print('Starting servers and loading lexicon')
+            channel_timbl[channel] = start_servers(channels[channel],settings)
+            channel_lexicon[channel] = load_lexicon(channels[channel]+'.lex.txt')
 
             #Communicate the chosen channel            
-            print('Using channel',channel);
-            channel = str(channel);
-            s.sendto(channel.encode(),addr);
+            print('Using channel',channel)
+            channel = str(channel)
+            s.sendto(channel.encode(),addr)
 
         elif mtype == 'C':
-            char = message[:-1];
-            channel = int(message[-1]);
-            channel_texts[channel] += char;
+            char = message[:-1]
+            channel = int(message[-1])
+            channel_texts[channel] += char
             prediction = do_prediction(channel_texts[channel],channels[channel],
                                  channel_lexicon[channel],'',settings,
-                                 channel_timbl[channel]);            
+                                 channel_timbl[channel])            
 
-            s.sendto(prediction['full_word'].encode(),addr);
+            s.sendto(prediction['full_word'].encode(),addr)
 
 def httpserver_mode(settings):
 
@@ -1113,12 +1111,12 @@ def httpserver_mode(settings):
         index.exposed = True
 
         def predict(self,text,model):
-            return 'Sending '+text+' to '+model;
-        predict.exposed = True;
+            return 'Sending '+text+' to '+model
+        predict.exposed = True
 
         def load_model(self,model):
-            return 'Starting '+model;
-        load_model.exposed = True;
+            return 'Starting '+model
+        load_model.exposed = True
             
     cherrypy.config.update({
             'server.socket_host': '0.0.0.0',
@@ -1128,248 +1126,248 @@ def httpserver_mode(settings):
     cherrypy.quickstart(httpserver())
             
 def window_string(string,verbose = False):
-    """Return the string as a list of 4-grams""";
+    """Return the string as a list of 4-grams"""
 
     if not isinstance(string,list):
-        words = string.split();
+        words = string.split()
     else:
-        words = string;
+        words = string
 
-    word_nr = len(words);
-    ngrams = [];
+    word_nr = len(words)
+    ngrams = []
     
     for n,i in enumerate(range(0,len(words)-3)):
-        ngrams.append(' '.join(words[i:i+4]));
+        ngrams.append(' '.join(words[i:i+4]))
 
     #Remove useless ones
-    ngrams_to_remove = [];
+    ngrams_to_remove = []
     for n,i in enumerate(ngrams):
         if i[-1] == '_':
-            ngrams_to_remove.append(i);
+            ngrams_to_remove.append(i)
 
 #    for i in ngrams_to_remove:
-#        ngrams.remove(i);
+#        ngrams.remove(i)
 
-    return ngrams;
+    return ngrams
 
 def window_string_letters(string,verbose = False):
-    """Return the string as a list of letter 15-grams""";
+    """Return the string as a list of letter 15-grams"""
 
-    words = string.split();
-    newstring = string.replace(' ','_').replace('\n','');
-    ngrams = [];
+    words = string.split()
+    newstring = string.replace(' ','_').replace('\n','')
+    ngrams = []
     
     for i in range(0,len(string)+1):
 
-        current_word = find_current_word(newstring, i).replace('_','');
-        letters_before = ' '.join(newstring[i-15:i]);
+        current_word = find_current_word(newstring, i).replace('_','')
+        letters_before = ' '.join(newstring[i-15:i])
         if len(letters_before) > 1:
             if len(current_word) > 1 and letters_before[-1] != '_':
-                letters_before = current_word[0] + letters_before[1:];
+                letters_before = current_word[0] + letters_before[1:]
             else:
-                letters_before = '_' + letters_before[1:];
+                letters_before = '_' + letters_before[1:]
 
-            ngrams.append(letters_before + ' ' +current_word);
+            ngrams.append(letters_before + ' ' +current_word)
 
     #Remove useless ones
-    ngrams_to_remove = [];
+    ngrams_to_remove = []
     for n,i in enumerate(ngrams):
-        words = i.split();
+        words = i.split()
         if i[-1] == '_' or len(words) != 16 or i == ngrams[-1]:
-            ngrams_to_remove.append(i);
+            ngrams_to_remove.append(i)
 
 #    for i in ngrams_to_remove:
-#        ngrams.remove(i);
+#        ngrams.remove(i)
 
-    return ngrams[1:-1];
+    return ngrams[1:-1]
 
 def calculate_keystrokes_saved(word_so_far,prediction):
 
-    keystrokes_saved = len(prediction) - len(word_so_far);
+    keystrokes_saved = len(prediction) - len(word_so_far)
     
-    return keystrokes_saved;
+    return keystrokes_saved
 
 def divide_iterable(it,n,overlap=None):
-    """Returns any iterable into n pieces""";
+    """Returns any iterable into n pieces"""
 
-    save_it = it;
-    piece_size = math.ceil(len(it) / n);
-    result = [];
+    save_it = it
+    piece_size = math.ceil(len(it) / n)
+    result = []
     while len(it) > 0:
-        result.append(it[:piece_size]);
-        it = it[piece_size:];
+        result.append(it[:piece_size])
+        it = it[piece_size:]
 
     #If not enough pieces, divide the last piece
     if len(result) != n:
-        last_piece = result[-1];
-        boundary = round(len(last_piece)/2);
-        result.append(last_piece[boundary:]);
-        result[-2] = last_piece[:boundary];
+        last_piece = result[-1]
+        boundary = round(len(last_piece)/2)
+        result.append(last_piece[boundary:])
+        result[-2] = last_piece[:boundary]
 
     #Add overlap if needed
     if overlap:
         for n,i in enumerate(result):
 
             #Add left overlap
-            pos = piece_size * n;
-            result[n] = save_it[pos-overlap:pos] + result[n];
+            pos = piece_size * n
+            result[n] = save_it[pos-overlap:pos] + result[n]
 
-    return result;
+    return result
 
 def ucto(string):
-    """Tokenizes a string with Ucto""";
+    """Tokenizes a string with Ucto"""
 
-    open('uctofile','w').write(string);
-    result = command('ucto -L nl uctofile',True);
-    os.remove('uctofile');
-    return result.replace('<utt>','');
+    open('uctofile','w').write(string)
+    result = command('ucto -L nl uctofile',True)
+    os.remove('uctofile')
+    return result.replace('<utt>','')
 
 def get_free_port():
     
-    s = socket.socket(socket.AF_INET,socket.SOCK_STREAM);
-    s.bind(('',0));
-    port = s.getsockname()[1];
-    s.close();
+    s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    s.bind(('',0))
+    port = s.getsockname()[1]
+    s.close()
 
-    return int(port);
+    return int(port)
 
 def add_to_recency_buffer(rb,text):
-    """Adds the latest word in a string to the recency buffer""";
+    """Adds the latest word in a string to the recency buffer"""
 
-    last_word = text[-80:].split()[-1];
+    last_word = text[-80:].split()[-1]
 #    if len(last_word) < 6:
     if True:
-        rb.appendleft(last_word);
+        rb.appendleft(last_word)
     return rb
 
 def find_free_channel(channels):
-    """Finds a free channel, using the list of channels currently in use""";
+    """Finds a free channel, using the list of channels currently in use"""
 
-    c = 0;
-    found = False;
+    c = 0
+    found = False
 
     while not found:
         try:
-            channels[c];
-            c += 1;
+            channels[c]
+            c += 1
         except KeyError:
-            found = True;
+            found = True
 
-    return c;
+    return c
 
 ######### Standalone code ######################
 
 if __name__ == "__main__":
 
     #Colors
-    colors = {'PERS. MODEL/IGTREE': '\033[0;35m', 'PERS. MODEL/LEXICON': '\033[1;34m',
-              'GEN. MODEL/IGTREE': '\033[0;32m', 'GEN. MODEL/LEXICON': '\033[1;31m',
-              'RECENCY BUFFER': '\033[1;31m', 'white': '\033[0m', 'I GIVE UP': '\033[0m',
-              'USER': '\033[0m', 'PERS. MODEL/IGTREE +RB': '\033[1;31m',
-              'GEN. MODEL/IGTREE +RB': '\033[1;31m'};
+    colors = {'PERS. MODEL/IGTREE': '\033[035m', 'PERS. MODEL/LEXICON': '\033[134m',
+              'GEN. MODEL/IGTREE': '\033[032m', 'GEN. MODEL/LEXICON': '\033[131m',
+              'RECENCY BUFFER': '\033[131m', 'white': '\033[0m', 'I GIVE UP': '\033[0m',
+              'USER': '\033[0m', 'PERS. MODEL/IGTREE +RB': '\033[131m',
+              'GEN. MODEL/IGTREE +RB': '\033[131m'}
 
     # Static settings
-    settings = {};
-    settings['att_threshold'] = 3;
-    settings['limit_personal_lexicon'] = 3;
-    settings['limit_backup_lexicon'] = 30;
-    settings['punctuation'] = ['.',',',':','!',';','?'];
-    settings['test_cores'] = 10;
+    settings = {}
+    settings['att_threshold'] = 3
+    settings['limit_personal_lexicon'] = 3
+    settings['limit_backup_lexicon'] = 30
+    settings['punctuation'] = ['.',',',':','!','','?']
+    settings['test_cores'] = 10
 
     #Figure out dynamic settings
     if '-d' in sys.argv:
-        settings['mode'] = 'd';
+        settings['mode'] = 'd'
     elif '-s' in sys.argv:
-        settings['mode'] = 's';
+        settings['mode'] = 's'
     elif '-server' in sys.argv:
-        settings['mode'] = 'server';
+        settings['mode'] = 'server'
     else:
-        settings['mode'] = input('Mode (d = demo, s = server): ');    
+        settings['mode'] = input('Mode (d = demo, s = server): ')    
 
     if '-l' in sys.argv:
-        settings['approach'] = 'l';
-        modelfolder = 'lettermodels';
+        settings['approach'] = 'l'
+        modelfolder = 'lettermodels'
     elif '-w' in sys.argv:
-        settings['approach'] = 'w';
-        modelfolder = 'wordmodels';
+        settings['approach'] = 'w'
+        modelfolder = 'wordmodels'
     else:
-        settings['approach'] = input('Approach (l = letter, w = word): ');
+        settings['approach'] = input('Approach (l = letter, w = word): ')
 
         if settings['approach'] == 'l':
-            modelfolder = 'lettermodels';
+            modelfolder = 'lettermodels'
         elif settings['approach'] == 'w':
-            modelfolder = 'wordmodels';
+            modelfolder = 'wordmodels'
 
     if '-id' in sys.argv:
         i = sys.argv.index('-id')
-        inp = sys.argv[i+1] + '/';
+        inp = sys.argv[i+1] + '/'
     elif settings['mode'] != 'server':
-        inp = input('Input directory: ') + '/';
+        inp = input('Input directory: ') + '/'
 
     if '-tf' in sys.argv:
         i = sys.argv.index('-tf')
-        testfile_preset = sys.argv[i+1];
+        testfile_preset = sys.argv[i+1]
     else:
-        testfile_preset = False;
+        testfile_preset = False
 
     if '-rb' in sys.argv:
         i = sys.argv.index('-rb')
-        settings['recency_buffer'] = int(sys.argv[i+1]);
+        settings['recency_buffer'] = int(sys.argv[i+1])
     else:
-        settings['recency_buffer'] = 100;
+        settings['recency_buffer'] = 100
 
     if '-dks' in sys.argv or '-dcs' in sys.argv:
-        settings['close_server'] = False;
+        settings['close_server'] = False
     else:
-        settings['close_server'] = True;
+        settings['close_server'] = True
 
     if '-cf' in sys.argv:
         i = sys.argv.index('-cf')
         settings['cut_file'] = sys.argv[i+1]
     else:
-        settings['cut_file'] = False;
+        settings['cut_file'] = False
         
     #Set directory reference (add .90 for the simulation mode)
     if settings['mode'] == 'd':
-        dir_reference = inp[:-1];
+        dir_reference = inp[:-1]
     elif settings['mode'] == 's':
-        dir_reference = inp[:-1] + '.90';
+        dir_reference = inp[:-1] + '.90'
 
     #Try opening the language model (and testfile), or create one if it doesn't exist
     if settings['mode'] in ['s','d']:
 
-        ss = Soothsayer(**settings);
+        ss = Soothsayer(**settings)
 
         try:
-            open(modelfolder+'/'+dir_reference+'.training.txt','r');
-            print('Loading existing model for '+dir_reference+'.');
+            open(modelfolder+'/'+dir_reference+'.training.txt','r')
+            print('Loading existing model for '+dir_reference+'.')
 
-            testfile = modelfolder+'/'+inp[:-1] + '.10.test.txt';
-            model = modelfolder+'/'+dir_reference;
-            lexicon = ss.load_lexicon(modelfolder+'/'+dir_reference+'.lex.txt');
+            testfile = modelfolder+'/'+inp[:-1] + '.10.test.txt'
+            model = modelfolder+'/'+dir_reference
+            lexicon = ss.load_lexicon(modelfolder+'/'+dir_reference+'.lex.txt')
         except IOError:
-            print('Model not found. Prepare data to create a new one:');
-            training_file, testfile, lexicon = ss.prepare_training_data(inp);
-            print('Training model');
-            model = ss.train_model(training_file);
+            print('Model not found. Prepare data to create a new one:')
+            training_file, testfile, lexicon = ss.prepare_training_data(inp)
+            print('Training model')
+            model = ss.train_model(training_file)
 
     #If the user has his own testfile, abandon the automatically generated one
     if testfile_preset:
-        testfile = testfile_preset;
+        testfile = testfile_preset
 
     #Go do the prediction in one of the modes, with the model
     if settings['mode'] == 'd':
-        demo_mode(model,lexicon,settings);
+        demo_mode(model,lexicon,settings)
     elif settings['mode'] == 's':
-        simulation_mode(model,lexicon,testfile,settings);
+        simulation_mode(model,lexicon,testfile,settings)
     elif settings['mode'] == 'server':
-        server_mode(settings);
+        server_mode(settings)
     elif settings['mode'] == 'httpserver':
-        httpserver_mode(settings);
+        httpserver_mode(settings)
 
     #Close everything
     if settings['close_server']:
-        command('killall timblserver');
+        command('killall timblserver')
 
 #TODO
 # Uitzoeken: hoe vaak komt het voor dat woorden gelijke confidence hebben?
