@@ -11,8 +11,10 @@ def demo_mode(model,lexicon,settings):
 
     #Start stuff needed for prediction
     recency_buffer = collections.deque(maxlen=settings['recency_buffer'])
+    bg_model = soothsayer.Languagemodel('nlsave',settings['approach'],'d');
+    
     ss = soothsayer.Soothsayer(**settings)
-    ss.start_servers(model,True)
+    ss.start_servers([model,bg_model],True)
     ss.setup_basic_modules(model)
 
     #Predict starting word
@@ -186,8 +188,10 @@ def simulate(model,lexicon,content_rb,teststring,settings,nr,result):
 
     #Start the necessary things for the prediction
     recency_buffer = collections.deque(content_rb,settings['recency_buffer'])
+    bg_model = soothsayer.Languagemodel('nlsave',settings['approach'],'d');
+
     ss = soothsayer.Soothsayer(**settings)    
-    ss.start_servers(model,False)
+    ss.start_servers([model,bg_model],False)
     ss.setup_basic_modules(model)
 
     #Find out where to start (because of overlap)
@@ -573,17 +577,10 @@ else:
 
 if '-l' in sys.argv:
     settings['approach'] = 'l'
-    modelfolder = 'lettermodels'
 elif '-w' in sys.argv:
     settings['approach'] = 'w'
-    modelfolder = 'wordmodels'
 else:
     settings['approach'] = input('Approach (l = letter, w = word): ')
-
-    if settings['approach'] == 'l':
-        modelfolder = 'lettermodels'
-    elif settings['approach'] == 'w':
-        modelfolder = 'wordmodels'
 
 if '-id' in sys.argv:
     i = sys.argv.index('-id')
@@ -614,11 +611,13 @@ if '-cf' in sys.argv:
 else:
     settings['cut_file'] = False
     
-#Set directory reference (add .90 for the simulation mode)
-if settings['mode'] == 'd':
-    dir_reference = inp[:-1]
-elif settings['mode'] == 's':
-    dir_reference = inp[:-1] + '.90'
+#Create the directory
+#if settings['mode'] == 'd':
+#    dir_reference = inp[:-1]
+#elif settings['mode'] == 's':
+#    dir_reference = inp[:-1] + '.90'
+
+personal_model = soothsayer.Languagemodel(inp[:-1],settings['approach'],settings['mode']);
 
 #Try opening the language model (and testfile), or create one if it doesn't exist
 if settings['mode'] in ['s','d']:
@@ -626,17 +625,16 @@ if settings['mode'] in ['s','d']:
     ss = soothsayer.Soothsayer(**settings)
 
     try:
-        open(modelfolder+'/'+dir_reference+'.training.txt','r')
-        print('Loading existing model for '+dir_reference+'.')
+        open(personal_model.location,'r')
+        print('Loading existing model for '+personal_model.location+'.')
 
-        testfile = modelfolder+'/'+inp[:-1] + '.10.test.txt'
-        model = modelfolder+'/'+dir_reference
-        lexicon = ss.load_lexicon(modelfolder+'/'+dir_reference+'.lex.txt')
+        testfile = personal_model.folder+'/'+personal_model.name_raw + '.10.test.txt'
+        lexicon = ss.load_lexicon(personal_model.folder+'/'+personal_model.name+'.lex.txt')
     except IOError:
         print('Model not found. Prepare data to create a new one:')
         training_file, testfile, lexicon = ss.prepare_training_data(inp)
         print('Training model')
-        model = ss.train_model(training_file)
+        personal_model = ss.train_model(training_file)
 
 #If the user has his own testfile, abandon the automatically generated one
 if testfile_preset:
@@ -644,9 +642,9 @@ if testfile_preset:
 
 #Go do the prediction in one of the modes, with the model
 if settings['mode'] == 'd':
-    demo_mode(model,lexicon,settings)
+    demo_mode(personal_model,lexicon,settings)
 elif settings['mode'] == 's':
-    simulation_mode(model,lexicon,testfile,settings)
+    simulation_mode(personal_model,lexicon,testfile,settings)
 elif settings['mode'] == 'server':
     server_mode(settings)
 elif settings['mode'] == 'httpserver':

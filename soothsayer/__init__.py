@@ -39,17 +39,16 @@ class Soothsayer():
         if punctuation == None:
             self.punctuation = ['.',',',':','!','','?']
         else:
-            self.punctuation = punctuation;
+            self.punctuation = punctuation
 
         self.modules = []
+        self.sockets = []
 
     def setup_basic_modules(self,model):
-
-        modelname = model.split('/')[1]
     
-        self.modules = [Module(self,'PERS. MODEL/IGTREE',modelname,'igtree',self.sockets[0]),
+        self.modules = [Module(self,'PERS. MODEL/IGTREE',model.name,'igtree',self.sockets[0]),
                         Module(self,'GEN. MODEL/IGTREE','nlsave','igtree',self.sockets[1]),
-                        Module(self,'PERS. MODEL/LEXICON',modelname,'lex'),
+                        Module(self,'PERS. MODEL/LEXICON',model.name,'lex'),
                         Module(self,'GEN. MODEL/LEXICON','nlsave','lex'),
                         ]
 
@@ -287,71 +286,38 @@ class Soothsayer():
 
         return ''
 
-    def start_servers(self,model,look_for_existing):
+    def start_servers(self,models,look_for_existing):
         """Starts the necessary servers and connects to them"""
 
         import gettimblserverport
-        
-        if self.approach == 'w':
-            foldername = 'wordmodels'
-            backupname = 'nlsave'
-        elif self.approach == 'l':
-            foldername = 'lettermodels'
-            backupname = 'nlsmall'
 
-        #Personal model
-        succeeded = False
+        for i in models:
+            succeeded = False
 
-        while not succeeded:
+            while not succeeded:
 
-            if look_for_existing:
-                port = gettimblserverport.getport(model+'.training.txt.IGTree')
-            else:
-                port = False
+                if look_for_existing:
+                    port = gettimblserverport.getport(i.filename)
+                else:
+                    port = False
 
-            if port:
-                print('Connected to an existing server running',model)
-            else:
-                port = get_free_port()
-                command('timblserver -i '+model+'.training.txt.IGTree +vdb +D -a1 -G +vcf -S '+str(port)+' -C 1000')
-                print('No server found. Started a new server running',model)
-                
-            s1 = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+                if port:
+                    print('Connected to an existing server running',i.name)
+                else:
+                    port = get_free_port()
+                    command('timblserver -i '+i.location+' +vdb +D -a1 -G +vcf -S '+str(port)+' -C 1000')
+                    print('No server found. Started a new server running',i.name)
+                    
+                s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 
-            try:
-                s1.connect(('',port))
-                s1.recv(1024)
-                succeeded = True
-            except socket.error:
-                pass
+                try:
+                    s.connect(('',port))
+                    s.recv(1024)
+                    succeeded = True
+                except socket.error:
+                    pass
 
-        #General model
-        succeeded = False
-
-        while not succeeded:
-
-            if look_for_existing:
-                port = gettimblserverport.getport(foldername+'/'+backupname+'.training.txt.IGTree')
-            else:
-                port = False
-
-            if port:
-                print('Connected to an existing server running',backupname)
-            else:
-                port = get_free_port()
-                command('timblserver -i '+foldername+'/'+backupname+'.training.txt.IGTree +vdb +D -a1 -G +vcf -S '+str(port)+' -C 1000')
-                print('No server found. Started a new server running',backupname)
-                
-            s2 = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-
-            try:
-                s2.connect(('',port))
-                s2.recv(1024)
-                succeeded = True
-            except socket.error:
-                pass
-        
-        self.sockets = [s1,s2]
+            self.sockets.append(s);        
 
     def prepare_training_data(self,directory,make_testfile=False):
 
@@ -480,8 +446,8 @@ class Soothsayer():
         """Train a model on the basis of these ngrams"""
 
         command('timbl -f '+filename+' -I '+filename+'.IGTree +D +vdb -a1 -p 1000000',False)
-
-        return filename.replace('.training.txt','')
+        filename = filename.replace('.training.txt','').split('/')[-1];
+        return Languagemodel(filename,self.approach,self.mode);
 
     def string_to_lexicon(self,string,outputfilename):
         """Creates a lexicon from a string"""
@@ -669,6 +635,27 @@ class Module():
 
         final_distr = '[ word ]' + distr.split('DISTRIBUTION')[1]
         open('predictions/lcontext'+nr+'.'+self.model+'.IGTree.gr.out','w').write(final_distr)      
+
+class Languagemodel():
+
+    def __init__(self,name,approach,mode):
+
+        self.approach = approach
+        self.mode = mode
+        self.name_raw = name
+
+        if self.mode == 's':
+            self.name = self.name_raw + '.90'
+        else:
+            self.name = self.name_raw
+
+        if self.approach == 'w':
+            self.folder = 'wordmodels'
+        elif self.approach == 'l':
+            self.folder = 'lettermodels'
+
+        self.filename = self.name + '.training.txt.IGTree'
+        self.location = self.folder + '/' + self.filename
 
 def get_free_port():
     
