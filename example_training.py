@@ -6,7 +6,7 @@ ss = soothsayer.Soothsayer();
 training_file, testfile, lexicon = ss.prepare_training_data('testinput/');
 model = ss.train_model(training_file);
 
-print(model);
+print(model.name);
 
 
 

@@ -2,18 +2,22 @@ import soothsayer
 
 ss = soothsayer.Soothsayer();
 
-#Load the language model
-model = 'wordmodels/allmail';
-ss.start_servers(model,True);
+#Load the language models
+pers_model = soothsayer.Languagemodel('allmail','w','d');
+bg_model = soothsayer.Languagemodel('nlsave','w','d');
+ss.start_servers([pers_model,bg_model],True);
 
 #Load the lexicon
 lex = ss.load_lexicon('wordmodels/allmail.lex.txt');
+
+#Set the module order
+ss.setup_basic_modules(pers_model);
 
 #Ask for prediction after every letter
 teststring = 'Dit is een zin om te testen';
 
 for n,i in enumerate(teststring):
-    pred = ss.do_prediction(teststring[:n],model,lex,'');
+    pred = ss.do_prediction(teststring[:n],lex,'');
     print(pred['full_word'],pred['second_guess']);
 
 
