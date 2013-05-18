@@ -70,8 +70,19 @@ class Soothsayer():
         self.test_cores = test_cores;
         self.cut_file = cut_file;
         self.punctuation = ['.',',',':','!',';','?'];
+        self.modules = [];
 
-    def do_prediction(self,text,model,lexicon,recency_buffer,nr=''):
+    def setup_basic_modules(self,model):
+
+        modelname = model.split('/')[1];
+    
+        self.modules = [Module(self,'PERS. MODEL/IGTREE',modelname,'igtree'),
+                        Module(self,'GEN. MODEL/IGTREE','nlsave','igtree'),
+                        Module(self,'PERS. MODEL/LEXICON',modelname,'lex'),
+                        Module(self,'GEN. MODEL/LEXICON','nlsave','lex'),
+                        ]
+
+    def do_prediction(self,text,lexicon,recency_buffer,nr=''):
         """Returns a prediction by TiMBL and related info""";
 
         words = text.split();
@@ -168,70 +179,25 @@ class Soothsayer():
         second_pick = '';
         third_pick = '';
         predictions = [];
-        used_rb = False;
 
         full_word = '';
         second_guess = '';
         third_guess = '';
 
-        #Try context-sensitive, personal model
-        if '' in [full_word,second_guess,third_guess]:
-            pick, second_pick, third_pick, predictions, used_rb = self.read_prediction_file(modelname,nr,current_word,boundary);
+        for i in self.modules:
 
-            if used_rb:
-                source += ' +RB';
+            pick, second_pick, third_pick, predictions = i.run(current_word,boundary,nr);
 
             if full_word == '':
                 full_word = pick;
-                source = 'PERS. MODEL/IGTREE';
+                source = i.name;
             if second_guess == '':
                 second_guess = second_pick;
             if third_guess == '':
                 third_guess = third_pick;
 
-        #Try context-sensitive, general model
-        if '' in [full_word,second_guess,third_guess]:
-            pick, second_pick, third_pick, predictions,used_rb = self.read_prediction_file('nlsave',nr,current_word,boundary,recency_buffer);
-
-            if used_rb:
-                source += ' +RB';
-
-            if full_word == '':
-                full_word = pick;
-                source = 'GEN. MODEL/IGTREE';
-            if second_guess == '':
-                second_guess = second_pick;
-            if third_guess == '':
-                third_guess = third_pick;
-
-        #Try the recency_buffer
-    #    if pick == '' and boundary > 0:
-    #        source = 'RECENCY BUFFER';
-    #        pick = read_recency_buffer(recency_buffer,current_word,boundary);
-
-        #Try context-free, personal model
-        if '' in [full_word,second_guess,third_guess]:
-            pick,second_pick = self.read_frequency_file(model,current_word,boundary);
-
-            if full_word == '':
-                full_word = pick;
-                source = 'PERS. MODEL/LEXICON';
-            if second_guess == '':
-                second_guess = second_pick;
-            if third_guess == '':
-                third_guess = third_pick;
-            
-        #Try context-free, general model
-        if '' in [full_word,second_guess,third_guess]:
-            pick,second_pick = self.read_frequency_file('wordmodels/nlsave',current_word,boundary);
-
-            if full_word == '':
-                full_word = pick;
-                source = 'GEN. MODEL/LEXICON';
-            if second_guess == '':
-                second_guess = second_pick;
-            if third_guess == '':
-                third_guess = third_pick;
+            if '' not in [full_word,second_guess,third_guess]:
+                break;
 
         #Admit that you don't know
         if full_word == '':
@@ -250,10 +216,8 @@ class Soothsayer():
         return {'full_word':full_word,'word_so_far':current_word,'nr_options':len(predictions),
                 'second_guess':second_guess,'third_guess':third_guess, 'source': source}; 
 
-    def read_prediction_file(self,modelname,nr,current_word,boundary,recency_buffer=False):
+    def read_prediction_file(self,modelname,nr,current_word,boundary):
         """Reads and orders the predictions by TiMBL""";
-
-        used_rb = False;
 
         #See if prediction is ready, if not wait
         ready = False;
@@ -316,30 +280,15 @@ class Soothsayer():
                 elif i[1] > third_highest_confidence:
                     third_pick = i[0];
                     third_highest_confidence = i[1];
-
-    #    if settings['approach'] == 'l' and highest_confidence < 0.5:
-    #        pick = '';
-    #        second_pick = '';
-    #    else:
-    #        #Recency_buffer overrules with the word approach
-    #        if recency_buffer:
-    #            for i in recency_buffer:
-    #                if i[:boundary] == current_word:
-    #                    for j in predictions:
-    #                        if i == j[0]:
-    #                            if pick != i:
-    #                                pick = i;
-    #                                used_rb = True;
-    #                            break;
                 
-        return pick, second_pick, third_pick, predictions, used_rb;
+        return pick, second_pick, third_pick, predictions;
 
     def read_frequency_file(self,model,current_word,boundary):
         """Returns the most frequent word that starts with current_word"""
 
         pick = '';
         second_pick = '';
-        lexicon = open(model+'.lex.txt');
+        lexicon = open('wordmodels/'+model+'.lex.txt');
 
         if len(current_word) == 0:
             return '','';
@@ -357,6 +306,26 @@ class Soothsayer():
                     break;
 
         return pick,second_pick;
+
+    def only_one_word_possible(self,model,current_word,boundary):
+        """Returns the most frequent word that starts with current_word"""
+
+        pick = '';
+        lexicon = open(model+'.lex.txt');
+
+        if len(current_word) == 0:
+            return '';
+        
+        for i in lexicon:
+            if i[0] == current_word[0]: #quick check before you do more heavy stuff
+                word, freq = i.split();
+                if word[:boundary] == current_word:
+                    if pick == '':
+                        pick = word;
+                    else:
+                        return '';
+
+        return pick;
 
     def read_recency_buffer(self,rb,current_word,boundary):
         """Gets the latest word from the recency buffer that matches what you were typing""";
@@ -701,6 +670,40 @@ class Soothsayer():
 
         open(filename,'w').write('\n'.join(newlines));
 
+class Module():
+
+    def __init__(self,ss,name,model,kind):
+        self.ss = ss
+        self.name = name
+        self.model = model
+        self.kind = kind
+
+    def run(self,current_word,boundary,nr):
+
+        pick = '';
+        second_pick = '';
+        third_pick = '';
+        predictions = [];
+
+        full_word = '';
+        second_guess = '';
+        third_guess = '';
+
+        if self.kind == 'igtree':
+            pick, second_pick, third_pick, predictions = self.ss.read_prediction_file(self.model,nr,current_word,boundary);
+
+        elif self.kind == 'lex':
+            pick,second_pick = self.ss.read_frequency_file(self.model,current_word,boundary);
+
+        elif self.kind == 'unique':
+            pick = self.ss.only_one_word_possible(self.model,current_word,boundary);
+
+        elif self.kind == 'rb':
+            if boundary > 0:
+                pick = self.ss.read_recency_buffer(recency_buffer,current_word,boundary);                
+
+        return pick, second_pick, third_pick, predictions;
+
 def add_prediction(text,text_colored,prediction,source):
 
     if text[-1] == ' ':
@@ -731,10 +734,11 @@ def demo_mode(model,lexicon,settings):
     #Start stuff needed for prediction
     recency_buffer = collections.deque(maxlen=settings['recency_buffer']);
     ss = Soothsayer(**settings);
+    ss.setup_basic_modules(model);
     ss.start_servers(model,True);
 
     #Predict starting word
-    prediction = ss.do_prediction('',model,lexicon,recency_buffer);
+    prediction = ss.do_prediction('',lexicon,recency_buffer);
 
     #Ask for first char    
     print('Start typing whenever you want');
@@ -791,7 +795,7 @@ def demo_mode(model,lexicon,settings):
 
         #Predict new word
         if not rejected:
-            prediction = ss.do_prediction(text_so_far,model,lexicon,recency_buffer);
+            prediction = ss.do_prediction(text_so_far,lexicon,recency_buffer);
 
         #Keep track of how often you did a prediction
 
@@ -876,7 +880,8 @@ def simulate(model,lexicon,content_rb,teststring,settings,nr,result):
 
     #Start the necessary things for the prediction
     recency_buffer = collections.deque(content_rb,settings['recency_buffer']);
-    ss = Soothsayer(**settings);
+    ss = Soothsayer(**settings);    
+    ss.setup_basic_modules(model);
     ss.start_servers(model,False);
 
     #Find out where to start (because of overlap)
@@ -916,7 +921,7 @@ def simulate(model,lexicon,content_rb,teststring,settings,nr,result):
             nr_chars_typed = i - starting_point +1;
 
             #Do prediction
-            prediction = ss.do_prediction(text_so_far,model,lexicon,recency_buffer,nr=str(nr));
+            prediction = ss.do_prediction(text_so_far,lexicon,recency_buffer,nr=str(nr));
 
             #Keep track of how often you did a prediction
             if last_prediction == prediction['full_word']:
@@ -927,8 +932,8 @@ def simulate(model,lexicon,content_rb,teststring,settings,nr,result):
             last_prediction = prediction['full_word'];
 
             #Show second best if you did a prediction too often
-            if len(prediction['second_guess']) > 3 and repeats > 3:
-                prediction['full_word'] = prediction['second_guess'];
+#            if len(prediction['second_guess']) > 1 and repeats > 1:
+#                prediction['full_word'] = prediction['second_guess'];
                 
             #Get and show what is written now
             current_word = find_current_word(teststring,i);
