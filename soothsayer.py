@@ -1283,10 +1283,8 @@ if __name__ == "__main__":
         settings['mode'] = 's';
     elif '-server' in sys.argv:
         settings['mode'] = 'server';
-    elif '-httpserver' in sys.argv:
-        settings['mode'] = 'httpserver';
     else:
-        settings['mode'] = input('Mode (d = demo, s = simulation): ');    
+        settings['mode'] = input('Mode (d = demo, s = server): ');    
 
     if '-l' in sys.argv:
         settings['approach'] = 'l';
@@ -1303,23 +1301,20 @@ if __name__ == "__main__":
             modelfolder = 'wordmodels';
 
     if '-id' in sys.argv:
-        for n,i in enumerate(sys.argv):
-            if i == '-id':
-                inp = sys.argv[n+1] + '/';
+        i = sys.argv.index('-id')
+        inp = sys.argv[i+1] + '/';
     elif settings['mode'] != 'server':
         inp = input('Input directory: ') + '/';
 
     if '-tf' in sys.argv:
-        for n,i in enumerate(sys.argv):
-            if i == '-tf':
-                testfile_preset = sys.argv[n+1];    
+        i = sys.argv.index('-tf')
+        testfile_preset = sys.argv[i+1];
     else:
         testfile_preset = False;
 
     if '-rb' in sys.argv:
-        for n,i in enumerate(sys.argv):
-            if i == '-rb':
-                settings['recency_buffer'] = int(sys.argv[n+1]);    
+        i = sys.argv.index('-rb')
+        settings['recency_buffer'] = int(sys.argv[i+1]);
     else:
         settings['recency_buffer'] = 100;
 
@@ -1329,12 +1324,11 @@ if __name__ == "__main__":
         settings['close_server'] = True;
 
     if '-cf' in sys.argv:
-        for n,i in enumerate(sys.argv):
-            if i == '-cf':
-                settings['cut_file'] = sys.argv[n+1];    
+        i = sys.argv.index('-cf')
+        settings['cut_file'] = sys.argv[i+1]
     else:
         settings['cut_file'] = False;
-
+        
     #Set directory reference (add .90 for the simulation mode)
     if settings['mode'] == 'd':
         dir_reference = inp[:-1];
