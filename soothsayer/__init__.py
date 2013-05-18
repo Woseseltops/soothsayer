@@ -9,6 +9,7 @@ import socket
 import random
 import collections
 import copy
+import soothsayer.timbl
 
 ############### Functions ###################################
 
@@ -42,12 +43,12 @@ class Soothsayer():
             self.punctuation = punctuation
 
         self.modules = []
-        self.sockets = []
+        self.timblservers = {}
 
     def setup_basic_modules(self,model):
     
-        self.modules = [Module(self,'PERS. MODEL/IGTREE',model.name,'igtree',self.sockets[0]),
-                        Module(self,'GEN. MODEL/IGTREE','nlsave','igtree',self.sockets[1]),
+        self.modules = [Module(self,'PERS. MODEL/IGTREE',model.name,'igtree'),
+                        Module(self,'GEN. MODEL/IGTREE','nlsave','igtree'),
                         Module(self,'PERS. MODEL/LEXICON',model.name,'lex'),
                         Module(self,'GEN. MODEL/LEXICON','nlsave','lex'),
                         ]
@@ -289,35 +290,28 @@ class Soothsayer():
     def start_servers(self,models,look_for_existing):
         """Starts the necessary servers and connects to them"""
 
-        import gettimblserverport
-
         for i in models:
-            succeeded = False
+            t = timbl.Timbl()
 
-            while not succeeded:
+            while True:
 
                 if look_for_existing:
-                    port = gettimblserverport.getport(i.filename)
+                    port = t.findport(i.filename)
                 else:
                     port = False
 
                 if port:
-                    print('Connected to an existing server running',i.name)
+                    print('Connecting to an existing server running',i.name)
                 else:
-                    port = get_free_port()
-                    command('timblserver -i '+i.location+' +vdb +D -a1 -G +vcf -S '+str(port)+' -C 1000')
+                    port = t.start_server(i.location)
                     print('No server found. Started a new server running',i.name)
-                    
-                s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        
+                if t.connect(port):
+                    break;
+                else:
+                    print('No connect');
 
-                try:
-                    s.connect(('',port))
-                    s.recv(1024)
-                    succeeded = True
-                except socket.error:
-                    pass
-
-            self.sockets.append(s);        
+            self.timblservers[i.name] = t 
 
     def prepare_training_data(self,directory,make_testfile=False):
 
@@ -588,12 +582,12 @@ class Soothsayer():
 
 class Module():
 
-    def __init__(self,ss,name,model,kind,socket=None):
+    def __init__(self,ss,name,model,kind):
         self.ss = ss
         self.name = name
-        self.model = model
+        self.modelname = model
         self.kind = kind
-        self.socket = socket;
+        self.timblserver = ss.timblservers[self.modelname]
 
     def run(self,current_word,boundary,nr):
 
@@ -607,13 +601,13 @@ class Module():
         third_guess = ''
 
         if self.kind == 'igtree':
-            pick, second_pick, third_pick, predictions = self.ss.read_prediction_file(self.model,nr,current_word,boundary)
+            pick, second_pick, third_pick, predictions = self.ss.read_prediction_file(self.modelname,nr,current_word,boundary)
 
         elif self.kind == 'lex':
-            pick,second_pick = self.ss.read_frequency_file(self.model,current_word,boundary)
+            pick,second_pick = self.ss.read_frequency_file(self.modelname,current_word,boundary)
 
         elif self.kind == 'unique':
-            pick = self.ss.only_one_word_possible(self.model,current_word,boundary)
+            pick = self.ss.only_one_word_possible(self.modelname,current_word,boundary)
 
         elif self.kind == 'rb':
             if boundary > 0:
@@ -623,18 +617,18 @@ class Module():
 
     def send_to_your_server(self,lcontext,nr):
 
-        self.socket.sendall(lcontext)
+        self.timblserver.send(lcontext)
         distr = ''
 
         while distr == '' or 'DISTRIBUTION' not in distr or distr[-1] != '\n':
             try:
-                distr += self.socket.recv(1024).decode()
+                distr += self.timblserver.receive()
             except UnicodeError:
                 distr = 'DISTRIBUTION { de 0.999 }\n'
                 print('  Skipped one')
 
         final_distr = '[ word ]' + distr.split('DISTRIBUTION')[1]
-        open('predictions/lcontext'+nr+'.'+self.model+'.IGTree.gr.out','w').write(final_distr)      
+        open('predictions/lcontext'+nr+'.'+self.modelname+'.IGTree.gr.out','w').write(final_distr)      
 
 class Languagemodel():
 
@@ -667,6 +661,8 @@ def get_free_port():
     return int(port)
 
 #TODO
+# Timblmodus verder testen
+
 # Uitzoeken: hoe vaak komt het voor dat woorden gelijke confidence hebben?
 # Server modus
 # Mogelijk: werkt het beter als je na lang doorgaan stopt met suggereren?
