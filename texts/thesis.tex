@@ -277,19 +277,19 @@ As the table shows, the duration of the simulation decreased when the attenuatio
 
 %Hier bruggetje: kijk niet naar inhoud, maar naar vorm
 
-The biggest problem with morphology is that it changes word forms. This complicates things in particular for suffixes. For example, image that someone wants to write:
+The biggest problem with morphology is that it changes word forms. This is problematic for word completion, in particular with suffixes. For example, imagine a user has already written sentence \ref{morphology}, and wants to write the word \emph{cookies}:
 
 \begin{examples}
-\item I would really like the cookies.
+\item I would really like the c \label{morphology}
 \end{examples}
 
-However, in the training material the word \emph{cookie} was way much more frequent, so Soothsayer will suggest that instead of the correct \emph{cookies}. Normally, when the prediction is wrong, the program will find out because the user keys in another letter, so the prediction word no longer matches what the user is typing, but that is not the case here, because the word the user intends the write only differs in suffix. Even if the correct word is the second most likely prediction, this will not be suggested, because Soothsayer has no reason to switch prediction.
+If in the training material the word \emph{cookie} was much more frequent, Soothsayer will suggest that instead of \emph{cookies}. Normally, when a prediction is wrong, the algorithm will find out because the user keys in another letter (so the predicted word no longer matches what the user is typing), but that technique will not work here. For words that only differ in their suffix, the point of difference is at the end of the word, when there is nothing left to predict. Even if the correct word is the second most likely prediction, this will not be suggested, because Soothsayer has no reason to switch prediction.
 
 However, there is a clue Soothsayer could use: normally, when a prediction is right, the user will accept it, instead of going on writing. He/she might not accept it immediately (typing often goes fasting than mentally processing predictions), but once the user has not accepted a prediction for more than three keystrokes in a row, it gets more and more likely the user keeps typing because the prediction is wrong. In that case, the second most likely prediction could be displayed, which in many cases will be the word with the second most likely suffix.
 
-This approach, which I will call \emph{early prediction switching}, is in many ways similar to the use of frequency lists instead of uniqueness thresholds for the context-insensitive module. The original system only switched prediction when it was completely sure the original prediction was wrong, just like the context-insensitive module originally only showed a prediction when it was completely sure. The system with early prediction switchinig needs less input, and already switches when it is likely (but not certain!) switching is necessary, just like the context-insensitive module with the frequency lists, which already gives a suggestion when it has something which is likely, but far from certain.
+This approach, which I will call \emph{early prediction switching}, is in many ways similar to the use of frequency lists instead of uniqueness thresholds for the context-insensitive module. The original system only switched prediction when it was completely sure the original prediction was wrong, just like the context-insensitive module originally only showed a prediction when it was completely sure. The system with early prediction switching needs less input, and already switches when it is likely (but not certain!) switching is necessary, just like the context-insensitive module with the frequency lists, which already gives a suggestion when it has something which is likely, but far from certain.
 
-The results are displayed in table \ref{results_epd}. As you can see, when the results are switched almost immediately if the user does not accept (after 1 or 2 keys), the there is some slight improvement of the CKS, but this improvement disappears again once the system is more cautious. From my own experience with the system (both hands-on and watching other people play with it), I know that typing 2 to 3 keys before accepting the prediction is quite normal. Therefore, early prediction switching will be turned off in the remainder of this thesis.
+The results are displayed in table \ref{results_epd}. As can be seen, when the results are switched almost immediately if the user does not accept (after 1 or 2 keys), the there is slight improvement of the CKS, but this improvement disappears again once the system is more cautious. From my own experience with the system (both hands-on and watching other people play with it), I know that typing 2 to 3 keys before accepting the prediction is quite normal. Therefore, early prediction switching will be turned off in the remainder of this thesis.
 
 \begin{table}[h]
 \begin{tabular}{l|lll} 
@@ -304,7 +304,13 @@ Early prediction switching after 3 keys&33&38\\
 \caption{Percentage of keystrokes saved with and without early prediction switching.} \label{results_epd}
 \end{table}
 
+%Laten zien dat het in een meer-inflecterende taal wel werkt?
+
 \subsubsection{Recency}
+
+[[Blabla recency buffer Van den Bosch.]]
+
+Soothsayer also allows a recency buffer to be part of the chain of modules; like a regular module, the recency buffer takes over when the previous module has no suggestions. However, unlike a regular module, the recency buffer does not use a pre-made language model, but needs to updated every time a new word is completed. The results of adding a recency buffer to various places in the current chain are displayed in table \ref{results_rb}.
 
 \begin{table}[h]
 \begin{tabular}{l|lll} 
@@ -316,8 +322,13 @@ Recency buffer$\rightarrow$context-sensitive module$\rightarrow$context-insensit
 Context-sensitive module$\rightarrow$recency buffer$\rightarrow$context-insensitive module&34&39\\
 Context-sensitive module$\rightarrow$context-insensitive module$\rightarrow$recency buffer&34&39\\
 \end{tabular} 
-\caption{Percentage of keystrokes saved with and without a recency buffer.} \label{results_rb}
+\caption{Percentage of keystrokes saved with a recency buffer.} \label{results_rb}
 \end{table}
+
+As can be seen, adding a recency buffer only results in slight improvements. Importantly, it should not be added to the beginning of the chain, as that will block the more intelligent context-sensitive module.
+
+%Verklaring voor die slight results!
+%Voorbeeld Tommy
 
 \subsection{Overview}
 In this chapter, I started with 1 simple context-insensitive module based on uniqueness thresholds, and added improvements step by step. The results of these additions are summarized in the graph below.
