@@ -362,78 +362,65 @@ def find_current_word(string, position):
     return word.strip()
 
 def server_mode(settings):
-
-    channels = {}
-    channel_texts = {}
-    channel_timbl = {}
-    channel_lexicon = {}
-    
-    port = get_free_port()
-    s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-    s.bind(('localhost',port))
-    print('Started on port',port)
-
-    print('Waiting for channel requests')
-
-    while True:
-        data, addr = s.recvfrom(1024)
-        data = data.decode()
-        mtype = data[0]
-        message = data[1:]
-
-        if mtype == 'R':
-            print('Channel requested with model',message)
-
-            #Look for a chanenl
-            channel = find_free_channel(channels)
-            channels[channel] = 'wordmodels/'+message
-            channel_texts[channel] = ''
-
-            #Prepare predicting for this channel
-            print('Starting servers and loading lexicon')
-            channel_timbl[channel] = start_servers(channels[channel],settings)
-            channel_lexicon[channel] = load_lexicon(channels[channel]+'.lex.txt')
-
-            #Communicate the chosen channel            
-            print('Using channel',channel)
-            channel = str(channel)
-            s.sendto(channel.encode(),addr)
-
-        elif mtype == 'C':
-            char = message[:-1]
-            channel = int(message[-1])
-            channel_texts[channel] += char
-            prediction = do_prediction(channel_texts[channel],channels[channel],
-                                 channel_lexicon[channel],'',settings,
-                                 channel_timbl[channel])            
-
-            s.sendto(prediction['full_word'].encode(),addr)
-
-def httpserver_mode(settings):
+    """The server_mode can run multiple Soothsayer object at once, and listens to HTTP-input""";
 
     import cherrypy
 
     class httpserver(object):
 
-        def index(self):
-            return "<h1>Hello!</h1>"
-        index.exposed = True
+        def predict(self,text,model,show_source=False):
 
-        def predict(self,text,model):
-            return 'Sending '+text+' to '+model
+            text = text.replace('_',' ')
+
+            try:
+                current_ss = soothsayers[model]
+            except KeyError:
+                raise cherrypy.HTTPError('400 Bad request','Model not available',)
+                return
+            
+            pred = current_ss.do_prediction(text,lexicons[model],'')
+
+            if show_source:
+                return pred['full_word'] + ','+pred['source']
+            else:
+                return pred['full_word']                
+
         predict.exposed = True
 
         def load_model(self,model):
-            return 'Starting '+model
+            #Create a Soothsayer object
+            new_ss = soothsayer.Soothsayer()
+        
+            #Load the language models
+            pers_model = soothsayer.Languagemodel(model,'w','d')
+            bg_model = soothsayer.Languagemodel('nlsave','w','d')
+            new_ss.start_servers([pers_model,bg_model],True)
+
+            #Load the lexicon
+            lex = new_ss.load_lexicon('wordmodels/'+model+'.lex.txt')
+
+            #Set the module order
+            new_ss.setup_basic_modules(pers_model)
+
+            soothsayers[model] = new_ss
+            lexicons[model] = lex
+
+            #Tell the user of the succes
+            return 'All requested models have been loaded and are available'
         load_model.exposed = True
+
+        def unload_model(self,model):
+            pass;
             
     cherrypy.config.update({
             'server.socket_host': '0.0.0.0',
-            'server.socket_port': 4431
+            'server.socket_port': settings['port']
         })
 
-    cherrypy.quickstart(httpserver())
-            
+    soothsayers = {}
+    lexicons = {};
+    cherrypy.quickstart(httpserver())            
+
 def window_string(string,verbose = False):
     """Return the string as a list of 4-grams"""
 
@@ -610,6 +597,12 @@ if '-cf' in sys.argv:
     settings['cut_file'] = sys.argv[i+1]
 else:
     settings['cut_file'] = False
+
+if '-p' in sys.argv:
+    i = sys.argv.index('-p')
+    settings['port'] = int(sys.argv[i+1])
+else:
+    settings['port'] = False
     
 #Create the directory
 #if settings['mode'] == 'd':
@@ -617,10 +610,10 @@ else:
 #elif settings['mode'] == 's':
 #    dir_reference = inp[:-1] + '.90'
 
-personal_model = soothsayer.Languagemodel(inp[:-1],settings['approach'],settings['mode']);
-
 #Try opening the language model (and testfile), or create one if it doesn't exist
 if settings['mode'] in ['s','d']:
+
+    personal_model = soothsayer.Languagemodel(inp[:-1],settings['approach'],settings['mode']);
 
     ss = soothsayer.Soothsayer(**settings)
 
@@ -647,8 +640,6 @@ elif settings['mode'] == 's':
     simulation_mode(personal_model,lexicon,testfile,settings)
 elif settings['mode'] == 'server':
     server_mode(settings)
-elif settings['mode'] == 'httpserver':
-    httpserver_mode(settings)
 
 #Close everything
 if settings['close_server']:

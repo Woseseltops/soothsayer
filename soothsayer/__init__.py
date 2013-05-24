@@ -28,7 +28,8 @@ class Soothsayer():
 
     def __init__(self,approach = 'w', att_threshold=3, limit_personal_lexicon=3,
                  limit_backup_lexicon =30, test_cores = 10, punctuation = None,
-                cut_file = '', close_server = '', recency_buffer = False, mode = ''):
+                cut_file = '', close_server = '', recency_buffer = False, mode = '',
+                 port = 0):
 
         self.approach       =   approach
         self.att_threshold  =   att_threshold
@@ -41,6 +42,8 @@ class Soothsayer():
             self.punctuation = ['.',',',':','!','','?']
         else:
             self.punctuation = punctuation
+
+        self.port = port
 
         self.modules = []
         self.timblservers = {}
@@ -661,7 +664,10 @@ def get_free_port():
     return int(port)
 
 #TODO
-# Timblmodus verder testen
+# Basisinstellingen voor het language model
+# Lexicon ook integreren als property
+# TiMBL-object verwijderen? Server verwijderen
+# Window_string verplaatsen: kun je nog wel modellen maken?
 
 # Uitzoeken: hoe vaak komt het voor dat woorden gelijke confidence hebben?
 # Server modus
