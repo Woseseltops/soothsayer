@@ -642,5 +642,5 @@ elif settings['mode'] == 'server':
     server_mode(settings)
 
 #Close everything
-if settings['close_server']:
-    soothsayer.command('killall timblserver')
+##if settings['close_server']:
+##    soothsayer.command('killall timblserver')

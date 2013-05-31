@@ -6,9 +6,9 @@ import soothsayer
 class Timbl:
     def __init__(self):
         self.cmdstring = 'timblserver -i %s +vdb +D -a1 -G +vcf -S %d -C 1000'
-
+        self.pid = None
         self.socket = None
-
+        self.neverkillserver = False;
 
     def start_server(self, igtree, port=None):
         """ Start a new Timbl server"""
@@ -31,11 +31,20 @@ class Timbl:
                 clientsocket.connect((host,int(port)))
                 clientsocket.recv(1024) # Ignore welcome messages
                 self.socket = clientsocket
-                return True
             except socket.error:
                 time.sleep(interval)
                 continue
 
+        #Get PID
+        pidlist = psutil.get_pid_list();
+        for i in reversed(pidlist):
+            p = psutil.Process(i);
+            if len(p.cmdline) > 9 and p.cmdline[9] == str(port):
+                self.pid = i;
+                break;
+
+        return True
+    
     def findport(self, modelname):
         """ Find an existing Timbl server by model name"""
         pidlist = psutil.get_pid_list();
@@ -62,3 +71,10 @@ class Timbl:
     def receive(self):
 
         return self.socket.recv(1024).decode()
+
+    def __del__(self):
+        """Remove the corresponding Timblserver, if there is one""";
+        
+        if not self.neverkillserver:
+            print('Killing process '+str(self.pid));
+            soothsayer.command('kill '+str(self.pid));

@@ -28,7 +28,7 @@ class Soothsayer():
 
     def __init__(self,approach = 'w', att_threshold=3, limit_personal_lexicon=3,
                  limit_backup_lexicon =30, test_cores = 10, punctuation = None,
-                cut_file = '', close_server = '', recency_buffer = False, mode = '',
+                cut_file = '', close_server = True, recency_buffer = False, mode = '',
                  port = 0):
 
         self.approach       =   approach
@@ -44,6 +44,7 @@ class Soothsayer():
             self.punctuation = punctuation
 
         self.port = port
+        self.close_server   =   close_server
 
         self.modules = []
         self.timblservers = {}
@@ -296,15 +297,20 @@ class Soothsayer():
         for i in models:
             t = timbl.Timbl()
 
+            if not self.close_server:
+                t.neverkillserver = True
+
             while True:
 
                 if look_for_existing:
-                    port = t.findport(i.filename)
+                    port = t.findport(i.location)
+                    
                 else:
                     port = False
 
                 if port:
                     print('Connecting to an existing server running',i.name)
+                    t.neverkillserver = True
                 else:
                     port = t.start_server(i.location)
                     print('No server found. Started a new server running',i.name)
