@@ -406,21 +406,21 @@ class Soothsayer():
 
             if self.approach == 'w':
                 if nr == 0:
-                    ngrams = window_string(string,True)
+                    ngrams = timbl.window_string(string,True)
                 else:
-                    ngrams = window_string(string)
+                    ngrams = timbl.window_string(string)
             elif self.approach == 'l':
                 if nr == 0:
-                    ngrams = window_string_letters(string,True)
+                    ngrams = timbl.window_string_letters(string,True)
                 else:
-                    ngrams = window_string_letters(string)
+                    ngrams = timbl.window_string_letters(string)
 
             result.put((nr,ngrams))
 
         if self.approach == 'w':
-            substrings = divide_iterable(text.split(),10,3)
+            substrings = timbl.divide_iterable(text.split(),10,3)
         elif self.approach == 'l':
-            substrings = divide_iterable(text,10,15)    
+            substrings = timbl.divide_iterable(text,10,15)    
 
         for n,i in enumerate(substrings):
             t = multiprocessing.Process(target=worker,args=[n,i,result])
@@ -445,12 +445,12 @@ class Soothsayer():
 
         return end_result
 
-    def train_model(self,filename):
+    def train_model(self,filename,mode):
         """Train a model on the basis of these ngrams"""
 
         command('timbl -f '+filename+' -I '+filename+'.IGTree +D +vdb -a1 -p 1000000',False)
         filename = filename.replace('.training.txt','').split('/')[-1];
-        return Languagemodel(filename,self.approach,self.mode);
+        return Languagemodel(filename,self.approach,mode);
 
     def string_to_lexicon(self,string,outputfilename):
         """Creates a lexicon from a string"""
@@ -545,7 +545,7 @@ class Soothsayer():
 
             result.put((nr,resultstring))
 
-        substrings = divide_iterable(words,10)
+        substrings = timbl.divide_iterable(words,10)
         
         for n,i in enumerate(substrings):
             t = multiprocessing.Process(target=worker,args=[n,i,result])
