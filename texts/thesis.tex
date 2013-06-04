@@ -11,6 +11,8 @@
 
 \renewcommand{\familydefault}{\sfdefault}
 
+\linespread{1.5}
+
 \let\stdsection\section
 \renewcommand\section{\newpage\stdsection}
 
@@ -42,7 +44,7 @@ Period&Spring 2013\\
 
 \subsection{Nederlands}
 
-\section{Introduction}
+\section{Introduction} \label{intro}
 
 \subsection{Word prediction}
 
@@ -53,7 +55,7 @@ Period&Spring 2013\\
 
 
 
-
+\subsection{The rest of this thesis} \label{restofthisthesis}
 %Uitleg: twee delen. Dat zijn de volgende twee sections
 
 
@@ -61,11 +63,11 @@ Period&Spring 2013\\
 
 
 
-\section{The algorithm: Soothsayer}
+\section{The algorithm: Soothsayer} \label{algorithm}
 
 \subsection{Introduction}
 
-\subsubsection{Soothsayer}
+\subsubsection{Soothsayer} \label{ss_intro}
 The goal of this chapter is to build the best word prediction algorithm possible, from the ground up. We will start with a very basic application that uses word uniqueness thresholds to predict the word the user is keying in, and add more components and smaller improvements step by step. I have given the resulting system the working title \emph{Soothsayer}, for ease of reference.
 
 An important thing to note is that Soothsayer works with independent modules. A module can be seen as a function that takes some input (for example, the letters of the word the user is currently keying in) and uses a language model to generate:
@@ -272,6 +274,8 @@ With attenuation&33&38&660\\
 
 As the table shows, the duration of the simulation decreased when the attenuation was turned on. As noted before, however, for this relatively small training corpus this was not needed: with a test text of 105922 characters, the 752 seconds Soothsayer takes for the simulation without attenuation already mean an average 141 of keystrokes per second could be achieved. This is well above the 7 keystrokes per second for fast typists, according to Wikipedia\footnote{\url{en.wikipedia.org/wiki/Words\_per\_minute}}.
 
+%er is nog iemand die typsnelheden aangeeft
+
 \subsubsection{Handling morphology}
 %Vit-nogwat bespreekt allemaal morfologiesystemen, een beetje doornemen als dat nog niet eerder is gedaan? Daarna laten zien dat het niet goed genoeg werkt, en dus voor het Nederlands uitstaat.
 
@@ -305,10 +309,11 @@ Early prediction switching after 3 keys&33&38\\
 \end{table}
 
 %Laten zien dat het in een meer-inflecterende taal wel werkt?
+%SKKS: over naar de derde guess
 
 \subsubsection{Recency}
 
-[[Blabla recency buffer Van den Bosch.]]
+[[Blabla recency buffer Van den Bosch.]] Leert nog nauwkeuriger namen en onderwerpen.
 
 Soothsayer also allows a recency buffer to be part of the chain of modules; like a regular module, the recency buffer takes over when the previous module has no suggestions. However, unlike a regular module, the recency buffer does not use a pre-made language model, but needs to updated every time a new word is completed. The results of adding a recency buffer to various places in the current chain are displayed in table \ref{results_rb}.
 
@@ -318,9 +323,9 @@ Soothsayer also allows a recency buffer to be part of the chain of modules; like
 &CKS&SKKS\\
 \hline
 Without recency buffer&33&38\\
-Recency buffer$\rightarrow$context-sensitive module$\rightarrow$context-insensitive module&32&38\\
-Context-sensitive module$\rightarrow$recency buffer$\rightarrow$context-insensitive module&34&39\\
-Context-sensitive module$\rightarrow$context-insensitive module$\rightarrow$recency buffer&34&39\\
+\textbf{Recency buffer}$\rightarrow$context-sensitive module$\rightarrow$context-insensitive module&32&38\\
+Context-sensitive module$\rightarrow$\textbf{recency buffer}$\rightarrow$context-insensitive module&34&39\\
+Context-sensitive module$\rightarrow$context-insensitive module$\rightarrow$\textbf{recency buffer}&34&39\\
 \end{tabular} 
 \caption{Percentage of keystrokes saved with a recency buffer.} \label{results_rb}
 \end{table}
@@ -335,15 +340,73 @@ In this chapter, I started with 1 simple context-insensitive module based on uni
 
 \section{The model: idiolects} \label{model}
 
-\subsection{A simple experiment} \label{simple_xp}
+In chapter \ref{intro}, we saw that both \shortciteA{verberne12} and \citeA{vandenbosch11} try to give their system information about the style and the content of what they are trying to predict: whereas \citeA{verberne12} used training material similar to the test material, \citeA{vandenbosch11} made his system learn about the user on the fly. In section \ref{restofthisthesis}, a new approach was suggested: linking the field of word prediction to the field of idiolects.
 
-\subsection{Using Twitter for idiolects}
+%Mogelijk advantages beschrijven, hangt een beetje af van wat ik in hfst 1 doe.
 
-\subsubsection{Collecting the data}
+Now we have a working algorithm, as described in chapter \ref{algorithm}, we can test this suggestion empirically by comparing the number of keystrokes that can be saved when using various models. The power of idiolects will be shown with emails and blogs in section \ref{simple_exp}. This experiment will then be replicated on a much larger scale, using 100 Twitter feeds as idiolects. After that, I will tackle the problem that for many people, there might not be a lot of idiolectal material available. The best solution to this, as will be shown in section \ref{idiolects}, is to use the tweets of people they often communicate with.
 
-\subsubsection{Limitations of Twitter data}
+\subsection{A simple experiment} \label{simple_exp}
 
-\subsubsection{The experiments}
+\subsubsection{Methodology}
+This experiment will show the power of idiolects over general language models, using the algorithm described in chapter \ref{algorithm}. Similar to the experiments there, a user keying a text will be simulated. If Soothsayer correctly guesses the next word, or the rest of the current word, it is assumed this virtual user will accept it, and goes on keying in the next word. It is then calculated what percentage of keystrokes was saved when only one word was shown (\textbf{C}lassical \textbf{K}eystrokes \textbf{S}aved), and when two and sometimes three words are shown (\textbf{S}wift\textbf{K}ey \textbf{K}eystrokes \textbf{S}aved). Unlike the experiments in chapter \ref{algorithm}, however, these experiments will not compare two versions of the algorithm, but two language models. Thus, whereas the experiments in chapter \ref{algorithm} kept the model constant, and varied the algorithm (a version with feature $x$ turned on and a version with feature $x$ turned off, for instance), the experiments in this chapter will do the opposite and vary the model while keeping the algorithm constant.
+
+\subsubsection{Data}
+This experiment will compare three language models: two idiolects and a general language model. The first idiolect consists of all emails I have sent between February 2009 and February 2013, containing [[x]] words. The first 90\% of the material was used for training, the remaining 10\% - the most recent emails - for testing. This is also the language model which has been used for testing in chapter \ref{algorithm}. 
+
+The second idiolect consists of one year of weblogs written by Dutch physician and astronaut Andr\'e Kuipers, from July 2011 to July 2012. This period covers the preparations for Kuipers' second spaceflight PromISSe on Expedition 30 and Expedition 31 (from July to December 2011), the actual space mission (December 2011 to June 2012), and his return to earth (July 2012).
+
+As a control model, a general language model for Dutch will be used. For this, we use a random selection of blogs, emails and Wikipedia articles from the SoNaR corpus for written Dutch \shortcite{oostdijk+13} was used. These texts were chosen because they were believed to be neither very formal nor very informal. The control corpus consisted of 55,212,868 words.
+
+%Attenuation values
+
+\subsubsection{Results}
+
+\subsubsection{Using the general language model as a background-model}
+
+As an important side note, it should be mentioned that these models can easily be combined. As was explained in section \ref{ss_intro}, Soothsayer consists of several modules that function as each other's safety net; if one module fails to deliver a prediction, the next one takes over. When combining the idiolect model with the general language model, Soothsayer's architecture looks like this:
+
+\begin{table}[h]
+\begin{tabular}{lll} 
+Position&Context-sensitive&Model\\
+\hline
+1&yes&idiolect\\
+2&yes&general\\
+3&no&recent words\\
+4&no&idiolect\\
+5&no&general\\
+\end{tabular} 
+\caption{Soothsayer's architecture with two language models} \label{results_rb}
+\end{table}
+
+As can be seen, combining both models results in more keystrokes saved than using only of them. This is not surprising, given the nature of both models: whereas the idiolect model has information on what words, word combinations and constructions a person likes to use, the general model has information on what words, word combinations and constructions are possible in the language. For a word prediction system, both types of information can be useful. For example, if a Dutch user uses a word he/she has never used before (so it will not be recognized by the idiolect model), it is still very likely to be a Dutch word, which means that it is very likely the general language model will know it.
+
+%VOoral voor kleine idiolecten werkt combineren goed.
+
+%Alternatieve volgorde
+
+\subsection{Using Twitter for idiolects} \label{idiolects}
+
+Although the previous experiments suggest using idiolects instead of general language models might be very powerful, it might also be misleading; some people might have a much more consistent style of writing than others. For this reason, I will investigate the power of idiolects on a much larger scale and use 100 idiolects at the same time. For this, micro-blogging service Twitter will be used, as it essentially is a large collection of idiolects.
+
+\subsubsection{Data}
+Twitter\footnote{\url{http://www.twitter.com}} is a micro-blogging service where each Twitter user can submit status updates known as tweets, which consist 140 characters or less. These tweets typically consist of personal information about the users themselves, news or links to other pages on the internet. Tweets are displayed on the users profile page. This essentially makes Twitter a large collection of language, ordered by author. 
+
+Using the Twitter API, all tweets of a manually created seed set of Dutch Twitter users were retrieved from January until June 2013. Retweets, language these authors did not produce themselves, were excluded. These seed users were the starting point of an interative expansion of the set of crawled Twitter uses by following mentions of other users (indicated with the syntax \emph{'@username'}). To capture the network of these users (which we will need for later experiments), and to increase the number Twitter users that the system was following in general, this set was extended with 2 users every 30 minutes:
+
+\begin{itemize}
+\item One user was selected on the basis of the number of tweets the system had already saved referred to them. Thus to find this person, the system made a frequency list of all \emph{@addressee} mentions. The Twitter user that was highest on this list, but was not already being followed, was added. This way, I could be sure the new person communicated with at least one of the persons the system was already following a lot.
+\item Another user was selected on the basis of the number of users the system was already following referred to them. Thus to find this person, the system made a frequency list of all \emph{@addressee} mentions, counting multiple references by one person only once. The Twitter users that was highest on this list, but was not already being followed, was added. This way, I could be sure the new person had a lot of connections to the people the system was already following.
+\end{itemize}
+
+The system limited itself to Dutch tweets using a conservative Dutch word frequency list. Addressees receiving non-Dutch tweets were not followed.
+
+\subsubsection{Results}
+
+
+\subsubsection{Discussion}
+
+%Nadelen van Twitter.
 
 \subsection{Language input and networks}
 
@@ -354,7 +417,7 @@ In this chapter, I started with 1 simple context-insensitive module based on uni
 \bibliography{thesisbib}{}
 \bibliographystyle{apacite}
 
-% Eenzaam, 'gevecht tussen man en computer'. Bedank Jacintha, Hanna, Iris, Kobie, Ali en Florian.
+% Eenzaam, 'gevecht tussen man en computer'. Bedank Jacintha, Hannah, Iris, Kobie, Ali en Florian.
 % Véronique onderwerp, en Lieke voor idiolect ipv ideolect.
 % Maarten, Florian en Bouke voor de vele dingen programmeren.
 % Antal: mails. Tegelijkertijd waren we met nog veel andere dingen bezig.
