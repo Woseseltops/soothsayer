@@ -1,5 +1,6 @@
 import soothsayer
 import soothsayer.terminal
+import soothsayer.timbl
 import sys
 import collections
 import os
@@ -140,7 +141,7 @@ def simulation_mode(model,lexicon,testfile,settings):
     #Starts the workers
 #    teststring = ucto(open(testfile,'r').read())
     teststring = ' ' + open(testfile,'r').read()
-    substrings = divide_iterable(teststring.split(),settings['test_cores'],3)
+    substrings = soothsayer.timbl.divide_iterable(teststring.split(),settings['test_cores'],3)
 
     for n,i in enumerate(substrings):
         buffersize = settings['recency_buffer']
