@@ -236,7 +236,7 @@ To investigate how many keystrokes can be saved when using context information, 
 
 \subsection{Other decisions}
 
-\subsubsection{Concatenating context-sensitive and context-insensitive modules}
+\subsubsection{Concatenating context-sensitive and context-insensitive modules} \label{concat}
 In the previous two sections, we saw that the context-insensitive had a CKS of 20 \% and an SKKS of 27\%, whereas the context-sensitive one had a CKS of 24\% and an SKKS 27\%. This means that using a context-sensitive module over an context-intensive only gives us an improvement of 4\% for the CKS and no improvement for the SKKS, while it is much more complicated and computationally expensive. Is using context-sensitive modules worth that?
 
 The answer, as I will show, is yes. The context-sensitive module learns about which words in the training texts typically follow eachother, and thus is powerful when it comes to the more frequent, fixed combinations of words and words that often occur in eachother's context, but fails when it comes to words that are also frequent, but were not used earlier int his context. The context-insensitive module, on the other hand, can predict any word, as long as it has been used before, but knows nothing about fixed combinations. In other words, one module succeeds where the other fails, and vice versa; there is very little overlap in the situations in which they both do the correct prediction. 
@@ -311,9 +311,11 @@ Early prediction switching after 3 keys&33&38\\
 %Laten zien dat het in een meer-inflecterende taal wel werkt?
 %SKKS: over naar de derde guess
 
-\subsubsection{Recency}
+\subsubsection{Recency} \label{rb}
 
 [[Blabla recency buffer Van den Bosch.]] Leert nog nauwkeuriger namen en onderwerpen.
+
+% grootte van de recency buffer noemen
 
 Soothsayer also allows a recency buffer to be part of the chain of modules; like a regular module, the recency buffer takes over when the previous module has no suggestions. However, unlike a regular module, the recency buffer does not use a pre-made language model, but needs to updated every time a new word is completed. The results of adding a recency buffer to various places in the current chain are displayed in table \ref{results_rb}.
 
@@ -338,55 +340,153 @@ As can be seen, adding a recency buffer only results in slight improvements. Imp
 \subsection{Overview}
 In this chapter, I started with 1 simple context-insensitive module based on uniqueness thresholds, and added improvements step by step. The results of these additions are summarized in the graph below.
 
+
+
+
+
+
 \section{The model: idiolects} \label{model}
 
 In chapter \ref{intro}, we saw that both \shortciteA{verberne12} and \citeA{vandenbosch11} try to give their system information about the style and the content of what they are trying to predict: whereas \citeA{verberne12} used training material similar to the test material, \citeA{vandenbosch11} made his system learn about the user on the fly. In section \ref{restofthisthesis}, a new approach was suggested: linking the field of word prediction to the field of idiolects.
 
 %Mogelijk advantages beschrijven, hangt een beetje af van wat ik in hfst 1 doe.
 
-Now we have a working algorithm, as described in chapter \ref{algorithm}, we can test this suggestion empirically by comparing the number of keystrokes that can be saved when using various models. The power of idiolects will be shown with emails and blogs in section \ref{simple_exp}. This experiment will then be replicated on a much larger scale, using 100 Twitter feeds as idiolects. After that, I will tackle the problem that for many people, there might not be a lot of idiolectal material available. The best solution to this, as will be shown in section \ref{idiolects}, is to use the tweets of people they often communicate with.
+Now we have a working algorithm, as described in chapter \ref{algorithm}, we can test this suggestion empirically by comparing the number of keystrokes that can be saved when using various models. The power of idiolects will be shown with a simple experiment in section \ref{simple_exp}. In section \ref{background}, we will see that general models can still be useful, however; they can function as a safety-net in case the author use a word or combination of words that very common to the language, but he/she has never used before.
 
-\subsection{A simple experiment} \label{simple_exp}
+These experiment will then be replicated on a much larger scale, using 100 Twitter feeds as idiolects. After that, I will tackle the problem that for many people, there might not be a lot of idiolectal material available. The best solution to this, as will be shown in section \ref{idiolects}, is to use the tweets of people they often communicate with.
+
+\subsection{A simple experiment: idiolects over general models} \label{simple_exp}
+
+\subsubsection{Research question}
+As decribed in \ref{restofthisthesis}, I expect that using idiolects, texts written by the user of the word completion system, as training models will save more keystrokes than a general language model. The research question for this first explorative experiment thus is:
+
+\begin{examples}
+
+\item Does using a general language model or an idiolect model lead to more keystrokes saved?
+
+\end{examples}
 
 \subsubsection{Methodology}
-This experiment will show the power of idiolects over general language models, using the algorithm described in chapter \ref{algorithm}. Similar to the experiments there, a user keying a text will be simulated. If Soothsayer correctly guesses the next word, or the rest of the current word, it is assumed this virtual user will accept it, and goes on keying in the next word. It is then calculated what percentage of keystrokes was saved when only one word was shown (\textbf{C}lassical \textbf{K}eystrokes \textbf{S}aved), and when two and sometimes three words are shown (\textbf{S}wift\textbf{K}ey \textbf{K}eystrokes \textbf{S}aved). Unlike the experiments in chapter \ref{algorithm}, however, these experiments will not compare two versions of the algorithm, but two language models. Thus, whereas the experiments in chapter \ref{algorithm} kept the model constant, and varied the algorithm (a version with feature $x$ turned on and a version with feature $x$ turned off, for instance), the experiments in this chapter will do the opposite and vary the model while keeping the algorithm constant.
+This experiment will show the power of idiolects over general language models, using the algorithm described in chapter \ref{algorithm}, Soothsayer. Similar to the experiments there, a user keying a text will be simulated. If Soothsayer correctly guesses the next word, or the rest of the current word, it is assumed this virtual user will accept it, and goes on keying in the next word. It is then calculated what percentage of keystrokes was saved when only one word was shown (\textbf{C}lassical \textbf{K}eystrokes \textbf{S}aved), and when two and sometimes three words are shown (\textbf{S}wift\textbf{K}ey \textbf{K}eystrokes \textbf{S}aved). Unlike the experiments in chapter \ref{algorithm}, however, these experiments will not compare two versions of the algorithm, but two language models. Thus, whereas the experiments in chapter \ref{algorithm} kept the model constant, and varied the algorithm (a version with feature $x$ turned on and a version with feature $x$ turned off, for instance), the experiments in this chapter will do the opposite and vary the model while keeping the algorithm constant.
 
-\subsubsection{Data}
-This experiment will compare three language models: two idiolects and a general language model. The first idiolect consists of all emails I have sent between February 2009 and February 2013, containing [[x]] words. The first 90\% of the material was used for training, the remaining 10\% - the most recent emails - for testing. This is also the language model which has been used for testing in chapter \ref{algorithm}. 
+\subsubsection{Data} \label{data_simple}
+This experiment will compare two language models: a model based on the texts by one person, and a general language model. The idiolect consists of all emails I have sent between February 2009 and February 2013, containing [[x]] words. The first 90\% of the material was used for training, the remaining 10\% - the most recent emails - for testing. This is also the language model which has been used for testing in chapter \ref{algorithm}. 
 
-The second idiolect consists of one year of weblogs written by Dutch physician and astronaut Andr\'e Kuipers, from July 2011 to July 2012. This period covers the preparations for Kuipers' second spaceflight PromISSe on Expedition 30 and Expedition 31 (from July to December 2011), the actual space mission (December 2011 to June 2012), and his return to earth (July 2012).
-
-As a control model, a general language model for Dutch will be used. For this, we use a random selection of blogs, emails and Wikipedia articles from the SoNaR corpus for written Dutch \shortcite{oostdijk+13} was used. These texts were chosen because they were believed to be neither very formal nor very informal. The control corpus consisted of 55,212,868 words.
+As a control model, a general language model for Dutch will be used. For this,a random selection of blogs, emails and Wikipedia articles from the SoNaR corpus for written Dutch \shortcite{oostdijk+13} was made. These texts were chosen because they were believed to be neither very formal nor very informal. The control corpus consisted of 55,212,868 words.
 
 %Attenuation values
 
 \subsubsection{Results}
 
-\subsubsection{Using the general language model as a background-model}
+\begin{table}[h]
+\begin{tabular}{ll|ll} 
+Training material&Test material&CKS&SKKS\\
+\hline
+General Dutch texts (90\%)&Text by Wessel Stoop (10\%)&24&27\\
+Text by Wessel Stoop (90\%)&Text by Wessel Stoop (10\%)&34&39\\
+\end{tabular} 
+\caption{Percentage of keystrokes that can be saved when using two different language models} \label{results_simple}
+\end{table}
 
-As an important side note, it should be mentioned that these models can easily be combined. As was explained in section \ref{ss_intro}, Soothsayer consists of several modules that function as each other's safety net; if one module fails to deliver a prediction, the next one takes over. When combining the idiolect model with the general language model, Soothsayer's architecture looks like this:
+Table \ref{results_simple} shows that  using the idiolect model indeed leads to more keystrokes saved. 
+
+\subsubsection{Discussion}
+Despite the fact that the general model contained [[x]] times more words than the idiolect model, more keystrokes could be saved using the idiolect model. This is consistent with both \citeA{vandenbosch11}, who shows that learning about the author improves the results, and \shortciteA{verberne+12}, who show that using training material from the same genre improves the results. However, unlike \citeA{vandenbosch11}, this approach could combine the information on user characteristics with context-information, and unlike \shortciteA{verberne+12}, training data which for most individuals is relatively easy to collect was used.
+
+%Werkt minder goed bij kleinere modellen
+
+\subsection{The general language model as a background model} \label{background}
+
+\subsubsection{Research question}
+A next step might be to combine both models. Given their nature, this is very likely to lead to better results: whereas the idiolect model has information on what words, word combinations and constructions a person likes to use, the general model has information on what words, word combinations and constructions are possible in the language. For a word prediction system, both types of information can be useful. For example, if a Dutch user uses a word he/she has never used before (so it will not be recognized by the idiolect model), it is still very likely to be a Dutch word, which means that it is very likely the general language model will know it. The research question for this experiment thus is:
+
+\begin{examples}
+
+\item Does using the general language model as a background model for the idiolect model lead to more keystrokes saved than using one idiolect model only?
+
+\end{examples}
+
+\subsubsection{Methodology}
+Again, the algorithm described in chapter \ref{algorithm}, Soothsayer, will be used. As was explained in section \ref{ss_intro}, Soothsayer consists of several modules that function as each other's safety net; if one module fails to deliver a prediction, the next one takes over. This way more than one language model can be easily be used in one experiment.
+
+In which order should the modules be placed? To limit the amount of possible module orders, I will do three assumptions:
+
+\begin{enumerate}
+
+\item The idiolect model should be used before the general model. Since using the idiolect model leads to better results, as shown in section \ref{simple_exp}, it makes sense to try that one first.
+\item The context-sensitive model should be used before the context-insensitive model. As shown in section \ref{concat}, the algorithm performs better when context-sensitive modules are placed before context-insensitive ones.
+\item The recency module should be placed before the context-insensitive modules, but after context-insensitive ones, as shown in section \ref{rb}.
+
+\end{enumerate}
+
+It is not possible to take into account all assumptions (for example, if we want all modules using the idiolect model to go before all modules using the general model, a context-insensitive module has to go before a context-sensitive one). However, if we allow slight violations, two possible module orders remain, displayed in table \ref{order1} and \ref{order2} respectively. Each row in the table represents a module:
+
+\begin{table}[h]
+\begin{tabular}{lll} 
+Position&Type&Model\\
+\hline
+1&Context-sensitve&idiolect\\
+2&Context-sensitive&general\\
+3&Recency buffer&recent words\\
+4&Context-insensitive&idiolect\\
+5&Context-insensitive&general\\
+\end{tabular} 
+\caption{Module order 1} \label{order1}
+\end{table}
 
 \begin{table}[h]
 \begin{tabular}{lll} 
 Position&Context-sensitive&Model\\
 \hline
-1&yes&idiolect\\
-2&yes&general\\
-3&no&recent words\\
-4&no&idiolect\\
-5&no&general\\
+1&Context-sensitive&idiolect\\
+2&Context-insensitive&idiolect\\
+3&Context-sensitive&general\\
+4&Recency buffer&recent words\\
+5&Context-insensitive&general\\
 \end{tabular} 
-\caption{Soothsayer's architecture with two language models} \label{results_rb}
+\caption{Module order 2} \label{order2}
 \end{table}
 
-As can be seen, combining both models results in more keystrokes saved than using only of them. This is not surprising, given the nature of both models: whereas the idiolect model has information on what words, word combinations and constructions a person likes to use, the general model has information on what words, word combinations and constructions are possible in the language. For a word prediction system, both types of information can be useful. For example, if a Dutch user uses a word he/she has never used before (so it will not be recognized by the idiolect model), it is still very likely to be a Dutch word, which means that it is very likely the general language model will know it.
+\subsubsection{Data}
+As dataset, the corpora described in \ref{data_simple} will be used. However, this time  both corpora will be used in one experiment.
 
-%VOoral voor kleine idiolecten werkt combineren goed.
+\subsubsection{Results}
 
-%Alternatieve volgorde
+The first  row of the table \ref{results_background} repeats the results displayed in table \ref{results_simple}, from the previous experiment, the second and third are the results of this experiment. The table shows that using the general model as a background corpus indeed increases the number of keystrokes saved, and that there is no measurable difference between order 1 and 2.
+
+\begin{table}[h]
+\begin{tabular}{ll|ll} 
+Training material&Test material&CKS&SKKS\\
+\hline
+Text by Wessel Stoop (90\%)&Text by Wessel Stoop (10\%)&34&39\\
+Both corpora, order 1&Text by Wessel Stoop (10\%)&40&43\\
+Both corpora, order 2&Text by Wessel Stoop (10\%)&40&43\\
+\end{tabular} 
+\caption{Percentage of keystrokes that can be saved when using two different language models} \label{results_background}
+\end{table}
+
+\subsubsection{Discussion}
+We saw that using the general language model as a background model indeed increases the number of keystrokes saved. This is because the idiolect model, although it has more knowledge on what is likely to follow, is dependent on what the user has used before, and becomes useless when the user deviates from his/her normal patterns. As long as the user remains within the bounds of the language, the general model can fill this knowledge gap to a certain extent.
+
+To what extent it is beneficial to have a general language model as background model, or how large the gap is the general model has to fill, despends on how much material the idiolect model is based. In this experiment, we saw an increase in the number of keystrokes saved, from 34 \% CKS to 40\% CKS: an increase of 118\%. To show the benefits are even higher for idiolect models based on less material, I will repeat this experiment with another idiolect: one year of weblogs written by Dutch physician and astronaut Andr\'e Kuipers, from July 2011 to July 2012. This corpus consists of only [[x]] words. This period covers the preparations for Kuipers' second spaceflight PromISSe on Expedition 30 and Expedition 31 (from July to December 2011), the actual space mission (December 2011 to June 2012), and his return to earth (July 2012).
+
+Like in the main experiment, it was calculated how many keystrokes could be saved when using the idiolect model alone, and the ideolect model with a general language model as background model. The results are summarized in table \ref{results_kuipers}. 
+
+\begin{table}[h]
+\begin{tabular}{ll|ll} 
+Training material&Test material&CKS&SKKS\\
+\hline
+Text by Andr\'e Kuipers (90\%)&Text by Andr\'e Kuipers (10\%)&26&29\\
+Both corpora&Text by Andr\'e Kuipers (10\%)&37&41\\
+\end{tabular} 
+\caption{Percentage of keystrokes that can be saved when using two different language models} \label{results_kuipers}
+\end{table}
+
+These results show that the algorithm performs much better when it uses the background model. Interestingly, whereas this idiolect alone leads to lower percentages than the idiolect of the main experiment, when using a background model the results are similar. In other words, we see much larger increase: 142\% (compared to the 118\% of the main experiment). Apparently, for the idiolect of Andr\'e Kuipers, there is a larger knowledge gap the general language model can fill.
 
 \subsection{Using Twitter for idiolects} \label{idiolects}
 
+\subsubsection{Hypothesis}
 Although the previous experiments suggest using idiolects instead of general language models might be very powerful, it might also be misleading; some people might have a much more consistent style of writing than others. For this reason, I will investigate the power of idiolects on a much larger scale and use 100 idiolects at the same time. For this, micro-blogging service Twitter will be used, as it essentially is a large collection of idiolects.
 
 \subsubsection{Data}
@@ -400,6 +500,14 @@ Using the Twitter API, all tweets of a manually created seed set of Dutch Twitte
 \end{itemize}
 
 The system limited itself to Dutch tweets using a conservative Dutch word frequency list. Addressees receiving non-Dutch tweets were not followed.
+
+Concerning the relation between number of tweets and Twitter users, many scholars have noticed that it follows a Pareto-distribution \shortcite[among others]{asur+,rui+}. That is, a very small part of the Twitter users produce a very large part of the tweets. \shortciteA{Heil+} show that the top 10\% of prolific Twitter users were responsible for more than 90\% of the tweets. \shortciteA{asur+} suggests this behavior is not limited to Twitter; according to them 'the top 15\% of the most prolific editors account for 90\% of Wikipedia’s edits'.
+
+The Twitter data collected for this research show a similar pattern:
+
+%Grafiek laten zien
+
+For that reason, I will limit the experiments to the 100 Twitter users for which I have the most material.
 
 \subsubsection{Results}
 
@@ -425,3 +533,6 @@ The system limited itself to Dutch tweets using a conservative Dutch word freque
 % Hilde: laat Soothsayer spreken
 
 \end{document}
+
+%TODO
+% Consistent zijn in model, corpus, training material, text
