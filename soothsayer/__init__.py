@@ -140,7 +140,7 @@ class Soothsayer():
 
         for i in self.modules:
 
-            pick, second_pick, third_pick, predictions = i.run(current_word,boundary,nr)
+            pick, second_pick, third_pick, predictions = i.run(current_word,boundary,recency_buffer,nr,)
 
             if full_word == '':
                 full_word = pick
@@ -598,7 +598,7 @@ class Module():
         self.kind = kind
         self.timblserver = ss.timblservers[self.modelname]
 
-    def run(self,current_word,boundary,nr):
+    def run(self,current_word,boundary,recency_buffer,nr):
 
         pick = ''
         second_pick = ''
