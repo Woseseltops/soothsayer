@@ -193,7 +193,14 @@ def simulate(model,lexicon,content_rb,teststring,settings,nr,result):
 
     ss = soothsayer.Soothsayer(**settings)    
     ss.start_servers([model,bg_model],False)
-    ss.setup_basic_modules(model)
+#    ss.setup_basic_modules(model)
+
+    ss.modules = [soothsayer.Module(ss,'PERS. MODEL/IGTREE',model.name,'igtree'),
+                  soothsayer.Module(ss,'GEN. MODEL/IGTREE','nlsave','igtree'),
+                  soothsayer.Module(ss,'RECENCY BUFFER',model.name,'rb'),
+                  soothsayer.Module(ss,'PERS. MODEL/LEXICON',model.name,'lex'),
+                  soothsayer.Module(ss,'GEN. MODEL/LEXICON','nlsave','lex'),
+                 ]
 
     #Find out where to start (because of overlap)
     if nr == 0:
@@ -243,8 +250,8 @@ def simulate(model,lexicon,content_rb,teststring,settings,nr,result):
             last_prediction = prediction['full_word']
 
             #Show second best if you did a prediction too often
-#            if len(prediction['second_guess']) > 1 and repeats > 1:
-#                prediction['full_word'] = prediction['second_guess']
+            if len(prediction['second_guess']) > 1 and repeats > 1:
+                prediction['full_word'] = prediction['second_guess']
                 
             #Get and show what is written now
             current_word = find_current_word(teststring,i)
@@ -543,7 +550,10 @@ if settings['mode'] in ['s','d']:
         lexicon = ss.load_lexicon(personal_model.folder+'/'+personal_model.name+'.lex.txt')
     except IOError:
         print('Model not found. Prepare data to create a new one:')
-        training_file, testfile, lexicon = ss.prepare_training_data(inp)
+        if settings['mode'] == 'd':
+            training_file, testfile, lexicon = ss.prepare_training_data(inp)
+        elif settings['mode'] == 's':
+            training_file, testfile, lexicon = ss.prepare_training_data(inp,True)
         print('Training model')
         personal_model = ss.train_model(training_file,settings['mode'])
 
@@ -556,9 +566,9 @@ if settings['mode'] == 'd':
     demo_mode(personal_model,lexicon,settings)
 elif settings['mode'] == 's':
     simulation_mode(personal_model,lexicon,testfile,settings)
+
+    #Close everything
+    if settings['close_server']:
+        soothsayer.command('killall timblserver')
 elif settings['mode'] == 'server':
     server_mode(settings)
-
-#Close everything
-##if settings['close_server']:
-##    soothsayer.command('killall timblserver')
