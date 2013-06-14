@@ -41,6 +41,8 @@ Period&Spring 2013\\
 \clearpage
 
 \tableofcontents
+\listoftables
+\listoffigures
 
 \section{Summary/samenvatting}
 
@@ -129,7 +131,7 @@ A fact both \shortciteA{Lesher+99} and \shortciteA{vandenbosch11} note is that i
 
 As a practical side-note, when using millions of words and all possible combinations between them, and also more context than just two words, a matrix as the one in \ref{matrix} quickly becomes impractical. Modern word predictions systems search through the training material and collect a number of similar contexts. The word that follows most of these contexts will be the word predicted. So when a new context like \emph{You like} is given to such a system, instead of looking it up in a matrix, it compares it to all contexts in the training material. An exact will be found in the sentence \emph{You like fishing}, and thus \emph{fishing} will be predicted. Because comparing a new context to thousands of contexts in the training material might take too much time to do real-time predictions, these comparisons can also be done beforehand, which reduces the process to a decision tree \shortcite[among others]{daelemans+97, vandenbosch+08, vandenbosch11}. The system that will be described in this thesis also uses this technique. See chapter \ref{algorithm} for a detailed description of the algorithm.
 
-\subsubsection{Adding more knowledge}
+\subsubsection{Adding more knowledge} \label{more_knowledge}
 
 Context-sensitivity, in particular when using a lot of training material, is most powerful when it comes to collocations (for example, \emph{in combination with}, \emph{on the basis of}), i.e. when it comes to language. However, humans use more than knowledge of language alone to predict what somebody is going to say; we also take into account what the speaker typically says, and what the speaker is talking about. For instance, the input \emph{wed} can be very likely to refer to \emph{Wednesday} when making an appointment for next week, whereas it can also be very likely to refer to \emph{wedding} when talking about a marriage. In other words, besides the linguistic context, we also want to give the system some 'real world' context.
 
@@ -154,11 +156,10 @@ Now that usage-based theories of language become increasingly more accepted, and
 But the reality of idiolects cannot only be seen through the efforts of corpus linguists;  \citeA{Coulthard04} gives a number of anecdotes where the notion of idiolects have been helpful in court. The most clear example is the story of the so-called 'Unabomber'. This person sent various hand-made bombs to \textbf{un}iversities and \textbf{a}irports (hence the nickname) from 1978 to 1995, killing 3 persons and injuring 23. In 1995, he offered six major newspapers to stop his attacks if they would publish a manuscript he had written, entitled \emph{Industrial Society and its future}. The Washington Post decided to do so. Three months later, a man contacted the FBI, claiming the language looked very similar to the language of his brother, a mathematician called Ted Kaczynski. He had recognized in particular the phrase 'cool-headed logician' to be part of his brother's idiolect. In the cabin where Kaczynski was living at the moment, indeed a wealth of bomb components were discovered; he was sentenced to life in prison with no possibility of parole. I feel this example shows the concept of idiolect cannot only be tested empirically, but might actually robust enough for practical applications.
 
 \subsection{Using idiolects for word prediction} \label{linking}
-In this thesis, a word prediction system based around the concept of idiolects.
+As was explained at the end of section \ref{more_knowledge}, both the approach of \citeA{vandenbosch11} the approach \shortciteA{verberne+12} of adding more knowledge to the word prediction systems have downsides: the system by \citeauthor{vandenbosch11} uses information that easily available, but cannot be used in a context-sensitive way, and the system by \shortciteauthor{verberne+12} is context-sensitive, but uses information which might not be easily available. In this thesis, a word prediction system based around the concept of idiolects will be built: a system that tries to predict what the user is going to write \emph{on the basis of his  or her own language}. The idea behind is that there is a much higher chance that a system will be able to correctly predict what somebody is going to write if it can look at things this same person has produced, instead of things somebode else using the same language has produced. These idiolect data (1) are more likely to be easily available (for example, by using the email sent by the author, or by using papers, blogposts, tweets or messages by that same author) and (2) are can be processed beforehand, and thus can be used in a context-sensitive system. In other words, the best parts of both approaches will be combined.
 
 \subsection{The rest of this thesis} \label{restofthisthesis}
-%Uitleg: twee delen. Dat zijn de volgende twee sections
-
+As was explained in detail in section \ref{word_prediction}, word prediction systems work with an algorithm and language models. Language models are formed out of training material, which simply is a large collection of 'example language' - I used the sentences in \ref{training} to illustrate this. To built an as good as possible word prediction system, it is essential to make both the algorithm and the language model as good as possible, so this is exactly what I will do in the rest of this thesis. Section \ref{algorithm} is about the algorithm: it starts with a very simple algorithm, and then slowly makes it more complicated. After each addition, little experiments will show to what extent it improves the system. Section \ref{model} is about the model: it compares various models to eachother, and combines them, to get an idea of which model will work the best for which situation. 
 
 
 
@@ -749,9 +750,86 @@ Experiment 1 investigates whether idiolect models or the general language model 
 
 \subsubsection{Results}
 
+The results of the simulations are summarized in tables \ref{twitter_results_cks} and \ref{twitter_results_skks}. Because of the number of factors involved, CKS and SKKS are shown in two separate tables for clarity. Both tables show exactly the same pattern.
+
+\begin{table}[H] 
+\centering
+\begin{tabular}{ll|llll} 
+Training material&Test material&\multicolumn{2}{l}{Without recency buffer}&\multicolumn{2}{l}{With recency buffer}\\
+\hline
+&&Mean&St. dev.&Mean&St. dev.\\
+General&Twitter feed&14&5&23&5\\
+Idiolect&Twitter feed&23&8&27&8\\
+General + idiolect&Twitter feed&26&6&30&6\\
+\end{tabular} 
+\caption{Mean percentage of keystrokes saved (\textbf{CKS}) and standard deviations for various module set-ups.} \label{twitter_results_cks}
+\end{table}
+
+\begin{table}[H] 
+\centering
+\begin{tabular}{ll|llll} 
+Training material&Test material&\multicolumn{2}{l}{Without recency buffer}&\multicolumn{2}{l}{With recency buffer}\\
+\hline
+&&Mean&St. dev.&Mean&St. dev.\\
+General&Twitter feed&16&6&26&5\\
+Idiolect&Twitter feed&25&8&28&7\\
+General + idiolect&Twitter feed&28&6&32&6\\
+\end{tabular} 
+\caption{Mean percentage of keystrokes saved (\textbf{SKKS}) and standard deviations for various module set-ups.} \label{twitter_results_skks}
+\end{table}
+
+First of all, we see that all main findings could be replicated: 
+
+\begin{enumerate}
+\item Using the idiolect model leads to more keystrokes saved than using the general model.
+\item Using the general language model as a background model leads to more keystrokes saved than using the idiolect model alone.
+\item Using the recency buffer leads ot more keystrokes saved.
+\item The effect of the recency buffer is the clearest when it is used in addition to the general model.
+\end{enumerate}
+
+An ANOVA for repeated measures showed ... . Post-hoc tests showed all differences between the individual models where significant. %Sign.
+
+Interestingly, there also is one difference with previous results. In section \ref{recbuf}, using the recency buffer only resulted in slight improvements; often only 1\%. However, here we see increases of 4\% and 10\% for the general language model. This fits the pattern of the behaviors of the individual idiolects; as already indicated by the relatively high standard deviations, there is a lot of variation. The results of indivdual twitter users are shown in table \ref{twitter_users_rb} to illustrate this. These are the results for the module set-up with both the idiolect model and the general language model.
+
+\begin{table}[H] 
+\centering
+\begin{tabular}{l|llll} 
+Twitter user&\multicolumn{2}{l}{Without recency buffer}&\multicolumn{2}{l}{With recency buffer}\\
+\hline
+&CKS&SKKS&CKS&SKKS\\
+2&22&24&30&32\\
+93&21&24&29&32\\
+34&35&37&35&38\\
+43&35&37&36&38\\
+\end{tabular} 
+\caption{Percentage of keystrokes saved for 4 individual Twitter users, using the module set-up with the idiolect and the general language model} \label{twitter_users_rb}
+\end{table}
+
+Here, we see that for user 2 and 93 adding the recency buffer results in an enormous increase in the number of keystrokes saved, while the effect can barely be measures for user 34 and 43. Similar discrepancies can be found for the other research results, as displayed in table \ref{twitter_users}. These are the results without recency buffer.
+
+\begin{table}[H] 
+\centering
+\begin{tabular}{l|llllll} 
+Twitter user&\multicolumn{2}{l}{General model}&\multicolumn{2}{l}{Idiolect model}&\multicolumn{2}{l}{Both}\\
+\hline
+&CKS&SKKS&CKS&SKKS&CKS&SKKS\\
+97&2&3&51&52&50&50\\
+90&15&17&12&13&19&21\\
+55&23&26&24&26&32&36\\
+78&11&13&35&38&35&38\\
+\end{tabular} 
+\caption{Percentage of keystrokes saved for 4 individual Twitter users, using the module set-up without the recency buffer} \label{twitter_users}
+\end{table}
+
+For user 97, we see that the general model alone leads to very few correct predictions, while the opposite is true for the idiolect model. Using the general language model as background model even leads to a decrease in the number of keystrokes saved. We see the reverse situation with user 90, for whom the general model actually did better predictions than the idiolect model. Similarly, we see that using the general language model as a background model leads to a large difference in percentage of keystrokes saved for user 55, while there is no measurable difference for user 78.
+
+These differences means Soothsayer performs much better for one than for the other. Using the best-performing module set-up in general, the set-up with the idiolect model, backed up by the general language model, \emph{and} the recency buffer, these are worst result is \textbf{22\% CKS} and \textbf{24\% SKKS} for user 90, and the best result is \textbf{51\% CKS} and \textbf{52\% SKKS} for user 97.
+
 \subsubsection{Conclusion}
+We already saw that Soothsayer works best when using the idiolect as the main model, backed up by a general language model, and a recency buffer to capture the characteristics of the current text. When repeating these experiments on a much larger scale, the same results where found: idiolects work better, despite the general model having [[x]] times more training material, general language models can still be useful as a background model, and the recency buffer improves the results. Whereas using the recency buffer led to only slight improvements in the previous experiments, it actually lead to more substantial improvements here. The previous results can possibly be explained by the fact that there are a lot of individual differences; for some of the twitter users in the data set, the recency buffer did not work well either.
 
 \subsubsection{Discussion}
+It is unclear why there is so much variation between individual Twitter users. Why are some people so much easier to predict than others? Is it just limited to language style (i.e. some people simply write more varied than others), or are there more factors at play here? From manual inspections of the Twitter accounts sometimes some of the data could be explained (for example, some of the people for which the general (Dutch) language model did not work well, also tweeted in other languages, and people with very powerful idiolect sometimes often repeated words like \emph{goedemorgen} 'good morning', \emph{dankjewel} 'thank you', and \emph{welterusten} 'sleep well'), but no clear patterns emerged.
 
 %Nadelen van Twitter.
 %Voordelen van Twitter.
@@ -768,6 +846,10 @@ Experiment 1 investigates whether idiolect models or the general language model 
 \subsubsection{Results}
 
 \subsubsection{Conclusion}
+
+\subsubsection{Discussion}
+
+%Vrienden zijn niet je echte vrienden
 
 \subsection{Overview}
 
@@ -796,3 +878,6 @@ Experiment 1 investigates whether idiolect models or the general language model 
 %TODO
 % Consistent zijn in model, corpus, training material, text, idiolect vs personal... bijv. bij modules heet het 'model', in de resultaten 'training material'
 % Grafieken centreren
+% Die percentages over 100 procent weghalen
+% Captions tables verbeteren
+% Evaluaton naar intro?
