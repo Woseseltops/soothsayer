@@ -28,11 +28,16 @@ class Soothsayer():
 
     def __init__(self,approach = 'w', att_threshold=3, limit_personal_lexicon=3,
                  limit_backup_lexicon =30, test_cores = 10, punctuation = None,
-                cut_file = '', close_server = True, recency_buffer = False, mode = '',
-                 port = 0):
+                cut_file = '', close_server = True, recency_buffer = False,
+                 mode = '', limit = None, port = 0):
 
         self.approach       =   approach
-        self.att_threshold  =   att_threshold
+
+        if limit == None:
+            self.att_threshold  =   att_threshold
+        else:
+            self.att_threshold  =   0            
+
         self.test_cores     =   test_cores
         self.cut_file       =   cut_file
         self.limit_personal_lexicon = limit_personal_lexicon
@@ -45,6 +50,7 @@ class Soothsayer():
 
         self.port = port
         self.close_server   =   close_server
+        self.limit          =   limit
 
         self.modules = []
         self.timblservers = {}
@@ -295,6 +301,7 @@ class Soothsayer():
         """Starts the necessary servers and connects to them"""
 
         for i in models:
+            
             t = timbl.Timbl()
 
             if not self.close_server:
@@ -314,7 +321,7 @@ class Soothsayer():
                 else:
                     port = t.start_server(i.location)
                     print('No server found. Started a new server running',i.name)
-        
+
                 if t.connect(port):
                     break;
                 else:
@@ -358,7 +365,10 @@ class Soothsayer():
         print('  Create lexicon')
 
         if make_testfile:
-            lexicon_filename = foldername+'/'+directory[:-1]+'.90.lex.txt' 
+            if self.limit != None:
+                lexicon_filename = foldername+'/'+directory[:-1]+'.l'+str(self.limit)+'.lex.txt' 
+            else:
+                lexicon_filename = foldername+'/'+directory[:-1]+'.90.lex.txt' 
         else:
             lexicon_filename = foldername+'/'+directory[:-1]+'.lex.txt' 
         self.string_to_lexicon(total_text,lexicon_filename)
@@ -367,14 +377,27 @@ class Soothsayer():
         #In simulation mode, cut away 10 percent for testing later
         print('  Make test file if needed')
         if make_testfile:
+            #Create the files
             testfilename = foldername+'/'+directory[:-1]+'.10.test.txt'
-            training_filename = foldername+'/'+directory[:-1]+'.90.training.txt'
+
+            if self.limit != None:
+                training_filename = foldername+'/'+directory[:-1]+'.l'+str(self.limit)+'.training.txt'
+            else:
+                training_filename = foldername+'/'+directory[:-1]+'.90.training.txt'
 
             words = total_text.split()
-            boundary = round(len(words)*0.9)
 
-            open(testfilename,'w').write(' '.join(words[boundary:]))
-            total_text = ' '.join(words[:boundary])
+            #Calculate where the boundaries should be
+            end_boundary = round(len(words)*0.9)
+
+            if self.limit != None:
+                start_boundary = end_boundary - self.limit
+            else:
+                start_boundary = 0;
+
+            #Make the test file and the training string
+            open(testfilename,'w').write(' '.join(words[end_boundary:]))
+            total_text = ' '.join(words[start_boundary:end_boundary])
 
         #In demo mode, just take all
         else:
@@ -449,14 +472,22 @@ class Soothsayer():
         """Train a model on the basis of these ngrams"""
 
         command('timbl -f '+filename+' -I '+filename+'.IGTree +D +vdb -a1 -p 1000000',False)
-        filename = filename.replace('.training.txt','').split('/')[-1];
-        return Languagemodel(filename,self.approach,mode);
+        filename = filename.replace('.90.training.txt','').split('/')[-1]
+        filename = filename.replace('.training.txt','').split('/')[-1]
+        return Languagemodel(filename,self.approach,mode,self.limit)
 
     def string_to_lexicon(self,string,outputfilename):
         """Creates a lexicon from a string"""
 
-        #Counts words
+        #Get the words and limit them if needed
         words = string.replace('\n','').split()
+
+        if self.limit != None:
+            end_boundary = round(len(words)*0.9);
+            start_boundary = end_boundary - self.limit
+            words = words[start_boundary:end_boundary]
+
+        #Count them
         counts = {}
 
         for i in words:
@@ -641,16 +672,19 @@ class Module():
 
 class Languagemodel():
 
-    def __init__(self,name,approach,mode):
+    def __init__(self,name,approach,mode,limit=None):
 
         self.approach = approach
         self.mode = mode
         self.name_raw = name
 
-        if self.mode == 's':
-            self.name = self.name_raw + '.90'
-        else:
-            self.name = self.name_raw
+        if limit == None:
+            if self.mode == 's':
+                self.name = self.name_raw + '.90'
+            else:
+                self.name = self.name_raw
+        elif limit != None and self.mode == 's':
+            self.name = self.name_raw + '.l' + str(limit)
 
         if self.approach == 'w':
             self.folder = 'wordmodels'

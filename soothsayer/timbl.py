@@ -20,7 +20,7 @@ class Timbl:
 
         return port
 
-    def connect(self, port, host='', retry=10, interval=1):
+    def connect(self, port, host='', retry=20, interval=1):
         """ Connect to a Timbl server"""
 
         clientsocket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
@@ -32,6 +32,7 @@ class Timbl:
                 clientsocket.connect((host,int(port)))
                 clientsocket.recv(1024) # Ignore welcome messages
                 self.socket = clientsocket
+                break;
             except socket.error:
                 time.sleep(interval)
                 continue
@@ -43,6 +44,8 @@ class Timbl:
             if len(p.cmdline) > 9 and p.cmdline[9] == str(port):
                 self.pid = i;
                 break;
+
+        print(self.socket);
 
         return True
     

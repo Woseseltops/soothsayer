@@ -196,10 +196,10 @@ def simulate(model,lexicon,content_rb,teststring,settings,nr,result):
 #    ss.setup_basic_modules(model)
 
     ss.modules = [soothsayer.Module(ss,'PERS. MODEL/IGTREE',model.name,'igtree'),
-                  soothsayer.Module(ss,'GEN. MODEL/IGTREE','nlsave','igtree'),
-                  soothsayer.Module(ss,'RECENCY BUFFER',model.name,'rb'),
+                  #soothsayer.Module(ss,'GEN. MODEL/IGTREE','nlsave','igtree'),
+                  #soothsayer.Module(ss,'RECENCY BUFFER',model.name,'rb'),
                   soothsayer.Module(ss,'PERS. MODEL/LEXICON',model.name,'lex'),
-                  soothsayer.Module(ss,'GEN. MODEL/LEXICON','nlsave','lex'),
+                  #soothsayer.Module(ss,'GEN. MODEL/LEXICON','nlsave','lex'),
                  ]
 
     #Find out where to start (because of overlap)
@@ -528,6 +528,12 @@ if '-p' in sys.argv:
     settings['port'] = int(sys.argv[i+1])
 else:
     settings['port'] = False
+
+if '-lim' in sys.argv:
+    i = sys.argv.index('-lim')
+    settings['limit'] = int(sys.argv[i+1])
+else:
+    settings['limit'] = False
     
 #Create the directory
 #if settings['mode'] == 'd':
@@ -538,7 +544,8 @@ else:
 #Try opening the language model (and testfile), or create one if it doesn't exist
 if settings['mode'] in ['s','d']:
 
-    personal_model = soothsayer.Languagemodel(inp[:-1],settings['approach'],settings['mode']);
+    personal_model = soothsayer.Languagemodel(inp[:-1],settings['approach'],
+                                              settings['mode'],settings['limit']);
 
     ss = soothsayer.Soothsayer(**settings)
 
