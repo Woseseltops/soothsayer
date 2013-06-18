@@ -19,6 +19,6 @@ configs = sys.argv[1:];
 
 for i in configs:
     print('Started with '+str(i));
-    command('python3 soothsayer.py -w -s -id '+i,False);
+    command('python3 ss_standalone.py -w -s -id '+i,False);
     command('mv output/Soothsayer_output output/Soothsayer_output.'+str(i),True);
     print('Completed '+ str(i));

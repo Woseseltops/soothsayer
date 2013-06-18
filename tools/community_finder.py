@@ -79,16 +79,26 @@ def find_close_networks(d):
 
     return networks;
 
-tweeters = ['artbysophia','baspaternotte','marktwain2','pinaatje','pienbetuwe',
-            'rider_ot_storm','mrsmartine','chrisklomp','leolewin','contentgirl',
-            'amadeusivan','ongerijmd','umarebru','a_mieke','steephsel','brechtjedeleij',
-            'eetschrijver','esther_305','klapster','goedemorgenman','walterhoekstra',
-            'jasmijn02','miekeinc','sredlums','aldith_hunkar','tien020','karinwinters',
-            'johnschop','lobdozer','theollieworks','wup5','jennekepenneke','rebelsnotes',
-            'puberdochters','knotsbots','dennismons','fluist3r','mariannecramer',
-            'rjvanhouten','superjan','titchener','anniebbarks','fred3012','politicus1',
-            'peterstafleu','jettyvanrooy','mariannezw','jochemgeerdink','nabilfeki',
-            'kos_'];
+tweeters = ['4rch1t3ct', 'corriebult', 'jboekelman', 'megasupernieuws', 'sredlums',
+            'aafkebrons', 'deesje34', 'jdpoohbear', 'micheldebruijn', 'steephsel',
+            'aardengelpiet', 'deheldin', 'jennekepenneke', 'miekeinc', 'tasvolverhalen',
+            'agatha_make_up', 'dennismons', 'jessiesissammy', 'mitzyoss', 
+            'aldith_hunkar', 'devrouwthuis', 'jettyvanrooy', '_mrs', 'texas12345',
+            'eetschrijver', 'jndkgrf', 'mrsmartine', 'the_ed', 'amadeusivan', 'elmavonk',
+            'johnschop', 'musjes', 'tibetanpaddy', 'a_mieke', 'erwblo', 'josvrbk',
+            'nabilfeki', 'tien020', 'analons', 'esther_305', 'karinwinters',
+            'titchener', 'ewdevlieger', 'klapster', 'tourdejose',
+            'anniebbarks', 'fluist3r', 'knotsbots', 'tponl', 'archatoz', 'fred3012',
+            'kos_', 'ongerijmd', 'tvgeneuzel', 'artbysophia', 'godpipo', 'k_ruiter',
+            'paulzornig', 'umarebru', 'baspaternotte', 'goedemorgenman', 'leolewin',
+            'peterstafleu', 'vic23', 'bas_taart', 'gradjuh', 'lexcje', 'pienbetuwe',
+            'victorward', 'beanobrien13', 'harveycusick', 'liekelamb', 'pinaatje',
+            'walterhoekstra', 'henkkanning', 'lobdozer', 'politicus1',
+            'whippetpickle', 'boswachterfrans', 'hetspijtme', 'puberdochters', 'wup5',
+            'brechtjedeleij', 'house_fd', 'mariannecramer', 'rebelsnotes', 'w_veldhorst',
+            'casvries', 'humfthecocker', 'marjasandersnl', 'rider_ot_storm',
+            'zijhiernaast', 'chrisklomp', 'ikke_mij_deze', 'marktwain2', 'rjvanhouten',
+            'contentgirl', 'jasmijn02', 'maupienco', 'roosvanvugt'];
 
 networks = find_loose_networks('/scratch/wstoop/tweetdata/feeds');
 output = open('communities','w');
