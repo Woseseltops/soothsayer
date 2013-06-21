@@ -60,6 +60,17 @@ Period&Spring 2013\\
 \section{Summary/samenvatting}
 
 \subsection{English}
+In this thesis, the word prediction system \emph{Soothsayer} is described. This system predicts what a user is going to write as he/she is keying it in. The main innovation of Soothsayer is that it can use \emph{idiolects} as its source of knowledge. An idiolect is the language of one individual person. 
+
+The thesis starts with an overview what has been achieved so far in chapter \ref{intro}, both in the fields of word prediction (section \ref{word_prediction}) and in the fields of idiolects (section \ref{idiolects}). The rest of the thesis is devoted to describing how the system works, and describing various experiments that demonstrate this is indeed the best way to do it. A word prediction system consists of two main parts: an algorithm (how the system works), and a language model (its knowledge of the language). These topics are discussed separately in chapters \ref{algorithm} and \ref{model} respectively.
+
+In chapter \ref{algorithm}, I start with a very simple system that works with a word list. When the word the user is keying in can only correspond to one word in this word list, this word is predicted. This system then is made more complex step by step; the most important addition are so-called \emph{context-sensitive modules}, which work by comparing the context to contexts they have seen before. If a group of contexts is similar enough, the word that followed these contexts is predicted. The contexts they have seen before are from an enormous amount of text in the same language, which is called 'training material'.
+
+In chapter \ref{model}, I investigate what kind of text works best as training material. This turns out to be the language the user has written earlier. This is because this way the system has information on how the user writes, and about which topics, which greatly increases the chance of giving the right prediction. It is, however, also possible that the user talks about something completely new. In that case, the system will try to look at (1) the text the user is currently keying in (the \emph{recency buffer}) and (2) other texts from the same language.
+
+To test this all on a much larger scale, I used Twitter. During the spring of 2013, all tweets from a very large group of Twitter users were collected. For the 100 most talkative ones, Soothsayer then tried to predict the later tweets on the basis of earlier tweets. Again, most keystrokes could have been saved when using the idiolect model, with the recency buffer and the general language model in the background. 
+
+Because Twitter also has information on which users talk to each other a lot, I also tried \emph{sociolect} models. These models are based on the tweets of a particular person \emph{and} the tweets of the people he/she often communicates with. The idea behind is that people who often communicate start to talk alike; in other words, the language of the friends of person $x$ can be helpful in trying to predict was person $x$ is going to say. This approach improved the results even further. For a number of users, more than 50\% of the keystrokes could have been saved if they had used Soothsayer. 
 
 \subsection{Nederlands}
 
@@ -207,7 +218,7 @@ Module&Type&Model\\
 3&Context-sensitive&model 2\\
 4&Context-insensitive&model 2\\
 \end{tabular} 
-\caption{A possible module set-up}
+\caption{A possible module set-up for Soothsayer}
 \end{table}
 
 Modules can be concatenated in such a way that a second module takes over once the first modules no longer has predictions, a third module takes over once the second one no longer has predictions, etcetera. This makes it possible to use multiple prediction techniques \emph{and} multiple language models in one prediction system.
@@ -236,6 +247,8 @@ There are many possible approaches to take when building an word prediction syst
 
 \begin{itemize}
 \item \textbf{Soothsayer does not predict more than one word at a time}. Some scholars have investigated the possibility to predict multiple words at the same time [[refs]]. This can very fruitful: if a word prediction system knows that \emph{on the b} should be \emph{on the basis of} it makes more sense to offer this as a whole, instead of first asking whether \emph{basis} is correct. However, multiword prediction comes with a lot of downsides: every extra word that is predicted greatly increases the chance of making an incorrect prediction, it is unclear what a user should do if he/she accepts the first word, but the not the second word (or vice versa), and how this should be counted in terms of keystrokes. Furthermore, giving multiple words forces the user to plan ahead a few words while typing, which might not be how the user prefers to write. A useful side effect of predicting only one word at a time is that the space key can be used as an accept button \cite{Garay-Vitoria+06}.
+
+%Refs
 
 \item \textbf{Soothsayer does not focus on one specific domain of word prediction, but works for word prediction is general}. I expect query completion (i.e. Google completing what you wanted to search for) is the most-used form of word prediction at the moment. It is, however, a relatively small and simple form of it, that probably works with popularity statistics: if your query matches a query a lot of other users also used, this query is suggested. Although this is a smart system that works well, it can only be used for query completion. Soothsayer, on the other hand, can be used for query completion, but also for a lot of other things.
 
@@ -312,7 +325,7 @@ There are many algorithms to do classification automatically. Soothsayer uses th
 
 The first three words are the instances, the fourth word (between parentheses) is used as the class label. If we then classify a new instance \emph{one two three}, a KNN algorithm will look at these training instances, and decide whether they are similar enough to taken into consideration. What exactly is taken as the definition of 'similar' differs per algorithm; we will follow the IB1-algorithm \cite{aha+91} and simply count how many features overlap. The instance \emph{one two three} is extremely similar: three of the three features match. We then look at the class of this similar example (four), and give this as a result. Simply said, in this case the context-sensitive module will predict \emph{four} because it had exactly the same context in its training corpus, and that context was followed by \emph{four}.
 
-If we set $k$ to 2, both \emph{one two and} and \emph{one two plus} become a possibility as well: they both have two matching features. If we count instances with the same amount of matching features as 1, we now end up with three similar cases. Because most of these cases have \emph{four} as a class label, four will be predicted. Note that \emph{nearest distance classification} would actually be a better name for what we are doing here: we do not use the $k$ nearest neighbours, but \emph{all} nearest neighbours from the $k$ nearest distances [[ref tibml]].
+If we set $k$ to 2, both \emph{one two and} and \emph{one two plus} become a possibility as well: they both have two matching features. If we count instances with the same amount of matching features as 1, we now end up with three similar cases. Because most of these cases have \emph{four} as a class label, four will be predicted. Note that \emph{nearest distance classification} would actually be a better name for what we are doing here: we do not use the $k$ nearest neighbours, but \emph{all} nearest neighbours from the $k$ nearest distances \shortcite{daelemans+97}.
 
 Because the many class labels used for word prediction, Soothsayer always uses a $k$ of 1.
 
@@ -374,14 +387,14 @@ This means that it would make sense to concenate context-sensitive and context-i
 Context-insensitive$\rightarrow$context-sensitive&30&35\\
 Context-sensitive$\rightarrow$context-insensitive&33&37\\
 \end{tabular} 
-\caption{Percentage of keystrokes saved for the two orderings} \label{results_concat}
+\caption{Percentage of keystrokes Soothsayer saves with a context-sensitive module first and a context-insensitive module first} \label{results_concat}
 \end{table}
 
 For this reason context-sensitive modules will always be ranked before context-insensitive ones in the remainder of this thesis.
 
 \subsubsection{Attenuation}
 
-[[Literature attenuation: bij grote corpora. Zipf noemen.]]
+%Literature attenuation: bij grote corpora. Zipf noemen.
 
 In the experiments presented so far speed has not really been an issue, because the training corpus was relatively small (686577 words). However, in section \ref{simple_exp} we will use a background corpus that is considerably larger ([[x]] words), which would make attenuation useful; see [[x]] for more detailed information about the corpus and how attenuation affects its prediction speeds. For now, it suffices to say that Soothsayer uses a default attenuation threshold of 3 because this speeds up the predictions, while it has very little effect on the prediction accuracy. For the training corpus used in this chapter, the effects of attenuation are summarized in table \ref{results_att}.
 
@@ -396,9 +409,8 @@ With attenuation&33&38&660\\
 \caption{Percentage of keystrokes saved and simulation times with and without attenuation.} \label{results_att}
 \end{table}
 
-As the table shows, the duration of the simulation decreased when the attenuation was turned on. As noted before, however, for this relatively small training corpus this was not needed: with a test text of 105922 characters, the 752 seconds Soothsayer takes for the simulation without attenuation already mean an average 141 of keystrokes per second could be achieved. This is well above the 7 keystrokes per second for fast typists, according to Wikipedia\footnote{\url{en.wikipedia.org/wiki/Words\_per\_minute}}.
+As the table shows, the duration of the simulation decreased when the attenuation was turned on. As noted before, however, for this relatively small training corpus this was not needed: with a test text of 105922 characters, the 752 seconds Soothsayer takes for the simulation without attenuation already mean an average 141 of keystrokes per second could be achieved. This is well above the 8 keystrokes per second for fast typists, according to \citeA{kieras+94}.
 
-%er is nog iemand die typsnelheden aangeeft
 
 \subsubsection{Handling morphology}
 %Vit-nogwat bespreekt allemaal morfologiesystemen, een beetje doornemen als dat nog niet eerder is gedaan? Daarna laten zien dat het niet goed genoeg werkt, en dus voor het Nederlands uitstaat.
@@ -452,7 +464,7 @@ Without recency buffer&33&37\\
 Context-sensitive module$\rightarrow$\textbf{recency buffer}$\rightarrow$context-insensitive module&34&39\\
 Context-sensitive module$\rightarrow$context-insensitive module$\rightarrow$\textbf{recency buffer}&34&39\\
 \end{tabular} 
-\caption{Percentage of keystrokes saved with a recency buffer.} \label{results_rb}
+\caption{Percentage of keystrokes saved with and without a recency buffer.} \label{results_rb}
 \end{table}
 
 As can be seen, adding a recency buffer only results in slight improvements. As will be investigated in detail in sections \ref{recbuf} and \ref{twitter_idiolects}, this is related to the nature of the training material: the material used for the experiments in this chapter are idiolect data, which has roughly the same kind of 'information' about the language of the user as the recency buffer. In sections \ref{recbuf} and \ref{twitter_idiolects}, the recency buffer will added to various models to see how much it improves. For now, the important thing is that it indeed improves the results. 
@@ -509,7 +521,7 @@ Position&Type&Model\\
 1&Context-sensitive&idiolect\\
 2&Context-insensitive&idiolect\\
 \end{tabular} 
-\caption{Module order when testing the idiolect model.} \label{idiolect_setup}  
+\caption{Module order for a simple idiolect simulation.} \label{idiolect_setup}  
 \end{table}
 
 \begin{table}[H]
@@ -519,7 +531,7 @@ Position&Type&Model\\
 1&Context-sensitive&general\\
 2&Context-insensitive&general\\
 \end{tabular} 
-\caption{Module order when testing the general model.} \label{generalmodel_setup} 
+\caption{Module order for a simulation for the general model.} \label{generalmodel_setup} 
 \end{table}
 
 
@@ -532,7 +544,7 @@ Training material&Test material&CKS&SKKS\\
 General &Text by WS&22&25\\
 Idiolect&Text by WS&35&39\\
 \end{tabular} 
-\caption{Percentage of keystrokes that can be saved when using two different language models} \label{results_simple}
+\caption{Percentage of keystrokes that can be saved when using the general and the idiolect model} \label{results_simple}
 \end{table}
 
 Table \ref{results_simple} shows that  using the idiolect model indeed leads to more keystrokes saved. 
@@ -587,7 +599,7 @@ Position&Type&Model\\
 3&Context-insensitive&idiolect\\
 4&Context-insensitive&general\\
 \end{tabular} 
-\caption{Module order 1} \label{order1}
+\caption{Module order with the general model as background model, version 1} \label{order1}
 \end{table}
 
 \begin{table}[H]
@@ -599,7 +611,7 @@ Position&Type&Model\\
 3&Context-sensitive&general\\
 4&Context-insensitive&general\\
 \end{tabular} 
-\caption{Module order 2} \label{order2}
+\caption{Module order with the general model as backgroun model, version 2} \label{order2}
 \end{table}
 
 \subsubsection{Results}
@@ -614,7 +626,7 @@ Idiolect&Text by WS&35&39\\
 Idiolect + general, order 1&Text by WS&39&42\\
 Idiolect + general, order 2&Text by WS&39&42\\
 \end{tabular} 
-\caption{Percentage of keystrokes that can be saved when using two different language models} \label{results_background}
+\caption{Percentage of keystrokes that can be saved when using the general model as background model} \label{results_background}
 \end{table}
 
 \subsubsection{Conclusion}
@@ -634,7 +646,7 @@ Training material&Test material&CKS&SKKS\\
 Idiolect&Text by AK&26&29\\
 Idiolect + general&Text by AK&37&40\\
 \end{tabular} 
-\caption{Percentage of keystrokes that can be saved when using two different language models} \label{results_kuipers}
+\caption{Percentage of keystrokes that can be saved when using the idiolect of Andr\'e Kuipers, with and without background model} \label{results_kuipers}
 \end{table}
 
 These results show again that the algorithm performs much better when it uses the background model. Interestingly, whereas this idiolect alone leads to lower percentages than the idiolect of the main experiment, when using a background model the results are similar. We thus see much larger increase: 11\% (compared to the 6\% of the main experiment). Apparently, because for the idiolect model of Andr\'e Kuipers less material was available, there is a larger knowledge gap the general language model can fill.
@@ -665,7 +677,7 @@ Position&Type&Model\\
 2&Recency buffer&recent words\\
 3&Context-insensitive&idiolect\\
 \end{tabular} 
-\caption{The module order for simulation 1} 
+\caption{The module order for simulation 1, with the idiolect model and the recency buffer} 
 \end{table}
 
 \begin{table}[H]
@@ -676,7 +688,7 @@ Position&Type&Model\\
 2&Recency buffer&recent words\\
 3&Context-insensitive&general\\
 \end{tabular} 
-\caption{The module order for simulation 2} 
+\caption{The module order for simulation 2, with the general model and the recency buffer} 
 \end{table}
 
 \begin{table}[H]
@@ -689,7 +701,7 @@ Position&Type&Model\\
 4&Context-insensitive&idiolect\\
 5&Context-insensitive&general\\
 \end{tabular} 
-\caption{The module order for simulation 3} \label{sim3}
+\caption{The module order for simulation 3, with the idiolect model, the general model and the recency buffer} \label{sim3}
 \end{table}
 
 
@@ -759,7 +771,7 @@ Simulation&Experiment&Idiolect, context-sensitive&General, context-sensitive&Rec
 6&3&x&x&x&x&x\\
 
 \end{tabular} 
-\caption{Overview of the module-setups} 
+\caption{Overview of all module set-ups} 
 \end{table}
 
 Experiment 1 investigates whether idiolect models or the general language model are more powerful, experiment 2 investigates the effects of using the general language model as background model, and experiment 3 investigates the effect of adding the recency buffer to the idiolect model, the general language model, and both.
@@ -778,7 +790,7 @@ General&Twitter feed&14&5&23&5\\
 Idiolect&Twitter feed&23&8&27&8\\
 General + idiolect&Twitter feed&26&6&30&6\\
 \end{tabular} 
-\caption{Mean percentage of keystrokes saved (\textbf{CKS}) and standard deviations for various module set-ups.} \label{twitter_results_cks}
+\caption{Mean percentage of keystrokes saved (\textbf{CKS}) and standard deviations for all module set-ups.} \label{twitter_results_cks}
 \end{table}
 
 \begin{table}[H] 
@@ -791,7 +803,7 @@ General&Twitter feed&16&6&26&5\\
 Idiolect&Twitter feed&25&8&28&7\\
 General + idiolect&Twitter feed&28&6&32&6\\
 \end{tabular} 
-\caption{Mean percentage of keystrokes saved (\textbf{SKKS}) and standard deviations for various module set-ups.} \label{twitter_results_skks}
+\caption{Mean percentage of keystrokes saved (\textbf{SKKS}) and standard deviations for all module set-ups.} \label{twitter_results_skks}
 \end{table}
 
 First of all, we see that all main findings could be replicated: 
@@ -818,7 +830,7 @@ Twitter user&\multicolumn{2}{l}{Without recency buffer}&\multicolumn{2}{l}{With 
 34&35&37&35&38\\
 43&35&37&36&38\\
 \end{tabular} 
-\caption{Percentage of keystrokes saved for 4 individual Twitter users, using the module set-up with the idiolect and the general language model} \label{twitter_users_rb}
+\caption{Percentage of keystrokes saved for 4 individual Twitter users, with and without the recency buffer} \label{twitter_users_rb}
 \end{table}
 
 Here, we see that for user 2 and 93 adding the recency buffer results in an considerable increase in the number of keystrokes saved, whereas the effect can barely be measured for user 34 and 43. Similar discrepancies can be found for the other research results, as displayed in table \ref{twitter_users}. These are the results without recency buffer.
@@ -834,7 +846,7 @@ Twitter user&\multicolumn{2}{l}{General model}&\multicolumn{2}{l}{Idiolect model
 55&23&26&24&26&32&36\\
 78&11&13&35&38&35&38\\
 \end{tabular} 
-\caption{Percentage of keystrokes saved for 4 individual Twitter users, using the module set-up without the recency buffer} \label{twitter_users}
+\caption{Percentage of keystrokes saved for 4 individual Twitter users, for the idiolect and the general model} \label{twitter_users}
 \end{table}
 
 For user 97, we see that the general model alone leads to very few correct predictions, while the opposite is true for the idiolect model. Using the general language model as background model even leads to a decrease in the number of keystrokes saved. We see the reverse situation with user 90, for whom the general model actually did better predictions than the idiolect model. For user 55, we see that using the general language model as a background model leads to a considerable increase in percentage of keystrokes saved, while there is no measurable difference for user 78.
@@ -964,13 +976,11 @@ Instead of the language variety of a group of people, what is used here is more 
 Furthermore, the possible points of critique I formulated in the previous section (Twitter language is no real language, Twitter users are not representative of the whole population) can also be extended to this experiment: social relations as visible on Twitter are likely to be only a fraction of the real the social relations of a particular person, and might also be a misleading representation of it. For instance, people who never speak to eachother in real life might talk a lot on Twitter, and vice versa. Although this is a valid argument, I believe this only strengthens my point: if using only a noisy fraction of somebody somebody social relations already leads to significant results, I imagine the results will be even better when it would be possible to capture the social relations better.
 
 \subsection{Overview}
-After having discovered which algorithm provides the best results in chapter \ref{algorithm}, in this chapter the language model was investigated. The most important finding is that using idiolect models lead to the most keystrokes saved by far. Idiolect models fail when the user writes about something he/she has not written about before, but these situations can be covered by either by the recency buffer, which learns from the text as the user is writing it and thus has information on what the text is about, or by the general language model, which has general information about the language the user is using, and thus can do general predictions as long as the things the user is saying are not too unusual.
+After having discovered which algorithm provides the best results in chapter \ref{algorithm}, in this chapter the language model was investigated. The most important finding is that using idiolect models leads to the most keystrokes saved by far. Idiolect models fail when the user writes about something he/she has not written about before, but these situations can be covered by either by the recency buffer, which learns from the text as the user is writing it and thus has information on what the text is about, or by the general language model, which has general information about the language the user is using, and thus can do general predictions as long as the things the user is saying are not too unusual in that language. 
 
-These findings were replicated by using 100 Twitter feeds as idiolects, although it did not hold for every single speaker; apparently, for some speakers language is easier to predict than for others. Furthermore, because people who are in some way related tend to speak alike, it was also tested whether adding tweets of the people these 100 Twitter users communicated with often could increase the results. This turned out to be the case.
+These findings were also clearly visible when replicated with 100 Twitter feeds as idiolects. Interestingly it was equally strong for every speaker; apparently, for some speakers language is easier to predict than for others. Furthermore, because people who are in some way related tend to speak alike, it was also tested whether adding tweets of the people these 100 Twitter users communicated with often could increase the results. This turned out to be the case. Here again, this worked better for some users than for others. The best result that was achieved was a \textbf{56\% CKS} and a \textbf{58\% SKKS}.
 
-%Indiv. differences?
-%Misschien wat meer zeggen over wat dat dan betekent?
-%Beste resultaten
+To summarize this all in one statement: to save the most keystrokes, it is best to use language as close as possible to the user of the word prediction system.
 
 \section{Conclusion} \label{conclusion}
 
@@ -991,6 +1001,6 @@ These findings were replicated by using 100 Twitter feeds as idiolects, although
 %TODO
 % Consistent zijn in model, corpus, training material, text, idiolect vs personal... bijv. bij modules heet het 'model', in de resultaten 'training material'
 % Misschien beter uitleggen bovenstaande
-% Captions tables verbeteren
 % Evaluaton naar intro?
 % Alle plaatjes moeten nog toegevoegd worden
+% Statistiek
