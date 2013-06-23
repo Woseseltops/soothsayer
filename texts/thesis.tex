@@ -200,10 +200,20 @@ As was explained in detail in section \ref{word_prediction}, word prediction sys
 
 \subsection{Introduction}
 
-\subsubsection{Soothsayer} \label{ss_intro}
-The goal of this chapter is to build the best word prediction algorithm possible, from the ground up. We will start with a very basic application that uses word uniqueness thresholds to predict the word the user is keying in, and add more components and smaller improvements step by step. I have given the resulting system the working title \emph{Soothsayer}, for ease of reference.
+The goal of this chapter is to build the best word prediction algorithm possible, from the ground up. We will start with a very basic application that uses word uniqueness thresholds to predict the word the user is keying in, and add more components and smaller improvements step by step. I have given the resulting system the working title \emph{Soothsayer}, for ease of reference. 
 
-An important thing to note is that Soothsayer works with independent modules. A module can be seen as a function that takes some input (for example, the letters of the word the user is currently keying in) and uses a language model to generate:
+Before I can start, however, there are three things I want to discuss: 
+
+\begin{itemize}
+\item Soothsayer's architecture, so the reader has an idea of how all components described below work together.
+\item How I evaluate the system, so there is objective information on whether an addition improves the prediction accuracy.
+\item What Soothsayer is not, i.e. what is the scope of this project.
+\end{itemize}
+
+These topics are topics are discussed in sections \ref{ss_intro}, \ref{evaluation} and \ref{whatnot} respectively.
+
+\subsubsection{Soothsayer's architecture} \label{ss_intro}
+Soothsayer works with independent modules. A module can be seen as a function that takes some input (for example, the letters of the word the user is currently keying in) and uses a language model to generate:
 
 \begin{enumerate}
 \item The most likely prediction
@@ -228,10 +238,14 @@ Module&Type&Model\\
 
 Modules can be concatenated in such a way that a second module takes over once the first modules no longer has predictions, a third module takes over once the second one no longer has predictions, etcetera. This makes it possible to use multiple prediction techniques \emph{and} multiple language models in one prediction system.
 
-\subsubsection{Evaluation}
+\subsubsection{Evaluating additions} \label{evaluation}
 In this chapter, I will propose an addition to Soothsayer and then measure to what extent it improves the number of keystrokes saved several times. But how does one measure how many keystrokes are saved exactly? In other words, what is the best way to evaluate a word prediction system?
 
-One possibility is to provide the user with a list of the $n$ most likely predictions \cite{Lesher+99,Fazly+03}. This approach has the advantage that it results in high percentages of keystrokes saved (in particular when $n$ is set to a high value, because this means the system can do multiple guesses at once, while only one has to be correct), but also has downsides. As \citeA{vandenbosch11} notes: 
+In the literature so far, there is still discussion on what is the best way to evaluate word prediction systems. A very straightforward evaluation might be to calculate the percentage of correctly predicted words (the so-called \emph{hit-ratio}), but as \citeA{Garay-Vitoria+06} note, this is not not enough: a system that has 100\% of the words correct, but only gives this prediction at the last letter every word saves very little keystrokes. A more natural way might be to test with real humans, and measure how much time they save when using the system [[refs]]. However, this is a costly and time-consuming task, as the participants will need a considerable amount of time to get used to the system. Therefore, I will evaluate Soothsayer by simulating somebody keying in a text, and simply counting how many keystrokes this virtual user does not have to do when using the system. 
+
+%refs
+
+However, even when using simulations, there are multiple ways to evaluate the system. One possibility is to provide the user with a list of the $n$ most likely predictions \cite{Lesher+99,Fazly+03}. This approach has the advantage that it results in high percentages of keystrokes saved (in particular when $n$ is set to a high value, because this means the system can do multiple guesses at once, while only one has to be correct), but also has downsides. As \citeA{vandenbosch11} notes: 
 
 \begin{quotation}
 [I]n many devices and circumstances it is inefficient or impossible to present [...] suggestion lists. Inspecting a list of suggestions also poses a larger cognitive load than checking a single suggestion, and furthermore it is unclear how scrolling, browsing and selecting items from this list should be counted in terms of keystrokes.
@@ -243,11 +257,7 @@ On the other hand, current popular smartphone applications suggest this approach
 
 A thing to notice is that both measures reflect the percentage of keystrokes saved in an ideal situation; that is, when the user accepts a correct prediction immediately once it is available. As will be discussed further in section \ref{early}, this is not necessarily the case. 
 
-%referenties nalezen, meer toevoegen
-%wordt dat echt discussed? NEE
-%Hit ratio. Time-saving, person saving.
-
-\subsubsection{What Soothsayer is not}
+\subsubsection{What Soothsayer is not} \label{whatnot}
 There are many possible approaches to take when building an word prediction system. Because it would take too much time to try all of these approaches (and all combinations of them), I had to set limitations. Therefore, before I explain and defend the workings of Soothsayer, I therefore would like to list the most important decisions, so the reader has a rough idea of what is coming (and what is not). 
 
 \begin{itemize}
@@ -338,7 +348,7 @@ Because the many class labels used for word prediction, Soothsayer always uses a
 
 An important thing to notice from the three training instances in the example is that the third feature is the only feature that has relationship with the class label. The first two features are always \emph{one} and \emph{two} respectively, regardless of the class, and thus cannot be used to find out to which class this instance belongs. This is what is used in the in the IB1-IG algorithm, an variation on the IB1 algorithm mentioned previously: because they have a better relation to the class label, some features are given more weight in the decision process.
 
-This idea that some features can be more useful than others can even be used on a much deeper level to solve another problem: the IB1 algorithm generally is too slow to be used in practical applications, like Soothsayer. While the classification in the example above can be done in a split second, this is not the case for word prediction based on a lot of training material: a training corpus of ten thousand words means that a new instance has to be compared to ten thousand training instances for every character the user keys in. This takes too long, even for powerful computers, and is not necessary. This can be best explained with an example. Let us take the following four instances as our training corpus:
+The idea that some features can be more useful than others can even be used on a much deeper level to solve another problem: the IB1 algorithm generally is too slow to be used in practical applications, like Soothsayer. While the classification in the example above can be done in a split second, this is not the case for word prediction based on a lot of training material: a training corpus of ten thousand words means that a new instance has to be compared to ten thousand training instances for every character the user keys in. This takes too long, even for powerful computers, and is not necessary. This can be best explained with an example. Let us take the following four instances as our training corpus:
 
 \begin{examples}
 \item I ate those (cookies)
@@ -349,7 +359,7 @@ This idea that some features can be more useful than others can even be used on 
 
 Whereas the first feature again has no relation with the class, the second one clearly has: as soon as we see \emph{ate}, we know that the classes \emph{zebras} and \emph{elephant} are no longer an option, and that it is of no use to 'keep them in mind' as an option.
 
-This is exactly how the IGTree algorithm \cite{daelemans+97} works: it calculates which features contain most information about the class labels, and orders the features from most information to least information. It then goes through these features one by one, and at each point 'throws away' the training instances which are no longer an option. This reduces classification to making a small number of decisions (in our case 3, because we have 3 features), instead of comparing thousands of strings. A possible decision tree for the training instances above can be seen in \ref{igtreetree}.
+This is exactly how the IGTree algorithm \cite{daelemans+97} works: it calculates which features contain most information about the class labels, and orders the features from most informative to least informative. It then goes through these features one by one, and at each point 'throws away' the training instances that are no longer an option. This reduces classification to making a small number of decisions (in our case 3, because we have 3 features), instead of comparing thousands of strings. A possible decision tree for the training instances above can be seen in \ref{igtreetree}.
 
 \qtreeshowframes 
 
@@ -359,18 +369,16 @@ This is exactly how the IGTree algorithm \cite{daelemans+97} works: it calculate
 \label{igtreetree}
 \end{examples}
 
-But what happens if we ask IGTree to classify \emph{I ate these}? At the second node, \emph{these} is not one of the features, so the algorithm cannot make a decision. If a classification gets 'stuck' somewhere, which is almost always the case because the users can of course type anything they want, Soothsayer asks the algorithm to return everything which was still a possibility at that point; the classes \emph{cookies} and \emph{cake} in our example. For each possible class, \emph{confidence values} can then be calculated. Confidence values correspond to the percentage of all instances still possible that had that class. The result for \emph{I ate these} in our example would thus be \emph{cookies} with a confidence value of 0.5 (1 of the 2 instances still possible had this class), and \emph{cake} with a confidence value of 0.5 (1 of the 2 instances still possible had this class). %confidence checken
+But what happens if we ask IGTree to classify \emph{I ate these}? At the second node, \emph{these} is not one of the features, so the algorithm cannot make a decision. If a classification gets 'stuck' somewhere, which is almost always the case because the users can of course type anything they want, Soothsayer asks the algorithm to return everything which was still a possibility at that point. In our example, this are the classes \emph{cookies} and \emph{cake} - note that both are indeed possible words, because the classifier still used the feature \emph{ate}. For each possible class, \emph{confidence values} can then be calculated. Confidence values correspond to the percentage of all instances still possible that had that class. The result for \emph{I ate these} in our example would thus be \emph{cookies} with a confidence value of 0.5 (1 of the 2 instances still possible had this class), and \emph{cake} with a confidence value of 0.5 (1 of the 2 instances still possible had this class). If, however, there would have been two more examples with the word \emph{ate} in them that were followed by \emph{cake}, \emph{cake} would have a confidence of 0.75 (3 of the 4 instances still possible had tihs class), and \emph{cookies} would have a confidence value of 0.25 (1 of the 4 isntances still possible had this class).
 
 In practice, what Soothsayer's context-sensitive modules do is:
 
 \begin{enumerate}
-\item Starting \emph{timblserver}, a software suite of Memory-based Learning software, which includes IGTree (ref). Timblserver is similar TiMBL, but get its input using socket communication. This allows Soothsayer to keep the program running, instead of reloading the tree into memory every single time a classification is needed.
+\item Starting \emph{timblserver}, a software suite of Memory-based Learning software, which includes IGTree (ref). Timblserver is similar TiMBL, but get its input using the Transmission Control Protocol. This allows Soothsayer to keep the program running, instead of reloading the tree into memory every single time a classification is needed.
 \item Every time the user keys in a character, collecting the last three words, and sending them to the Timblserver.
-\item Collecting the output, and picking the word that matches with what already has been typed so far. If more words match, pick the one with the highest confidence.
+\item Collecting the output (the classes, thus the word predictions, that Timblserver returned), and picking the word that matches with what already has been typed so far. If more words match, pick the one with the highest confidence.
 \item Returning this word as a suggestion.
 \end{enumerate}
-
-%socket communication?
 
 \subsubsection{The experiment}
 
@@ -417,7 +425,7 @@ With attenuation&33&38&660\\
 As the table shows, the duration of the simulation decreased when the attenuation was turned on. As noted before, however, for this relatively small training corpus this was not needed: with a test text of 105922 characters, the 752 seconds Soothsayer takes for the simulation without attenuation already mean an average 141 of keystrokes per second could be achieved. This is well above the 8 keystrokes per second for fast typists, according to \citeA{kieras+94}.
 
 
-\subsubsection{Handling morphology}
+\subsubsection{Handling morphology} \label{early}
 %Vit-nogwat bespreekt allemaal morfologiesystemen, een beetje doornemen als dat nog niet eerder is gedaan? Daarna laten zien dat het niet goed genoeg werkt, en dus voor het Nederlands uitstaat.
 
 %Hier bruggetje: kijk niet naar inhoud, maar naar vorm
@@ -448,8 +456,6 @@ Early prediction switching after 3 keys&33&37\\
 \end{tabular} 
 \caption{Percentage of keystrokes saved with and without early prediction switching.} \label{results_epd}
 \end{table}
-
-%Laten zien dat het in een meer-inflecterende taal wel werkt?
 
 \subsubsection{Recency} \label{rb}
 
@@ -488,11 +494,7 @@ In this chapter, I started with 1 simple context-insensitive module based on uni
 
 \section{The model: idiolects} \label{model}
 
-In chapter \ref{intro}, we saw that both \shortciteA{verberne+12} and \citeA{vandenbosch11} try to give their system information about the style and the content of what they are trying to predict: whereas \citeA{verberne+12} used training material similar to the test material, \citeA{vandenbosch11} made his system learn about the user on the fly. In section \ref{restofthisthesis}, a new approach was suggested: linking the field of word prediction to the field of idiolects.
-
-%Mogelijk advantages beschrijven, hangt een beetje af van wat ik in hfst 1 doe.
-
-Now we have a working algorithm, as described in chapter \ref{algorithm}, we can test this suggestion empirically by comparing the number of keystrokes that can be saved when using various models. The power of idiolects will be shown with a simple experiment in section \ref{simple_exp}. In section \ref{background}, we will see that general models can still be useful, however; they can function as a safety-net in case the author use a word or combination of words that very common to the language, but he/she has never used before. Section \ref{recbuf} will show what effect the recency buffer has on these language models.
+In chapter \ref{intro}, we saw that both \shortciteA{verberne+12} and \citeA{vandenbosch11} try to give their system information about the style and the content of what they are trying to predict: whereas \citeA{verberne+12} used training material similar to the test material, \citeA{vandenbosch11} made his system learn about the user on the fly. In section \ref{restofthisthesis}, a new approach was suggested: linking the field of word prediction to the field of idiolects. This approach has the advantage that it (1) users material that is usually easily available \emph{and} can use context-sensitivity. Now we have a working algorithm, as described in chapter \ref{algorithm}, we can test this suggestion empirically by comparing the number of keystrokes that can be saved when using various models. The power of idiolects will be shown with a simple experiment in section \ref{simple_exp}. In section \ref{background}, we will see that general models can still be useful, however; they can function as a safety-net in case the author use a word or combination of words that very common to the language, but he/she has never used before. Section \ref{recbuf} will show what effect the recency buffer has on these language models.
 
 In section \ref{twitter_idiolects}, these experiment will then be replicated on a much larger scale, using 100 Twitter feeds as idiolects. After that, section \ref{input_networks} will show that the idiolect model can be extended to what will be called a sociolect model: the language of the people the user often communicates with.
 
@@ -988,10 +990,23 @@ These findings were also clearly visible when replicated with 100 Twitter feeds 
 To summarize this all in one statement: to save the most keystrokes, it is best to use language as close as possible to the user of the word prediction system.
 
 \section{Conclusion} \label{conclusion}
+In this thesis, I have described the workings of my word prediction system. Furthermore, I hope to have shown a number of things:
+
+\begin{enumerate}
+\item Word prediction and idiolects are a golden combination.
+\item When building a word prediction system, concentrating on either the algorithm or the language model alone is not enough.
+\item What works well for one speaker, might not necessarily work for another.
+\item The fact that people speak like the people around them can also be useful to word prediction.
+\end{enumerate}
+
+From here, there are a number of ways this research could go. One could, for example, try to answer the questions these conclusions inevitably raise. What causes the differences between speakers? Can we, on the basis of texts the user wrote earlier, predict what will work and what will not? Or could we adapt the system on the fly, so that it can be most useful to a particular user? And what would be a practical implication of the discoveries related to idiolects? Would a social media plugin to share language models between friends work? Another group of questions that can still be answered can be found when the limitations I set at the beginning of this thesis are removed. What would be the effects of predicting more words at the same time? What are Soothsayer's pros and cons if we focus on one specific domain of word prediction, like query completion?
+
+Whatever the answers to these questions may be, what we have so far ...
+%Iets met altijd completion gebruiken.
 
 \section{Acknowledgements/dankwoord}
 
-% Eenzaam, 'gevecht tussen man en computer'. Bedank Jacintha, Hannah, Iris, Kobie, Ali en Florian.
+% Eenzaam, 'gevecht tussen man en computer'. Bedank Hannah, Iris, Kobie, Ali en Florian.
 % Véronique onderwerp, en Lieke voor idiolect ipv ideolect.
 % Maarten, Florian en Bouke voor de vele dingen programmeren.
 % Antal: mails. Tegelijkertijd waren we met nog veel andere dingen bezig.
