@@ -419,11 +419,16 @@ def server_mode(settings):
 
         def unload_model(self,model):
             pass;
+
+    def pa():
+        pass;
             
     cherrypy.config.update({
             'server.socket_host': '0.0.0.0',
             'server.socket_port': settings['port']
         })
+
+    cherrypy.engine.signal_handler.handlers['SIGHUP'] = pa;
 
     soothsayers = {}
     lexicons = {};
