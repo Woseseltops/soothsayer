@@ -94,7 +94,7 @@ In this thesis, I will show that the concept of \emph{idiolects}, the language o
 
 \subsubsection{The task}
 
-\textbf{Word prediction}, \textbf{word completion} or \textbf{autocompletion}, is the task of predicting what a user is going to type, as he/she is typing. This can be either the current word, as shown in sentence \ref{current_word}, the next word, as shown in sentence \ref{next_word}, and possibly even more words after that. 
+\textbf{Word prediction}, \textbf{word completion}, \textbf{predictive typing} or \textbf{autocompletion}, is the task of predicting what a user is going to type, as he/she is typing. This can be either the current word, as shown in sentence \ref{current_word}, the next word, as shown in sentence \ref{next_word}, and possibly even more words after that. 
 \begin{examples}
 \item I'd like some c$|$ookies \label{current_word}
 \item I'd like some $|$cookies \label{next_word}
@@ -102,11 +102,11 @@ In this thesis, I will show that the concept of \emph{idiolects}, the language o
 
 The text before the vertical bar is what the user has keyed in, the part after the vertical bar is what the word prediction system has suggested. The goal of this thesis is to build a system which can do suggestions exactly like this, as accurately as possible. 
 
-Although the three terms (word prediction, word completion and autocompletion) are often used interchangably, I feel \emph{completion} only captures half of what the system described here can do: it not only completes words (example \ref{current_word}), it also predicts new ones (example \ref{next_word}). Therefore, I will consistently refer to the task as \emph{word prediction}, and to the system as a \emph{word prediction system}. With this, I always mean predicting both current words and next words.
+Although the four terms (word prediction, word completion, predictive typing and autocompletion) are often used interchangably, I feel \emph{completion} only captures half of what the system described here can do: it not only completes words (example \ref{current_word}), it also predicts new ones (example \ref{next_word}). Predictive \emph{typing} suggests this system is limited to typed input, but that also is not the case - the system described here is input-independent. Therefore, I will consistently refer to the task as \emph{word prediction}, and to the system as a \emph{word prediction system}. With this, I always mean predicting both current words and next words.
 
 Word prediction is used in many applications we use daily: Google completes our search queries, our webbrowser finishes the web addresses we type in, our email client finishes email addresses, Excel completes annotations based on earlier annotations, etc. It reduces the number of keystrokes we have to do, and thus saves us time and effort. However, when we type full sentences, whether they are part of an email, a scientific article, a tweet, or a master's thesis, we often still key in every single character. 
 
-Why don't we use word prediction here too? While no quantitative research has been done to answer this question, an obvious answer would be that prediction accuracy generally is too low to speed up typing. Keying in every character is often faster than checking and accepting the predictions. Once typing speed decreases, however, word prediction \emph{is} used. With the rise of smartphones,  on which one  cannot type as fast as on a normal keyboard, word prediction has become more widely known - although it is unclear what proportion of the smartphone users also use some sort of word prediction application. Another example are  people with speech and motor disabilities, like cerebral palsy or hemiplexia. By using a device equiped with word prediction technology, they can increase their communication rate considerably \cite{Garay-Vitoria+06}.
+Why don't we use word prediction here too? While no quantitative research has been done to answer this question, an obvious answer would be that prediction accuracy generally is too low to speed up typing. Keying in every character is often faster than checking and accepting the predictions. Once typing speed decreases, however, word prediction \emph{is} used. With the rise of smartphones,  on which one  cannot type as fast as on a normal keyboard, word prediction has become more widely known - although it is unclear what proportion of the smartphone users also use some sort of word prediction application. Another example are  people with speech and motor disabilities, like cerebral palsy or hemiplexia. By using a device equiped with word prediction technology, they can increase their communication rate considerably \cite{Garay-Vitoria+06}. Indeed, all authors before the year 2000 seem to target this user group; \shortciteA{copestake97} even reports building a system for one individual user.
 
 \subsubsection{Word frequency as chance indicator}
 
@@ -123,6 +123,7 @@ Since then, numerous authors have shown that taking context into account improve
 \end{examples}
 
 One of the earliest implementations of this concept by \citeA{hunnicutt87} used a 2D-matrix to store frequent collocations of words. Table \ref{matrix} shows how a matrix based on the training material in \ref{training} could look:
+%hunnicutt geen 2d matrix
 
 \begin{examples}
 
@@ -156,11 +157,27 @@ Again, we see that a few words are used a lot, while most are used only once or 
 
 What holds for individual words must also hold, at least to a certain extent, for combinations of words: some combinations are much more frequent than others. Because these combinations are also more likely to end up in the training material, even with relatively few training material a context-sensitive system will perform much better than one would expect on the basis of pure chance. On the other hand, once most of the frequent combinations are covered, it takes more and more training material to improve the results just a little bit. This means we also expect a loglinear distribution for the effect of the amount of training material on the results of a word prediction system. \citeA{vandenbosch11} shows this is indeed the case: in his system, the step from 100 to 900 words in the training material, roughly 6\% more keystrokes could saved (from 15\% to 20\% keystrokes saved), whereas the same is true for the step from 1000.000 to 10.000.000 words (from 40\% to 46\%).
 
-A fact both \shortciteA{Lesher+99} and \shortciteA{vandenbosch11} note is that it is not possible to save 100\% of the keystrokes by simply going on doubling the amount of training material; at a certain point adding more training material does not seem to help anymore. \shortciteA{Lesher+99} hypothize that where that boundary lies depends on how much context the algorithm uses: when more words from the context are used, much more combinations are possible, and thus more training material can be useful. In a hypothetical language with 10 words, 10 contexts are possible when using 1 word as the context, but $10*10*10 = 1000$ contexts are possible when using 3 words as the context. Thus, the larger the context the word prediction system uses, the more contexts are possible, and thus the more the system benefits from having a lot of training material.
+A fact both \shortciteA{Lesher+99} and \shortciteA{vandenbosch11} note is that it is not possible to reach 100\% of the keystrokes by simply going on doubling the amount of training material; at a certain point adding more training material does not seem to help anymore. \shortciteA{Lesher+99} hypothize that where that boundary lies depends on how much context the algorithm uses: when more words from the context are used, much more combinations are possible, and thus more training material can be useful. In a hypothetical language with 10 words, 10 contexts are possible when using 1 word as the context, but $10*10*10 = 1000$ contexts are possible when using 3 words as the context. Thus, the larger the context the word prediction system uses, the more contexts are possible, and thus the more the system benefits from having a lot of examples.
 
 As a practical side-note, when using millions of words and all possible combinations between them, and also more context than just two words, a matrix as the one in \ref{matrix} quickly becomes impractical. Modern word predictions systems search through the training material and collect a number of similar contexts. The word that follows most of these contexts will be the word predicted. So when a new context like \emph{You like} is given to such a system, instead of looking it up in a matrix, it compares it to all contexts in the training material. An exact will be found in the sentence \emph{You like fishing}, and thus \emph{fishing} will be predicted. Because comparing a new context to thousands of contexts in the training material might take too much time to do real-time predictions, these comparisons can also be done beforehand, which reduces the process to a decision tree \shortcite[among others]{daelemans+97, vandenbosch+08, vandenbosch11}. The system that will be described in this thesis also uses this technique. See chapter \ref{algorithm} for a detailed description of the algorithm.
 
-\subsubsection{Adding more knowledge} \label{more_knowledge}
+\subsubsection{Adding linguistic knowledge} \label{linguistic_knowledge}
+A basic context-sensitive system knows which words are likely to follow each other, but has no idea of the more 'abstract', higher-level rules that might exist in language. A logical next step might thus to add explicit linguistic knowledge to the system. For example, we know from (very basic) theoretical linguistics that in Dutch a neuter word like \emph{kast} cannot follow the common gender article \emph{de}, and that in English a sentence is unlikely to start with a verb (unless it is an auxiliary). 
+
+A large part of the authors in the field of word prediction indeed try to include information like this in some way. A relatively simple approach is to use Part of Speech tags besides orthographical representations of words, as do \shortciteA{carlberger+97}, \shortciteA{Fazly+03} and \shortciteA{copestake97}. This works similar to the ortographical approach, but this time the system is trained to know what PoS-tags are likely to follow each other (instead of which words). Besides words, the system also predict PoS-tags, and these predicted tags are then used to limit the pool of predicted words. For instance, if the system predicts \emph{work}, \emph{worst}, and \emph{world}, and also expects a noun, \emph{worst} is ruled out.
+
+A deeper approach is to parse the sentence so far, as done by \shortciteA{Matiasek+02} and \shortciteA{garay-vitoria+97}. This parse can of course only be partial. The result is then compared to a pool of known syntactic rules for the language. This rule will predict the PoS-tag of the next word, which will again be used to limit the words predicted by another part of the system. \shortciteA{Matiasek+02} go even further and try to take into account compounds, as encountered in languages like Dutch, German and Swedish. If the user uses the backspace to delete the automatically generated space (that is, if the user actively informs the system he/she intended to write a compound here), the compound module is activated. This module tries to predict the rest of the word on the basis of corpus information, like how often all possible continuations of the word are part of a compound, and how often all continuations occur in this context.
+
+Interestingly, most authors conclude that including linguistic knowledge improves the results, but only slightly \shortcite[among others]{garay-vitoria+97, Fazly+03}. As \shortciteA{hunnicutt87} puts it: 'It appears [the implemented grammar] gives small reward for a great deal of effort if one looks at a measure such as keystroke savings'. An explanation for this could be that most of the linguistic knowledge is already covered by the orthographical approach; for our Dutch example, a basic context-sensitive system will only predict common gender nouns after \emph{de}, because those are the only words it has seen at this place in the training material \shortcite{Fazly+03}. On top of that, including linguistic knowledge comes with two main downsides: 
+
+\begin{enumerate}
+\item The automatical tagging and parsing requires a lot more computing power.
+\item It requires tagged and parsed training data. Whereas written material is available for the biggest part of the world's 7000 languages, I estimate tagged and parsed material is available for only 50 of them, which limits the number of languages the system could be used for to less than 1\%.
+\end{enumerate}
+
+Because of this, \shortciteA{Fazly+03} even note that adding explicit linguistic knowledge 'might not be considered worth the considerable extra cost that it requires'.
+
+\subsubsection{Adding other knowledge} \label{more_knowledge}
 
 Context-sensitivity, in particular when using a lot of training material, is most powerful when it comes to collocations (for example, \emph{in combination with}, \emph{on the basis of}), i.e. when it comes to language. However, humans use more than knowledge of language alone to predict what somebody is going to say; we also take into account what the speaker typically says, and what the speaker is talking about. For instance, the input \emph{wed} can be very likely to refer to \emph{Wednesday} when making an appointment for next week, whereas it can also be very likely to refer to \emph{wedding} when talking about a marriage. In other words, besides the linguistic context, we also want to give the system some 'real world' context.
 
@@ -271,11 +288,9 @@ There are many possible approaches to take when building an word prediction syst
 
 Besides that, Soothsayer is designed to be indepent of device of input method. Instead, it includes a \emph{server mode} and an \emph{HTTP-server mode}, making it very easy to integrate into any piece of software. This means it is very well possible that Soothsayer will be used together with a T9-system one day.
 
-\item \textbf{Soothsayer does not use hand-made, language-specific rules, but is fully language independent}. In the early of Natural Language Processing, many scholars have tried to build NLP systems by including as much as linguistic knowledge of possible. In terms of a word prediction system, this could for example entail including a system that recognizes personal pronouns, and only provides verbs that agree with these pronouns, or making sure that after the neutral article \emph{het} only neuter words were suggested. 
+\item \textbf{Soothsayer does not use hand-made, language-specific rules, but is fully language independent}. In the early days of Natural Language Processing, many scholars have tried to build NLP systems by including as much as linguistic knowledge of possible. In terms of a word prediction system, this could for example entail a system that parses the sentence the user has keyed in so far, tries to match this to a pre-made syntactical rule, and predicts something which would be grammatical according to this rule; see chapter \ref{linguistic_knowledge} for more approaches like this.
 
 Soothsayer does not work this way. Instead, it is given as much training material as possible, and tries to learn from that. So Soothsayer might know the noun \emph{kast} probably does not follow the article \emph{het}, but because it has not encountered that during training, not because I told it so exlicitly. As a result of this, Soothsayer is fully language independent: if it is trained on Dutch data, is will predict Dutch words, if it is trained on Swahili, it will predict Swahili words. In fact, the context-sensitive modules will often give correct predictions even when mixing languages - as long as the training material also contained these languages, of course.
-
-%Ik ga hierover nog meer zeggen, referentie includeren
 
 \end{itemize}
 
@@ -426,11 +441,9 @@ As the table shows, the duration of the simulation decreased when the attenuatio
 
 
 \subsubsection{Handling morphology} \label{early}
-%Vit-nogwat bespreekt allemaal morfologiesystemen, een beetje doornemen als dat nog niet eerder is gedaan? Daarna laten zien dat het niet goed genoeg werkt, en dus voor het Nederlands uitstaat.
+In section \ref{linguistic_knowledge}, we saw that the small improvements that could be made by adding explicit linguistic knowledge were not worth the effort. However, adding linguistic knowledge is not the only way to work with morphology. In this section, an approach that focusses on form rather than content is suggested.
 
-%Hier bruggetje: kijk niet naar inhoud, maar naar vorm
-
-The biggest problem with morphology is that it changes word forms. This is problematic for word completion, in particular with suffixes. For example, imagine a user has already written sentence \ref{morphology}, and wants to write the word \emph{cookies}:
+The biggest problem with morphology is that it changes word forms. This is problematic for word completion, in particular with compounds and suffixes. For example, imagine a user has already written sentence \ref{morphology}, and wants to write the word \emph{cookies}:
 
 \begin{examples}
 \item I would really like the c \label{morphology}
@@ -1002,6 +1015,8 @@ In this thesis, I have described the workings of my word prediction system. Furt
 From here, there are a number of ways this research could go. One could, for example, try to answer the questions these conclusions inevitably raise. What causes the differences between speakers? Can we, on the basis of texts the user wrote earlier, predict what will work and what will not? Or could we adapt the system on the fly, so that it can be most useful to a particular user? And what would be a practical implication of the discoveries related to idiolects? Would a social media plugin to share language models between friends work? Another group of questions that can still be answered can be found when the limitations I set at the beginning of this thesis are removed. What would be the effects of predicting more words at the same time? What are Soothsayer's pros and cons if we focus on one specific domain of word prediction, like query completion?
 
 Whatever the answers to these questions may be, what we have so far ...
+
+And will eventually get better than humans in guessing what somebody is goi|
 %Iets met altijd completion gebruiken.
 
 \section{Acknowledgements/dankwoord}
@@ -1009,7 +1024,7 @@ Whatever the answers to these questions may be, what we have so far ...
 % Eenzaam, 'gevecht tussen man en computer'. Bedank Hannah, Iris, Kobie, Ali en Florian.
 % Véronique onderwerp, en Lieke voor idiolect ipv ideolect.
 % Maarten, Florian en Bouke voor de vele dingen programmeren.
-% Antal: mails. Tegelijkertijd waren we met nog veel andere dingen bezig.
+% Antal: mails. Tegelijkertijd waren we met nog veel andere dingen bezig. Veel baantjes bezorgd.
 % Is ook afsluiting van mijn studententijd. Helen, als tutor en zo ongeveer driekwart van mijn cursussen. G&C
 % Hilde: laat Soothsayer spreken
 
@@ -1021,7 +1036,5 @@ Whatever the answers to these questions may be, what we have so far ...
 %TODO
 % Consistent zijn in model, corpus, training material, text, idiolect vs personal... bijv. bij modules heet het 'model', in de resultaten 'training material'
 % Misschien beter uitleggen bovenstaande
-% Evaluaton naar intro?
 % Alle plaatjes moeten nog toegevoegd worden
 % Statistiek: assumpties checken
-% Artikel Antal en andere achtergrondliteratuur lezen
