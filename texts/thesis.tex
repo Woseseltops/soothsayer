@@ -114,7 +114,7 @@ In the academic literature, several attempts have been done to improve word pred
 
 Which one of the two (\emph{communication} or \emph{communicative}) the system guesses should be the option that is more likely. This chance of occurence of a word is reflected by its frequency in texts: the more a word occurred in the past, the more likely it is to occur again in the future. In the example, \emph{communication} will be more likely to be correct because it will probably be higher on a frequency list. One of the first word prediction systems using this technique, and also one of the first word predictions systems in general, was PAL \cite{swiffin+85}. 
 
-\subsubsection{Context-sensitivity}
+\subsubsection{Context-sensitivity} \label{context-sensitivity}
 
 Since then, numerous authors have shown that taking context into account improves prediction accuracy significantly \cite[among others]{Lesher+99,Garay-Vitoria+06,Tanaka-Ishii07,vandenbosch+08}. This entails that the system has some information on which words are likely to follow each other, and uses this when giving predictions. For example, if the user has keyed in sentence \ref{iate}, a context-sensitive system should not predict the word \emph{communication}, even if it is high on the frequency lists, because \emph{communication} is unlikely to follow \emph{ate}.
 
@@ -122,8 +122,7 @@ Since then, numerous authors have shown that taking context into account improve
 \item I ate co \label{iate}
 \end{examples}
 
-One of the earliest implementations of this concept by \citeA{hunnicutt87} used a 2D-matrix to store frequent collocations of words. Table \ref{matrix} shows how a matrix based on the training material in \ref{training} could look:
-%hunnicutt geen 2d matrix
+A very simple approach to implementing context-sensitivity is simply using the frequency list technique of the context-insensitive modules with $n$-grams;  see \citeA{hunnicutt87} for an early example. The system then literally 'looks up' the context in a list, sees which words often follow this context, and returns the most frequent one that still matches what the user has keyed in so far. If more than one word of the context is used, this list might get the form of a matrix \citeA{Garay-Vitoria+06}. Table \ref{matrix} shows how a matrix based on how the training material in \ref{training} could look:
 
 \begin{examples}
 
@@ -149,9 +148,12 @@ Thus, when this system is offered a new context, like \emph{You like}, it can lo
 
 Obviously, the accuracy of a context-sensitive system largely depends on how often a similar context was available in the training material; since an algorithm can only know what will follow a particular context if it has seen that context before, we should try to give it as much training material as possible. A key publication by \citeA{Lesher+99} indeed shows that the accuracy of a context-sensitive word prediction system is related to how much training material is provided. Their algorithm can save 46\% of the keystrokes when using 100.000 words (when showing the user the top 10 of most likely predictions), and this percentage slowly but steadily increases when they add more training material: for 200.000 words, it can save 47\%, for 300.000, it can save 48\%, etc.
 
-This does not mean that our ultimate goal is to collect every context possible, however. Not only would this be almost impossible (a language with 10.000 words already has 10.000$^3$ possible trigram contexts), it is also not necessary: most possible trigram contexts are not possible for a language (for example, the 'possible context' \emph{the a of} is ungrammatical, so will probably never occur), and even most possible trigram contexts that \emph{are} grammatical will rarely occur. This has to do with a characteristic of language called \emph{Zipf's law} \cite{zipf65}, named after the American linguist George Kingsley Zipf. It entails that the frequency of any word in a particular text (or in language in general) is inversely proportional to its rank on a frequency list for that text; that is, a very small group of words is used all the time, and a very large group of words are rarely used. For example, according to Wikipedia\footnote{\url{http://en.wikipedia.org/wiki/Zipf's\_law}} in the Brown Corpus for Present-Day American English the most frequent word \emph{the} already covers 7\% of all the material, and the 135 most frequent words of the corpus together cover over 50\% of the material. Similarly, \citeA{lestrade10} shows that for Melville's \emph{Moby Dick}, the plot of the logarithm of the word frequency data (how often a word occurs)  against the logarithm of their rank (position on the frequency list) 'almost follows a straight line': 
+This does not mean that our ultimate goal is to collect every context possible, however. Not only would this be almost impossible (a language with 10.000 words already has 10.000$^3$ possible trigram contexts), it is also not necessary: most possible trigram contexts are not possible for a language (for example, the 'possible context' \emph{the a of} is ungrammatical, so will probably never occur), and even most possible trigram contexts that \emph{are} grammatical will rarely occur. This has to do with a characteristic of language called \emph{Zipf's law} \cite{zipf65}, named after the American linguist George Kingsley Zipf. It entails that the frequency of any word in a particular text (or in language in general) is inversely proportional to its rank on a frequency list for that text; that is, a very small group of words is used all the time, and a very large group of words are rarely used. For example, according to Wikipedia\footnote{\url{http://en.wikipedia.org/wiki/Zipf's\_law}} in the Brown Corpus for Present-Day American English the most frequent word \emph{the} already covers 7\% of all the material, and the 135 most frequent words of the corpus together cover over 50\% of the material. Similarly, \citeA{lestrade10} shows that for Melville's \emph{Moby Dick}, the plot of the logarithm of the word frequency data (how often a word occurs) of all words against the logarithm of their rank (position on the frequency list) 'almost follows a straight line': 
 
-%Plaatje moby dick
+\begin{figure}[H]
+\includegraphics[scale=1]{lestrade} \centering
+\caption{The logarithm of word frequency against the logarithm of word rank in \emph{Moby Dick}, taken from Lestrade (2010).}
+\end{figure}
 
 Again, we see that a few words are used a lot, while most are used only once or twice.
 
@@ -255,12 +257,12 @@ Module&Type&Model\\
 
 Modules can be concatenated in such a way that a second module takes over once the first modules no longer has predictions, a third module takes over once the second one no longer has predictions, etcetera. This makes it possible to use multiple prediction techniques \emph{and} multiple language models in one prediction system.
 
+For clarity, a quick overview of the terms: Soothsayer is a \textbf{word prediction system} which can consist of one or multiple \textbf{modules}. A module in turn consists of a particular \textbf{algorithm} (for example, the context-insensitive one), and a \textbf{language model}. A language model are created on the basis of \textbf{training material}. On several places in this thesis, the reader may get the impression the language model and the training material is the same thing; for example 'a system trained on tweets' can be used interchangably with 'a system using the tweets model'. However, keep in mind the language model is what the system actually uses to make its decisions, whereas the training material is source used to create this language model.
+
 \subsubsection{Evaluating additions} \label{evaluation}
 In this chapter, I will propose an addition to Soothsayer and then measure to what extent it improves the number of keystrokes saved several times. But how does one measure how many keystrokes are saved exactly? In other words, what is the best way to evaluate a word prediction system?
 
-In the literature so far, there is still discussion on what is the best way to evaluate word prediction systems. A very straightforward evaluation might be to calculate the percentage of correctly predicted words (the so-called \emph{hit-ratio}), but as \citeA{Garay-Vitoria+06} note, this is not not enough: a system that has 100\% of the words correct, but only gives this prediction at the last letter every word saves very little keystrokes. A more natural way might be to test with real humans, and measure how much time they save when using the system [[refs]]. However, this is a costly and time-consuming task, as the participants will need a considerable amount of time to get used to the system. Therefore, I will evaluate Soothsayer by simulating somebody keying in a text, and simply counting how many keystrokes this virtual user does not have to do when using the system. 
-
-%refs
+In the literature so far, there is still discussion on what is the best way to evaluate word prediction systems. A very straightforward evaluation might be to calculate the percentage of correctly predicted words (the so-called \emph{hit-ratio}), but as \citeA{Garay-Vitoria+06} note, this is not not enough: a system that has 100\% of the words correct, but only gives this prediction at the last letter every word saves very little keystrokes. A more natural way might be to test with real humans, and measure how much time they save when using the system \shortcite[among others]{carlberger+97,koester+98, Garay-Vitoria+06}. However, this is a costly and time-consuming task, as the participants will need a considerable amount of time to get used to the system. Therefore, I will evaluate Soothsayer by simulating somebody keying in a text, and simply counting how many keystrokes this virtual user does not have to do when using the system. 
 
 However, even when using simulations, there are multiple ways to evaluate the system. One possibility is to provide the user with a list of the $n$ most likely predictions \cite{Lesher+99,Fazly+03}. This approach has the advantage that it results in high percentages of keystrokes saved (in particular when $n$ is set to a high value, because this means the system can do multiple guesses at once, while only one has to be correct), but also has downsides. As \citeA{vandenbosch11} notes: 
 
@@ -278,9 +280,7 @@ A thing to notice is that both measures reflect the percentage of keystrokes sav
 There are many possible approaches to take when building an word prediction system. Because it would take too much time to try all of these approaches (and all combinations of them), I had to set limitations. Therefore, before I explain and defend the workings of Soothsayer, I therefore would like to list the most important decisions, so the reader has a rough idea of what is coming (and what is not). 
 
 \begin{itemize}
-\item \textbf{Soothsayer does not predict more than one word at a time}. Some scholars have investigated the possibility to predict multiple words at the same time [[refs]]. This can very fruitful: if a word prediction system knows that \emph{on the b} should be \emph{on the basis of} it makes more sense to offer this as a whole, instead of first asking whether \emph{basis} is correct. However, multiword prediction comes with a lot of downsides: every extra word that is predicted greatly increases the chance of making an incorrect prediction, it is unclear what a user should do if he/she accepts the first word, but the not the second word (or vice versa), and how this should be counted in terms of keystrokes. Furthermore, giving multiple words forces the user to plan ahead a few words while typing, which might not be how the user prefers to write. A useful side effect of predicting only one word at a time is that the space key can be used as an accept button \cite{Garay-Vitoria+06}.
-
-%Refs
+\item \textbf{Soothsayer does not predict more than one word at a time}. Some scholars have investigated the possibility to predict multiple words at the same time \shortcite{Lesher+99,greenberg+95}. This can very fruitful: if a word prediction system knows that \emph{on the b} should be \emph{on the basis of} it makes more sense to offer this as a whole, instead of first asking whether \emph{basis} is correct. However, multiword prediction comes with a lot of downsides: every extra word that is predicted greatly increases the chance of making an incorrect prediction, it is unclear what a user should do if he/she accepts the first word, but the not the second word (or vice versa), and how this should be counted in terms of keystrokes. Furthermore, giving multiple words forces the user to plan ahead a few words while typing, which might not be how the user prefers to write. A useful side effect of predicting only one word at a time is that the space key can be used as an accept button \cite{Garay-Vitoria+06}.
 
 \item \textbf{Soothsayer does not focus on one specific domain of word prediction, but works for word prediction is general}. I expect query completion (i.e. Google completing what you wanted to search for) is the most-used form of word prediction at the moment. It is, however, a relatively small and simple form of it, that probably works with popularity statistics: if your query matches a query a lot of other users also used, this query is suggested. Although this is a smart system that works well, it can only be used for query completion. Soothsayer, on the other hand, can be used for query completion, but also for a lot of other things.
 
@@ -422,9 +422,11 @@ For this reason context-sensitive modules will always be ranked before context-i
 
 \subsubsection{Attenuation}
 
-%Literature attenuation: bij grote corpora. Zipf noemen.
+In the experiments presented so far speed has not really been an issue, because the training corpus was relatively small (175,186 words). However, in section \ref{simple_exp} we will use a background corpus that is considerably larger (55,212,868 words). As the experiments below will show, this results in IGTrees too large and thus slow for realtime use.
 
-In the experiments presented so far speed has not really been an issue, because the training corpus was relatively small (175,186 words). However, in section \ref{simple_exp} we will use a background corpus that is considerably larger (55,212,868 words), which would make attenuation useful; see section \ref{simple_exp} for more detailed information about the corpus and how attenuation affects its prediction speeds. For now, it suffices to say that Soothsayer uses a default attenuation threshold of 3 because this speeds up the predictions, while it has very little effect on the prediction accuracy. For the training corpus used in this chapter, the effects of attenuation are summarized in table \ref{results_att}.
+To solve this problem, I will use a (simplified version of a) solution from the field of syntactical parsing called \emph{attenuation} \cite{eisner96}. This entails that all words in the training material that only occur less often than a particular threshold, and thus are extremely rare and unlikely in all but one of the training contexts (thus, unlikely in more than 99.99\% of the cases) are replaced by a dummy value. In section \ref{context-sensitivity} we saw that Zipf predicts that the group of words that only occurs once is actually the biggest group, so merging them all into one word will make the IGTree considerably smaller and thus faster. So to summarize, attenuation speeds up the classification, and removes useless cases. For Soothsayer, the attenuation value of 3 was chosen after some trial-and-error; other values give very similar results.
+
+For the training corpus used in this chapter, the effects of attenuation are summarized in table \ref{results_att}.
 
 \begin{table}[h]
 \begin{tabular}{l|lll} 
@@ -437,8 +439,11 @@ With attenuation&33&38&660\\
 \caption{Percentage of keystrokes saved and simulation times with and without attenuation.} \label{results_att}
 \end{table}
 
-As the table shows, the duration of the simulation decreased when the attenuation was turned on. As noted before, however, for this relatively small training corpus this was not needed: with a test text of 105922 characters, the 752 seconds Soothsayer takes for the simulation without attenuation already mean an average 141 of keystrokes per second could be achieved. This is well above the 8 keystrokes per second for fast typists, according to \citeA{kieras+94}.
+The table shows duration of the simulation decreased when the attenuation was turned on. As noted before, however, for this relatively small training corpus this was not needed: with a test text of 105922 characters, the 752 seconds Soothsayer takes for the simulation without attenuation already mean an average 141 of keystrokes per second could be achieved. This is well above the 8 keystrokes per second for fast typists, according to \citeA{kieras+94}.
 
+For the larger background corpus used later in thesis, we do see important differences, however.
+
+%Grote corpus
 
 \subsubsection{Handling morphology} \label{early}
 In section \ref{linguistic_knowledge}, we saw that the small improvements that could be made by adding explicit linguistic knowledge were not worth the effort. However, adding linguistic knowledge is not the only way to work with morphology. In this section, an approach that focusses on form rather than content is suggested.
@@ -527,8 +532,6 @@ This experiment will compare two language models: a model based on the texts by 
 
 As a control model, a general language model for Dutch will be used. For this, a random selection of blogs, emails and Wikipedia articles from the SoNaR corpus for written Dutch \shortcite{oostdijk+13} was made. These texts were chosen because they were believed to be neither very formal nor very informal. The control corpus consisted of 55,212,868 words.
 
-%Attenuation values
-
 \subsubsection{Methodology}
 To the language models, Soothsayer, the algorithm described in chapter \ref{algorithm}, will be used. Similar to the experiments there, a user keying a text will be simulated. If Soothsayer correctly guesses the next word, or the rest of the current word, it is assumed this virtual user will accept it, and goes on keying in the next word. It is then calculated what percentage of keystrokes was saved when only one suggestion was shown to the user (\textbf{C}lassical \textbf{K}eystrokes \textbf{S}aved), and when two and sometimes three suggestions are shown (\textbf{S}wift\textbf{K}ey \textbf{K}eystrokes \textbf{S}aved). Unlike the experiments in chapter \ref{algorithm}, however, these experiments will not compare two versions of the algorithm, but two language models. Thus, whereas the experiments in chapter \ref{algorithm} kept the model constant, and varied the algorithm (a version with feature $x$ turned on and a version with feature $x$ turned off, for instance), the experiments in this chapter will do the opposite and vary the model while keeping the algorithm constant. 
 
@@ -573,9 +576,15 @@ Table \ref{results_simple} shows that  using the idiolect model indeed leads to 
 Despite the fact that the general model contained more than 300 times more words than the idiolect model, much more keystrokes could be saved using the idiolect model. This is consistent with both \citeA{vandenbosch11}, who shows that learning about the author improves the results, and \shortciteA{verberne+12}, who show that using training material from the same genre improves the results. However, unlike \citeA{vandenbosch11}, this approach could combine the information on user characteristics with context information, and unlike \shortciteA{verberne+12}, training data which for most individuals is relatively easy to collect was used.
 
 \subsubsection{Discussion}
-As was explained in section \ref{word_prediction}, the accuracy of word prediction really depends on how much training material was used to create the language model. This means that the above results only hold for exactly this amount of training material; by adding more material, the results are likely to improve, by removing material, the results are likely to deteriorate. That must also mean that for idiolect models based on very little training data, the findings of this experiment do not hold. To answer the question how much idiolect data is necessary to be a better choice than the general language model, at least for the current idiolect, I followed \citeA{vandenbosch11} and repeated the above experiments with part of the training data remove. The result are summarized in the learning curve shown in figure [[x]].
+As was explained in section \ref{word_prediction}, the accuracy of word prediction really depends on how much training material was used to create the language model. This means that the above results only hold for exactly this amount of training material; by adding more material, the results are likely to improve, by removing material, the results are likely to deteriorate. That must also mean that for idiolect models based on very little training data, the findings of this experiment do not hold. To answer the question how much idiolect data is necessary to be a better choice than the general language model, at least for the current idiolect, I followed \citeA{vandenbosch11} and repeated the above experiments several times, with part of the training data removed. The result are summarized in the learning curve shown in figure \ref{lcurve}.
 
-%groeicurve?
+\begin{figure}[H] \centering
+\includegraphics[scale=1]{lcurve}
+\caption{The CKS and SKKS of the idiolect model with various amounts of training material.}
+\label{lcurve}
+\end{figure} 
+
+We see that, as \citeA{vandenbosch11} suggested, to keep improving the results at the same rate, the amount of training material needs to grow exponentially. The example here starts with 20 words, and this number is multiplied by 5 for each step. Furthermore, we see that using the idiolect model starts giving better results  than the general language model somewhere between 12.500 and 62.500 words; roughly when it approaches 0.1\% of the amount of words in the general language model (55,212,868).
 
 \subsection{The general language model as a background model} \label{background}
 
@@ -654,8 +663,8 @@ We saw that using the general language model as a background model indeed increa
 
 Because there was no measurable difference between order 1 and order 2, the choice for one over the other becomes arbitrary. For subsequent experiments with a background model, I will consistently pick order 1.
 
-\subsubsection{Discussion} \label{simple_exp_disc} %Het hier misschien niet gooien op de grootte van het model, maar gewoon op goed het werkt. Want anders: waarom geen groeicurve?
-To what extent it is beneficial to have a general language model as background model, or how large the gap is the general model has to fill, despends on how much material the idiolect model is based. In this experiment, we saw an increase in the number of keystrokes saved, from 34 \% CKS to 40\% CKS: an increase of 6\%. To show the benefits are even higher for idiolect models based on less material, I will repeat this experiment with another idiolect: one year of weblogs written by Dutch physician and astronaut Andr\'e Kuipers, from July 2011 to July 2012. This period covers the preparations for Kuipers' second spaceflight PromISSe on Expedition 30 and Expedition 31 (from July to December 2011), the actual space mission (December 2011 to June 2012), and his return to earth (July 2012). The corpus consists of only 31,790 words. 
+\subsubsection{Discussion} \label{simple_exp_disc}
+Is having a general language model as background model equally efficient for all idiolects? In this section, as a side-track, I'd like to argue this is not the case; it is very likely it depends on how large the gap is the general model can fill. In the main experiment, we saw an increase in the number of keystrokes saved, from 34 \% CKS to 40\% CKS: an increase of 6\%. To show the benefits are even higher for idiolect models with less good results, I will repeat this experiment with another idiolect: one year of weblogs written by Dutch physician and astronaut Andr\'e Kuipers, from July 2011 to July 2012. This period covers the preparations for Kuipers' second spaceflight PromISSe on Expedition 30 and Expedition 31 (from July to December 2011), the actual space mission (December 2011 to June 2012), and his return to earth (July 2012). The corpus consists of 31,790 words. 
 
 Like in the main experiment, it was calculated how many keystrokes could be saved when using the idiolect model alone, and the idiolect model with a general language model as background model. The results are summarized in table \ref{results_kuipers}. 
 
@@ -768,9 +777,15 @@ The system limited itself to Dutch tweets using a conservative Dutch word freque
 
 Concerning the relation between number of tweets and Twitter users, many scholars have noticed that it follows a Pareto-distribution \shortcite[among others]{asur+10,rui+12}. That is, a very small part of the Twitter users produce a very large part of the tweets\footnote{Another Pareto-distribution is the Zipf-curve discussed in chapter \ref{intro}.}. \shortciteA{heil+09} show that the top 10\% of prolific Twitter users were responsible for more than 90\% of the tweets. \shortciteA{asur+10} suggests this behavior is not limited to Twitter; according to them 'the top 15\% of the most prolific editors account for 90\% of Wikipedia’s edits'. The Twitter data collected for this research show a similar pattern:
 
-%Grafiek laten zien
+\begin{figure}[H] \centering
+\includegraphics[scale=1]{zipf_twitter}
+\caption{The amount of words by all Twitter users followed by the system.}
+\label{lcurve}
+\end{figure} 
 
-For that reason, only data from the 100 Twitter users for which there was the most material will be used to build the idiolect models. Twitter accounts run by something other than an individual person (like a company) were excluded manually. The number of words ranged from 61,098 words for the least active user (of the 100 users included in the experiments) to 167,685 words for the most active user. For the general Dutch corpus, the corpus described in section \ref{data_simple} will be used, which had 55,212,868 words.
+The relatively stable growth in the left part of the graph can be explained by the collection method uses, which required the Twitter users to be at least a little bit active. 
+
+To be able to build large enough idiolect models, only data from the 100 Twitter users for which there was the most material will be used to build the idiolect models. Twitter accounts run by something other than an individual person (like a company) were excluded manually. The number of words ranged from 61,098 words for the least active user (of the 100 users included in the experiments) to 167,685 words for the most active user. For the general Dutch corpus, the corpus described in section \ref{data_simple} will be used, which had 55,212,868 words.
 
 \subsubsection{Methodology}
 
@@ -871,9 +886,17 @@ Twitter user&\multicolumn{2}{l}{General model}&\multicolumn{2}{l}{Idiolect model
 
 For user 97, we see that the general model alone leads to very few correct predictions, while the opposite is true for the idiolect model. Using the general language model as background model even leads to a decrease in the number of keystrokes saved. We see the reverse situation with user 90, for whom the general model actually did better predictions than the idiolect model. For user 55, we see that using the general language model as a background model leads to a considerable increase in percentage of keystrokes saved, while there is no measurable difference for user 78.
 
-These differences means Soothsayer performs much better for one than for the other. Using the best-performing module set-up in general, the set-up with the idiolect model, backed up by the general language model, \emph{and} the recency buffer, the worst result is \textbf{22\% CKS} and \textbf{24\% SKKS} for user 90, and the best result is \textbf{51\% CKS} and \textbf{52\% SKKS} for user 97.
+The large individual differences are illustrated in figure \ref{chaos}, where the users were ordered from least to most material. Contrary to expectations, no correlation between amount of training material and the results could be detected (); apparently, the individual factor is that much stronger.
 
-%Misschien ook laten zien dat indiv. differences sterker zijn dan grootte idiolect
+%stat
+
+\begin{figure}[H] \centering
+\includegraphics[scale=1]{twitter_chaos}
+\caption{The proportion of keystrokes saved for individual Twitter users, when using the best-performing module set-up}
+\label{chaos}
+\end{figure} 
+
+These differences means Soothsayer performs much better for one than for the other. Using the best-performing module set-up in general, the set-up with the idiolect model, backed up by the general language model, \emph{and} the recency buffer, the worst result is \textbf{22\% CKS} and \textbf{24\% SKKS} for user 90, and the best result is \textbf{51\% CKS} and \textbf{52\% SKKS} for user 97.
 
 \subsubsection{Conclusion}
 We already saw that Soothsayer works best when using the idiolect as the main model, backed up by a general language model, and a recency buffer to capture the characteristics of the current text. When repeating these experiments on a much larger scale, the same results were found: idiolects work better, despite the general model having around 800 times more training material, general language models can still be useful as a background model, and the recency buffer improves the results. Whereas using the recency buffer led to only slight improvements in the previous experiments, it actually leads to more substantial improvements here. This discrepancy with the previous results can possibly be explained by the fact that there are a lot of differences between the idiolects; for some of the twitter users in the data set, the recency buffer did not work well either.
@@ -896,9 +919,6 @@ Concerning the large amount of variation between individual Twitter users, I wan
 \subsection{Social networks and language input} \label{input_networks}
 
 \subsubsection{Research question}
-
-%Meer zeggen over wat je hebt ontdekt over groeicurves?
-
 In sections \ref{simple_exp} and \ref{twitter_idiolects}, we saw that idiolect models perform much better than general language model, despite being based on much less material. In section \ref{simple_exp_disc}, we also saw that the findings by \shortciteA{Lesher+99}, that more material leads to more keystrokes saved, also holds for idiolects. This leads to the expectation that more idiolectal training material might lead to even better results. This material, however, might not be available, simply because not all people write that much. For a particular user $x$, what other sources of language do we have that might be very similar to the idiolect of $x$?
 
 One of the more obvious answers might be the language of the people $x$ often communicates with. The fact that people that are in some way related to each other is a well known in sociolinguistics; it might well be the very basis of the whole field. A famous example of the workings of this phenomenon is the case of Martha's Vineyard, as described by the founding father of sociolinguistics William Labov \cite{labov63}. Martha's Vineyard is an island on the East Coast of the United States, part of the state of Massachusetts, and well-known as summer resort for wealthy tourists. Wikipedia\footnote{\url{http://en.wikipedia.org/wiki/Martha\%27s\_Vineyard}} notes that 'the 2010 census reported a year-round population of 16,535 residents; however, the summer population can swell to over 100,000 people.' Labov investigated the pronunciation of the diphthongs [aw] and [ay] (as in \emph{loud} and \emph{light}), and discovered that among the younger speakers (31-45 years) there seemed to be a movement away from the pronunciations associated with the standard norms, and towards a pronunciation associated with more conservative  Vineyard speakers. At first sight, this was extremely unexpected: since education had improved and had been available to most people, one would expect the \emph{older} generation to have a more 'island way of speaking', instead of the younger and better educated generation. However, Labov also discovered that the speakers with the most clear Vineyard pronuncation were also the speakers who actively tried to identify themselves as Vineyarders, valued the traditional island way of life, and disliked the stream of visitors which at that moment was starting to grow. In other words, the pronunciation was now used as a (subconscious) way of saying that the speaker was not a tourist, but an original inhabitant of the island.
@@ -986,9 +1006,17 @@ As was expected on the basis of the findings of \shortciteA{verberne+12}, adding
 \subsubsection{Discussion}
 At this point, sociolinguists may want to argue that the concept \emph{sociolect} could be operationalized in a more natural way. A real sociolect might be the language variety of a real \emph{group} of people. The relationships between the speakers might for example look this:
 
+\begin{figure}[H] \centering
+\includegraphics[scale=0.75]{real_network}
+\caption{The relations between the speakers of a real sociolect}
+\end{figure} 
 
 However, the speakers of the variety used for this experiments are related in this way:
 
+\begin{figure}[H] \centering
+\includegraphics[scale=0.75]{sloppy_network}
+\caption{The relations between the speakers in the sociolect model}
+\end{figure} 
 
 Instead of the language variety of a group of people, what is used here is more like the language used around a particular person. Although the effects of using a real sociolect model might be an interesting topic for future research, I have chosen not investigate it here, because my expectation is that it will not improve the results. Namely, a 'natural' sociolect model can only predict what a group of people will say, but it will (almost) always be one person that will be formulating the language. In other words, unless a whole group of people is writing, it is probably a better idea to use the language specific to the author.
 
@@ -1003,7 +1031,7 @@ These findings were also clearly visible when replicated with 100 Twitter feeds 
 To summarize this all in one statement: to save the most keystrokes, it is best to use language as close as possible to the user of the word prediction system.
 
 \section{Conclusion} \label{conclusion}
-In this thesis, I have described the workings of my word prediction system. Furthermore, I hope to have shown a number of things:
+In this thesis, I have described the workings of my word prediction system. Furthermore, I hope to have made clear a number of things:
 
 \begin{enumerate}
 \item Word prediction and idiolects are a golden combination.
@@ -1012,12 +1040,11 @@ In this thesis, I have described the workings of my word prediction system. Furt
 \item The fact that people speak like the people around them can also be useful to word prediction.
 \end{enumerate}
 
-From here, there are a number of ways this research could go. One could, for example, try to answer the questions these conclusions inevitably raise. What causes the differences between speakers? Can we, on the basis of texts the user wrote earlier, predict what will work and what will not? Or could we adapt the system on the fly, so that it can be most useful to a particular user? And what would be a practical implication of the discoveries related to idiolects? Would a social media plugin to share language models between friends work? Another group of questions that can still be answered can be found when the limitations I set at the beginning of this thesis are removed. What would be the effects of predicting more words at the same time? What are Soothsayer's pros and cons if we focus on one specific domain of word prediction, like query completion?
+From here, there are a number of ways this research could go. One could, for example, try to answer the questions these conclusions inevitably raise. What causes the differences between speakers? Can we, on the basis of texts the user wrote earlier, predict what will work and what will not? Or could we adapt the system on the fly, so that it can be most useful to a particular user? And what would be a practical implication of the discoveries related to sociolects? Would a social media plugin to share language models between friends work? 
 
-Whatever the answers to these questions may be, what we have so far ...
+Another group of questions that can still be answered can be found when the limitations I set at the beginning of this thesis are removed. What would be the effects of predicting more words at the same time? What are Soothsayer's pros and cons if we focus on one specific domain of word prediction, like query completion?
 
-And will eventually get better than humans in guessing what somebody is goi|
-%Iets met altijd completion gebruiken.
+Whatever the answers to these questions may be, they will only improve (or clear up) what we have so far: well-performing, state-of-the-art word prediction software, freely available on the internet for everyone to change, improve and most important of all: use. Soothsayer can be used however you want: as standalone software wrapped inside other software, from the cloud with its HTTP-server mode, or even as a Python module. I really hope this means it will find its way into a practical application someday, so it can do what is was built to do 'for real': guessing what somebody is going to w$|$\emph{rite}.
 
 \section{Acknowledgements/dankwoord}
 
@@ -1035,6 +1062,4 @@ And will eventually get better than humans in guessing what somebody is goi|
 
 %TODO
 % Consistent zijn in model, corpus, training material, text, idiolect vs personal... bijv. bij modules heet het 'model', in de resultaten 'training material'
-% Misschien beter uitleggen bovenstaande
-% Alle plaatjes moeten nog toegevoegd worden
 % Statistiek: assumpties checken
