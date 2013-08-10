@@ -1,0 +1,44 @@
+CHANGELOG
+
+* Alle kleine stijldingetjes. Ik kon me in eigenlijk alles wel vinden.
+
+* Alle resultaten hebben nu één decimaal. Ik had eigenlijk geen duidelijke reden om geen decimalen te gebruiken.
+
+* Overviewgrafiek aan het einde van hoofdstuk 2 heeft nu een legenda. Ik weet ook niet waarom die was weggevallen.
+
+* De nummers bij de grafiek om te laten zien dat de twittergebruikers een paretodistributievormen zijn nu mooi afgerond.
+
+* Ik heb een scriptje geschreven dat uitrekent hoeveel overlap er is tussen de context-sensitive en de context-insensitive module (en dat is, zoals verwacht, niet veel). De resultaten heb ik weergegeven in een Venn diagram.
+
+* Goed idee om de resultaten van meerdere attenuation thresholds toe te voegen. Interessant genoeg gaan de snelheden niet echt veel sterker omhoog bij hogere attenuation values.
+
+* Het ontbrekende experiment is er nu ook: zoals ik zelf al had ervaren maakt was attenuation bij grotere corpora echt belangrijk.
+
+REACTIES 
+
+> 7,000 talen -- is deze bewering overigens waar? 
+
+Nee, want zoiets als 'taal' bestaat eigenlijk niet, dus je kunt het niet tellen. Dialect, regiolect, sociolect, het loopt allemaal in elkaar over en is allemaal gradueel. Wat we een taal noemen is vaak eerder een politieke keuze, en nog vaker helemaal niet duidelijk. Zesduizend of zevenduizend is geloof ik zo'n beetje de consensus omdat Ethnologue het zegt, maar tegelijkertijd weet iedereen  dat het arbitrair is. Het zijn sowieso eigenlijk allemaal groepjes idiolecten die op elkaar lijken :). Zie http://onzetaal.nl/uploads/editor/1009%20vanmaris.pdf
+
+
+> zijn jouw 100 twitteraars dus de 'most prolific' twitteraars van Nederland, of zit er toch een random component in vanwege je seeds, en heb je nog altijd een vrij random selectie van 100 mensen die veel twitteren?
+
+Goede vraag, maar geen idee. Enerzijds is het zo dat hoe meer je deelneemt aan Twittergesprekken, hoe groter de kans is dat je in mijn sample zit, dus ik verwacht wel dat mijn sample zo ongeveer de meest actieve gespreksdeelnemers van de Nederlandse Twittergebruikers heeft. Die set zal grotendeels samenveel met de meest frequente Twitteraars. Anderzijds is het ook heel goed mogelijk dat ik vanwege mijn seed slecht één tak grondig heb gedaan, maar dat die tak geen (of te weinig) @mentions heeft naar andere takken. Het kan bijvoorbeeld dat de meeste frequente Twittergebruiker alleen tegen zijn buurmeisje praat, en dan heb ik hem natuurlijk niet. Wel interessant eigenlijk, als ik nog iets leuks of belangrijks bedenk om hierover te zeggen voeg ik dat nog toe.
+
+
+> ik blijf dit verwarrend vinden. Dit zou ik idiolect + sociolect noemen, niet sociolects.
+
+Even voor alle duidelijkheid, we hebben een:
+* Idiolect: alle tweets voor persoon x.
+* Sociolect: alle tweets voor persoon x + alle tweets van zijn vrienden.
+* Control model: alle tweets voor persoon x + tweets van willekeurige andere personen.
+
+Het is dus inderdaad zo dat het sociolect opgebouwd rondom persoon x ook het idiolect van persoon x zelf bevat, maar ik denk dat het een beetje misleidend is als ik dit model dan ook 'idiolect + sociolect' zou noemen: een sociolect is namelijk niks anders dan een groepje idiolecten (dus 'idiolect + idiolect + idiolect+...'). Het is wel zo dat het sociolect rondom één persoon is opgebouwd, maar dat is alleen maar om praktische redenen. Bovendien zou de naam 'idiolect + sociolect') suggereren dat het idiolect van persoon x niet tot het sociolect behoort, en dat is nu juist wel zo (en essentieel voor het punt dat ik wil maken).  
+
+> Op deze manier test je nooit helemaal een echt sociolect. In het ene geval niet omdat je het mengt met het idiolect, in het andere niet omdat er random tweets bijgevoegd zijn.
+
+Juist wel, volgens mij. Zoals ik al zei: een sociolect is een groep idiolecten die op elkaar lijken. Om praktische redenen (je moet tenslotte ergens beginnen) is zo'n sociolect rondom één persoon opgebouwd, maar dat neemt niet weg dat het idiolect van deze persoon niet tot dat sociolect behoort. De control groep test inderdaad niet het sociolect, dat is gewoon het idiolect + random tweets.
+
+Wat ik NIET heb getest, en dat is denk ik wat je bedoelt, is het sociolect zonder het idiolect van de persoon waaromheen het sociolect is opgebouwd; laat ik het even sociolect-1 noemen. Dit heb ik bewust niet gedaan, omdat:
+1. Sociolect-1 vermoedelijk niet echt goede resultaten oplevert; de beste voorspeller voor de taal van persoon x blijft natuurlijk de taal van persoon x, en dat is nu net wat bij sociolect-1 weggenomen is.
+2. Sociolect-1 waarschijnlijk niet echt 'spetterende' resultaten oplevert, en er wordt verder ook niet een van mijn hypotheses mee bevestigt of juist niet. Omdat sociolecten het beter doen dan het controlemodel, moet het eigenlijk ook wel zo zijn dat sociolect-1 beter werkt dan zomaar wat willekeurige tweets... maar verder kan ik niet zoveel extra met die informatie.
