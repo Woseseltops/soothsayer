@@ -224,7 +224,7 @@ def simulate(model,lexicon,content_rb,teststring,settings,nr,result):
     for i in range(starting_point,len(teststring)):
 
         if nr == 0 and i%10 == 0:
-             print(i/len(teststring))
+            print(i/len(teststring))
 
         #word finished
         if teststring[i] == ' ':
@@ -250,8 +250,8 @@ def simulate(model,lexicon,content_rb,teststring,settings,nr,result):
             last_prediction = prediction['full_word']
 
             #Show second best if you did a prediction too often
-            if len(prediction['second_guess']) > 1 and repeats > 1:
-                prediction['full_word'] = prediction['second_guess']
+#            if len(prediction['second_guess']) > 1 and repeats > 1:
+#                prediction['full_word'] = prediction['second_guess']
                 
             #Get and show what is written now
             current_word = find_current_word(teststring,i)
@@ -533,7 +533,7 @@ if '-lim' in sys.argv:
     i = sys.argv.index('-lim')
     settings['limit'] = int(sys.argv[i+1])
 else:
-    settings['limit'] = False
+    settings['limit'] = None
     
 #Create the directory
 #if settings['mode'] == 'd':

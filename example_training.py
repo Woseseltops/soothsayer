@@ -4,7 +4,7 @@ ss = soothsayer.Soothsayer();
 
 #Soothsayer takes a directory of plaintext files as input
 training_file, testfile, lexicon = ss.prepare_training_data('testinput/');
-model = ss.train_model(training_file);
+model = ss.train_model(training_file, mode='w');
 
 print(model.name);
 

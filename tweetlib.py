@@ -3,19 +3,33 @@ import operator
 import os
 import random
 
+def get_passwords(filename):
+
+    lines = open(filename,'r').readlines();
+    passwords = {};
+
+    for n,i in enumerate(lines):
+        if i[0] == '#':
+            passwords[i[1:].strip()] = lines[n+1].strip();
+
+    return passwords;
+
 def get_all_tweets(user,api=None):
     """Returns as much tweets as possible for this twitter user""";
 
     if api==None:
-        api = t.Twython();
+        passwords = get_passwords('passwords.txt');
+        api = t.Twython(passwords['app_key'], passwords['app_secret'],
+              passwords['oauth_token'], passwords['oauth_token_secret']);        
 
     no_tweets = False;
     tweets_total = [];
     c = 1;
 
     while not no_tweets:
+        tweets = api.get_user_timeline(screen_name=user,count=200,page=c);
         try:
-            tweets = api.getUserTimeline(screen_name=user,count=200,page=c);
+            tweets = api.get_user_timeline(screen_name=user,count=200,page=c);
         except t.TwythonError:
             tweets = [];
             print('Twython is sad :(');

@@ -1,0 +1,26 @@
+# Status: pruned
+# Permutation: < 3, 1, 2 >
+# Numeric: .
+# Bin_Size: 20
+# Version 4 (Hashed)
+#
+Classes
+1	Dit
+2	is
+3	een
+4	#DUMMY
+5	ook.
+Features
+1	#DUMMY
+2	Dit
+3	is
+4	een
+5	ook.
+
+(1{ 1 192, 2 96, 3 96, 4 96, 5 96 }[2(2{ 2 96, 5 96 }[4(5{ 5 96 })
+]
+)
+,3(3{ 3 96 })
+,4(4{ 4 96 })
+]
+)
