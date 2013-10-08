@@ -376,6 +376,9 @@ def server_mode(settings):
 
     class httpserver(object):
 
+        def __init__(self):
+            self.locked = False;
+
         def predict(self,text,model,show_source=False):
 
             text = text.replace('_',' ')
@@ -386,12 +389,19 @@ def server_mode(settings):
                 raise cherrypy.HTTPError('400 Bad request','Model not available',)
                 return
             
-            pred = current_ss.do_prediction(text,lexicons[model],'')
+            if not self.locked:
+                self.locked = True;
+                print('Lock',self.locked);
+                pred = current_ss.do_prediction(text,lexicons[model],'')
+                self.locked = False;
+                print('Lock',self.locked);
 
-            if show_source:
-                return pred['full_word'] + ','+pred['source']
+                if show_source:
+                    return str(pred['full_word']) + ','+str(pred['source'])
+                else:
+                    return str(pred['full_word'])
             else:
-                return pred['full_word']                
+                return '';
 
         predict.exposed = True
 

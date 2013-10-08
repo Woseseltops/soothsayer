@@ -68,6 +68,9 @@ class Soothsayer():
 
         words = text.split()
 
+        if nr == '':
+            nr = str(self.string_to_number(text));
+
         if self.approach == 'w':
 
             if text == '' or text[-1] == ' ':
@@ -77,17 +80,20 @@ class Soothsayer():
                 words = words[-3:]
 
                 #Preprocessing for Timbl
+
                 while len(words) < 3:
                     words = ['_'] + words
 
-                lcontext = ('c '+self.attenuate_string_simple(' '.join(words) + ' _',lexicon) + '\n').encode()
-    #            lcontext = ('c ' + ' '.join(words) + ' _\n').encode()
+    #            lcontext = ('c '+self.attenuate_string_simple(' '.join(words) + ' _',lexicon) + '\n').encode()
+                lcontext = ('c ' + ' '.join(words) + ' _\n').encode()
 
                 #Communicate with Timbl
                 for i in self.modules:
                     if i.kind == 'igtree':
                         i.send_to_your_server(lcontext,nr);                
+
             else:
+
                 current_word = words[-1]
                 words = words[-4:-1]
 
@@ -184,13 +190,21 @@ class Soothsayer():
                 
         while not ready:
             try:
-                raw_distr = open('predictions/lcontext'+nr+'.'+ modelname+'.IGTree.gr.out','r').read().split('] {')
-                if len(raw_distr) > 1:
-                    ready = True
+                if os.path.exists('predictions/lcontext'+nr+'.'+ modelname+'.IGTree.gr.out'):
+                    raw_distr = open('predictions/lcontext'+nr+'.'+ modelname+'.IGTree.gr.out','r').read().split('] {')
+
+                    if len(raw_distr) > 1:
+                        ready = True
+                    else:
+                        time.sleep(0.3)
                 else:
-                    time.sleep(0.3)
-            except IOError:
+                        return '','','',[]
+            except (IOError, FileNotFoundError):
+                import traceback;
+                print(traceback.format_exc());
                 time.sleep(0.3)
+            except:
+                return '','','',[];
 
         #Turn prediction into list of tuples
 
@@ -248,7 +262,7 @@ class Soothsayer():
 
         pick = ''
         second_pick = ''
-        lexicon = open('wordmodels/'+model+'.lex.txt')
+        lexicon = open(wordmodelsdir+'/'+model+'.lex.txt')
 
         if len(current_word) == 0:
             return '',''
@@ -332,20 +346,20 @@ class Soothsayer():
     def prepare_training_data(self,directory,make_testfile=False):
 
         if self.approach == 'w':
-            foldername = 'wordmodels'
+            foldername = wordmodelsdir;
         elif self.approach == 'l':
             foldername = 'lettermodels'
 
         #Paste all texts in the directory into one string
         print('  Grab all files')
-        files = os.listdir('input/'+directory)
+        files = os.listdir(inputdir+directory)
         total_text = ''
 
         for n,i in enumerate(files):
             if n%1000 == 0:
                 print('   ',n/len(files))
 
-            content = open('input/'+directory+i,'r',encoding='utf-8',errors='ignore').read()
+            content = open(inputdir+directory+i,'r',encoding='utf-8',errors='ignore').read()
 
             if i == self.cut_file:
                 words = content.split()
@@ -356,7 +370,7 @@ class Soothsayer():
             if self.approach == 'w':
                 total_text += ' _ _ _ '+content
             elif self.approach == 'l':
-                total_text += ' ________________ '+open('input/'+directory+i,'r',encoding='utf-8',errors='ignore').read()
+                total_text += ' ________________ '+open(inputdir+directory+i,'r',encoding='utf-8',errors='ignore').read()
 
         #Tokenize
     #    total_text = ucto(total_text)
@@ -471,7 +485,7 @@ class Soothsayer():
     def train_model(self,filename,mode):
         """Train a model on the basis of these ngrams"""
 
-        command('timbl -f '+filename+' -I '+filename+'.IGTree +D +vdb -a1 -p 1000000',False)
+        command('timbl -f '+filename+' -I '+filename+'.IGTree +D +vdb -a1 -p 1000000',True)
         filename = filename.replace('.90.training.txt','').split('/')[-1]
         filename = filename.replace('.training.txt','').split('/')[-1]
         return Languagemodel(filename,self.approach,mode,self.limit)
@@ -503,7 +517,7 @@ class Soothsayer():
         lines = ''
 
         for i in counts:
-            lines += i[0] + ' ' +str(i[1]) + '\n'
+            lines += str(i[0].encode('utf8'))[2:-1] + ' ' +str(i[1]) + '\n'
 
         open(outputfilename,'w').write(lines)
 
@@ -620,6 +634,32 @@ class Soothsayer():
 
         open(filename,'w').write('\n'.join(newlines))
 
+    def string_to_number(self,s):
+        """Creates a unique number, 0-999, that represents a string"""
+
+        if s == '':
+            return 0;
+
+        while s[-1] != ' ':
+            s = s[:-1];
+
+            if s == '':
+                return 0;
+
+        number = 0;
+
+        for i in s:
+            number += ord(i);
+
+        numberstring = str(number);
+
+        while len(numberstring) > 3:
+            chars = list(str(number))
+            new_number = sum([int(x) for x in chars]);
+            numberstring = str(new_number);
+
+        return int(numberstring);
+
 class Module():
 
     def __init__(self,ss,name,model,kind):
@@ -659,6 +699,7 @@ class Module():
 
         self.timblserver.send(lcontext)
         distr = ''
+        c = 0;
 
         while distr == '' or 'DISTRIBUTION' not in distr or distr[-1] != '\n':
             try:
@@ -666,6 +707,7 @@ class Module():
             except UnicodeError:
                 distr = 'DISTRIBUTION { de 0.999 }\n'
                 print('  Skipped one')
+            c += 1;
 
         final_distr = '[ word ]' + distr.split('DISTRIBUTION')[1]
         open('predictions/lcontext'+nr+'.'+self.modelname+'.IGTree.gr.out','w').write(final_distr)      
@@ -702,6 +744,9 @@ def get_free_port():
     s.close()
 
     return int(port)
+
+inputdir = '/scratch2/www/soothsayer/repo/soothsayer/input/'; #VERY DIRTY SOLUTION
+wordmodelsdir = '/scratch2/www/soothsayer/repo/soothsayer/wordmodels';
 
 #TODO
 # Basisinstellingen voor het language model

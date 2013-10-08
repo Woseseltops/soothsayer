@@ -1,8 +1,12 @@
 import socket
 import time
-import psutil
 import soothsayer
 import math
+
+try:
+    import psutil
+except ImportError:
+    pass;
 
 class Timbl:
     def __init__(self):
