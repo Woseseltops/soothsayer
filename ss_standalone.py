@@ -379,9 +379,11 @@ def server_mode(settings):
         def __init__(self):
             self.locked = False;
 
-        def predict(self,text,model,show_source=False):
+        def predict(self,text,model,show_source=False,n_predictions=1):
 
             text = text.replace('_',' ')
+            show_source = bool(show_source);
+            n_predictions = int(n_predictions);
 
             try:
                 current_ss = soothsayers[model]
@@ -396,10 +398,19 @@ def server_mode(settings):
                 self.locked = False;
                 print('Lock',self.locked);
 
+                answer = str(pred['full_word']);
+
+                if n_predictions > 1: 
+                    answer += ',' + str(pred['second_guess']);
+
+                if n_predictions > 2:
+                    answer += ',' + str(pred['third_guess']);
+
                 if show_source:
-                    return str(pred['full_word']) + ','+str(pred['source'])
-                else:
-                    return str(pred['full_word'])
+                    answer += ',' + str(pred['source']);
+
+                return answer;
+
             else:
                 return '';
 
