@@ -11,7 +11,7 @@
 \special{papersize=210mm,297mm} % to avoid having to use "-t a4" with dvips 
 %\setlength\titlebox{6.5cm}  % You can expand the title box if you really have to
 
-\title{Using idiolects to improve word prediction}
+\title{Using idiolects and sociolects to improve word prediction}
 
 \author{First Author \\
   Affiliation / Address line 1 \\
@@ -56,28 +56,14 @@
 \maketitle
 
 \begin{abstract}
-In this paper the word prediction system \emph{Soothsayer} is described. This system predicts what a user is going to write as he/she is keying it in. The main innovation of Soothsayer is that it uses \emph{idiolects} as its source of knowledge. An idiolect is the language of one individual person. 
-
-The thesis starts with an overview of what has been achieved so far in Chapter \ref{intro}, both in the fields of word prediction (Section \ref{word_prediction}) and in the fields of idiolects (Section \ref{idiolects}). The rest of the thesis is devoted to describing how the system works, and describing experiments that demonstrate this is indeed the best way to do it. A word prediction system consists of two main parts: an algorithm (how the system works), and a language model (its knowledge of the language). These topics are discussed separately in Chapters \ref{algorithm} and \ref{model} respectively.
-
-In Chapter \ref{algorithm} I describe simple system that works with a word list. When the word the user is keying in can only correspond to one word in this word list, this word is predicted. This system then is made more complex step by step. The most important addition are so-called \emph{context-sensitive modules}, which work by comparing the context to contexts they have seen before. If they can find similar contexts, they suggest the words that follow these contexts. So if the user has keyed in 'on the basis' and wants to type 'of', and a context-sensitive module has seen 'on the basis of' in an earlier text, it will indeed predict 'of'. These contexts seen before are from an enormous collection of texts in the same language. This collection is called 'training material'.
-
-In Chapter \ref{model}, I investigate what kind of text works best as training material. This turn out to be the texts the user himself has written earlier. One reason is that with these texts the system has information on how the user writes, and about which topics, which greatly increases the chance of giving the right prediction. It is also possible that the user talks about something completely new. In that case, the system will try to look at (1) the text the user is currently keying in (the \emph{recency buffer}) and (2) other texts in the same language.
-
-To test this all on a much larger scale, I used Twitter\footnote{\url{http://www.twitter.com}}. During the spring of 2013, all tweets from a large group of Twitter users were (automatically) collected. For the 100 most active ones, Soothsayer then tried to predict the later tweets on the basis of earlier tweets. Most keystrokes could have been saved when using the idiolect model, with the recency buffer and the general language model in the background. 
-
-Because Twitter also has information on which users talk to each other a lot, I also tried \emph{sociolect} models. These models are based on the tweets of a particular person \emph{and} the tweets of the people he/she often communicates with. The idea behind is that people who often communicate start to talk alike; in other words, the language of the friends of person $x$ can be helpful in trying to predict was person $x$ is going to say. This approach improved the results even further. For a number of users, more than 50\% of the keystrokes could have been saved if they had used Soothsayer. 
+In this paper the word prediction system \emph{Xxx}\footnote{Name of the system is anonymized. The system is available as a demo and its source code is publicly available on GitHub.} is described. This system predicts what a user is going to write as he/she is keying it in. The main innovation of Soothsayer is that it not only uses \emph{idiolects} as its source of knowledge the language of one individual person, but also \emph{sociolects}, the language of the social circle around that person. We use Twitter for data collection and experimentation. During the spring of 2013, all tweets from a large group of Twitter users were (automatically) collected. For the 100 most active ones, Xxx then tried to predict the later tweets on the basis of earlier tweets. We then added \emph{sociolect} models. These models are based on the tweets of a particular person \emph{and} the tweets of the people he/she often communicates with. The idea behind is that people who often communicate start to talk alike; in other words, the language of the friends of person $x$ can be helpful in trying to predict was person $x$ is going to say. This approach achieved the best results. For a number of users, more than 50\% of the keystrokes could have been saved if they had used Xxx. 
 \end{abstract}
 
 \section{Introduction} \label{intro}
 
-In this thesis, I will show that the concept of \emph{idiolects}, the language of one person, can be used to improve \emph{word prediction}. Because these are two separate topics from the field of natural language processing and the field of sociolinguistics respectively, I will introduce them separately: word prediction will be introduced in \ref{word_prediction}, idiolects in Section \ref{idiolects}. Section \ref{linking} will explain how these two can be linked.
+In this thesis, I will show that the concepts of \emph{idiolect} and \emph{sociolect}, the language of one person and his social circle, can be used to improve \emph{word prediction}. 
 
-\subsection{Word prediction} \label{word_prediction}
-
-\subsubsection{The task}
-
-\textbf{Word prediction}, \textbf{word completion}, \textbf{predictive typing}, or \textbf{autocompletion} is the task of predicting what a user is going to type, as he/she is typing. This can be either the current word, as shown in sentence \ref{current_word}, the next word, as shown in sentence \ref{next_word}, and possibly even more words after that. 
+\textbf{Word prediction} is the task of predicting what a user is going to type, as he/she is typing. This can be either the current word, as shown in sentence \ref{current_word}, the next word, as shown in sentence \ref{next_word}, and possibly even more words after that. 
 \begin{examples}
 \item I'd like some c$|$ookies \label{current_word}
 \item I'd like some $|$cookies \label{next_word}
@@ -85,11 +71,7 @@ In this thesis, I will show that the concept of \emph{idiolects}, the language o
 
 The text before the vertical bar is what the user has keyed in, the part after the vertical bar is what the word prediction system has suggested. The goal of this thesis is to build a system which can generate suggestions exactly like this, as accurately as possible. 
 
-Although the four terms (word prediction, word completion, predictive typing and autocompletion) are often used interchangably, I feel \emph{completion} only captures half of what the system described here can do: it not only completes words (example \ref{current_word}), it also predicts new ones (example \ref{next_word}). Predictive \emph{typing} suggests this system is limited to typed input, but that also is not the case - the system described here is can handle all text, regardless of input method (text created by automatic speech recognition or optical character recognition is also fine, for example). Therefore, I will consistently refer to the task as \emph{word prediction}, and to the system as a \emph{word prediction system}. With this, I always mean predicting both current words and next words.
-
-Word prediction is used in many applications we use daily: Google completes our search queries, our web browser finishes the web addresses we type in, our email client finishes email addresses, Excel completes annotations based on earlier annotations, etc. It reduces the number of keystrokes we have to do, and thus saves us time and effort. However, when we type full sentences, whether they are part of an email, a scientific article, a tweet, or a master's thesis, we often still key in every single character. 
-
-Why don't we use word prediction here too? While no quantitative research has been done to answer this question, two obvious and probably related answers are that the most widely used text-editor has no integrated word predictor, and that prediction accuracy generally is too low to speed up typing; keying in every character is often faster than checking and accepting the predictions. Once typing speed decreases, however, word prediction \emph{is} integrated in applications. With the rise of smartphones,  on which one  cannot type as fast as on a normal keyboard, word prediction has become more widely known  (although it is unclear what proportion of the smartphone users also use some sort of word prediction application). Another example are  people with speech and motor disabilities, like cerebral palsy or hemiplexia. By using a device equiped with word prediction technology, they can increase their communication rate considerably \cite{Garay-Vitoria+06}. Indeed, all authors before the year 2000, when mobile phones were not widely used yet, seem to target the disabled user group - Copestake \shortcite{copestake97} even reports building a system for one individual user. More recent work (this one included) targets a wider audience.
+Word prediction is used in many applications we use daily: Google completes our search queries, our web browser finishes the web addresses we type in, our email client finishes email addresses, Excel completes annotations based on earlier annotations, etc. It reduces the number of keystrokes we have to do, and thus saves us time and effort and prevents us from making mistakes. With the rise of smartphones,  on which one  cannot type as fast as on a normal keyboard, word prediction has become widely known and used. Preceding this popularization, word prediction systems were already developed up to three decades ago to assist people with speech and motor disabilities, like cerebral palsy or hemiplexia. By using a device equiped with word prediction technology, they can increase their communication rate considerably \cite{Garay-Vitoria+06}. Indeed, all authors before the year 2000, when mobile phones were not widely used yet, seem to target the disabled user group - Copestake \shortcite{copestake97} even reports building a system for one individual user. More recent work (this one included) targets a wider audience.
 
 \subsubsection{Word frequency as chance indicator}
 
@@ -258,24 +240,6 @@ For this reason, I will follow Van den Bosch \shortcite{vandenbosch11} and alway
 On the other hand, current popular smartphone applications suggest this approach might be too strict. The popular smartphone application SwiftKey\footnote{\url{http://www.swiftkey.net/}} always shows the user three predictions, which seem to be (1) what the user has keyed in so far, (2) the most likely prediction and (3) the second most likely prediction. In case the user has not yet started typing the next word, option (1) is replaced by the third most likely prediction. Because smartphones use a touchscreen as an input device, no extra keystrokes are needed. The percentage of keystrokes that can be saved when two (and sometimes three) predictions were shown will be referred to as \textbf{SwiftKey Keystrokes Saved} (SKKS).
 
 A thing to notice is that both measures reflect the percentage of keystrokes saved in an ideal situation; that is, when the user accepts a correct prediction immediately once it is available. As will be discussed further in Section \ref{early}, this is not necessarily the case. 
-
-\subsubsection{What Soothsayer is not} \label{whatnot}
-There are many possible approaches to take when building an word prediction system. Because it would take too much time to try all of these approaches (and all combinations of them), I had to set limitations. Therefore, before I explain and defend the workings of Soothsayer, I would like to list the most important decisions, so the reader has a rough idea of what is coming (and what is not). 
-
-\begin{itemize}
-\item \textbf{Soothsayer does not predict more than one word at a time}. Some scholars have investigated the possibility to predict multiple words at the same time \cite{Lesher+99,greenberg+95}. This can very fruitful: if a word prediction system knows that \emph{on the b} should be \emph{on the basis of} it makes more sense to offer this as a whole, instead of first asking whether \emph{basis} is correct. However, multiword prediction comes with a lot of downsides: every extra word that is predicted greatly increases the chance of making an incorrect prediction, it is unclear what a user should do if he/she accepts the first word, but not the second word (or vice versa), and how this should be counted in terms of keystrokes. Furthermore, giving multiple words forces the user to plan ahead a few words while typing, which might not be how the user prefers to write. A useful side effect of predicting only one word at a time is that the space key can be used as an accept button \cite{Garay-Vitoria+06}.
-
-\item \textbf{Soothsayer does not focus on one specific domain of word prediction, but works for word prediction in general}. I expect query completion (i.e. Google completing what you wanted to search for) is the most-used form of word prediction at the moment. It is, however, a relatively small and simple form of it, that probably works with popularity statistics: if your query matches a query a lot of other users also used, this query is suggested. Although this is a smart system that works well, it can only be used for query completion. Soothsayer, on the other hand, can be used for query completion, but also for oher text entry contexts.
-
-\item \textbf{Soothsayer is not designed for mobile phones, but can be integrated into any kind of software, on any device}. When discussing this subject with others, I noted that word prediction is often confused with T9. T9 is a system in which every number corresponds with 3 or 4 characters (\emph{1} = \emph{.,!}, \emph{2} = \emph{abc}, \emph{3} = \emph{def}, etc.). A T9 system allows the users to press all numbers only once, and tries to figure out which word the writer probably intended; for example, \emph{233} can correspond to \emph{bed}. Although there is some language technology involved in systems like these (the system should know enough about language to figure out \emph{aef}, \emph{cfe} \emph{bde}, etc. are probably not intended), this is not what Soothsayer does; Soothsayer does not try to guess what the user wanted to say \emph{after} the user keyed it in, but \emph{before} he/she did. 
-
-Besides that, Soothsayer is designed to be indepent of device or input method. Instead, it includes a \emph{server mode} and an \emph{HTTP-server mode}, making it easy to integrate into any piece of software. This means it is very well possible that Soothsayer will be used together with a T9-system one day.
-
-\item \textbf{Soothsayer does not use hand-made, language-specific rules, but is fully language independent}. In the early days of Natural Language Processing, many scholars have tried to build NLP systems by including as much as linguistic knowledge of possible. In terms of a word prediction system, this could for example entail a system that parses the sentence the user has keyed in so far, tries to match this to a pre-made syntactical rule, and predicts something which would be grammatical according to this rule; see Chapter \ref{linguistic_knowledge} for more approaches like this.
-
-Soothsayer does not work this way. Instead, it is given as much training material as possible, and tries to learn from that. So Soothsayer might know the noun \emph{kast} probably does not follow the article \emph{het}, but because it has not encountered that during training, not because I told it so explicitly. As a result of this, Soothsayer is fully language independent: if it is trained on Dutch data, is will predict Dutch words, if it is trained on Swahili, it will predict Swahili words. In fact, the context-sensitive modules will often give correct predictions even when mixing languages - as long as the training material also contained these languages, of course.
-
-\end{itemize}
 
 \subsection{Context-insensitive modules} \label{ci}
 
@@ -523,21 +487,12 @@ In Section \ref{twitter_idiolects}, these experiment will then be replicated on 
 
 \subsection{A simple experiment: idiolects over general models} \label{simple_exp}
 
-\subsubsection{Research question}
-As decribed in \ref{restofthisthesis}, I expect that using idiolects, texts written by the user of the word completion system, as training models will save more keystrokes than a general language model. The research question for this first experiment thus is:
+As decribed in \ref{restofthisthesis}, I expect that using idiolects, texts written by the user of the word completion system, as training models will save more keystrokes than a general language model.
 
-\begin{examples}
-
-\item Does using a general language model or an idiolect model lead to more keystrokes saved?
-
-\end{examples}
-
-\subsubsection{Data} \label{data_simple}
 This experiment will compare two language models: a model based on the texts by one person, and a general language model. The idiolect consists of all emails I have sent between February 2009 and February 2013, containing 175,186 words. The first 90\% of the material was used for training, the remaining 10\% - the most recent emails - for testing. This is also the language model which has been used for testing in Chapter \ref{algorithm}. 
 
 As a control model, a general language model for Dutch will be used. For this, a random selection of blogs, emails and Wikipedia articles from the SoNaR corpus for written Dutch \cite{oostdijk+13} was made. These texts were chosen because they were believed to be neither very formal nor very informal. The control corpus consisted of 55,212,868 words.
 
-\subsubsection{Methodology}
 To the language models, Soothsayer, the algorithm described in Chapter \ref{algorithm}, will be used. Similar to the experiments there, a user keying a text will be simulated. If Soothsayer correctly guesses the next word, or the rest of the current word, it is assumed this virtual user will accept it, and goes on keying in the next word. It is then calculated what percentage of keystrokes was saved when only one suggestion was shown to the user (\textbf{C}lassical \textbf{K}eystrokes \textbf{S}aved), and when two and sometimes three suggestions are shown (\textbf{S}wift\textbf{K}ey \textbf{K}eystrokes \textbf{S}aved). Unlike the experiments in Chapter \ref{algorithm}, however, these experiments will not compare two versions of the algorithm, but two language models. Thus, whereas the experiments in Chapter \ref{algorithm} kept the model constant, and varied the algorithm (a version with feature $x$ turned on and a version with feature $x$ turned off, for instance), the experiments in this chapter will do the opposite and vary the model while keeping the algorithm constant. 
 
 The module set-ups for the two simulations are shown in Table \ref{idiolect_setup} and \ref{generalmodel_setup}. Each row in the table represents a module.
@@ -563,8 +518,6 @@ Position&Type&Model\\
 \end{table}
 
 
-\subsubsection{Results}
-
 \begin{table}[H]
 \begin{tabular}{ll|ll} 
 Training material&Test material&CKS&SKKS\\
@@ -577,10 +530,8 @@ Idiolect&Text by WS&35.2&39.3\\
 
 Table \ref{results_simple} shows that  using the idiolect model indeed leads to considerably more keystrokes saved. 
 
-\subsubsection{Conclusion}
 Despite the fact that the general model contained more than 300 times more words than the idiolect model, considerably more keystrokes could be saved using the idiolect model. This is consistent with both Van den Bosch \shortcite{vandenbosch11}, who shows that learning about the author improves the results, and Verberne {\em et al.} \shortcite{verberne+12}, who show that using training material from the same genre improves the results.
 
-\subsubsection{Discussion}
 As was explained in Section \ref{word_prediction}, the accuracy of word prediction really depends on how much training material was used to create the language model. This means that the above results only hold for exactly this amount of training material; by adding more material, the results are likely to improve, by removing material, the results are likely to deteriorate. That must also mean that for idiolect models based on very little training data, the findings of this experiment do not hold. To answer the question how much idiolect data is necessary to be a better choice than the general language model, at least for the current idiolect, I followed Van den Bosch \shortcite{vandenbosch11} and repeated the above experiments several times, with part of the training data removed. The result are summarized in the learning curve shown in Figure \ref{lcurve}.
 
 \begin{figure}[H] \centering
@@ -593,24 +544,13 @@ We see that, as Van den Bosch \shortcite{vandenbosch11} suggested, to keep impro
 
 \subsection{The general language model as a background model} \label{background}
 
-\subsubsection{Research question}
-
 A next step might be to combine both models. Given their nature, this is likely to lead to better results: whereas the idiolect model has information on what words, word combinations and constructions a person likes to use, the general model has information on what words, word combinations and constructions are possible in the language. While the idiolect model will do most of the work, the general model takes over once the user starts using language which he/she have never used before, but which is possible in the language. 
 
 Or to phrase it from a more theoretical perspective: although a language variety is nothing more than a collection of idiolects, as stated in Chapter \ref{intro}, a language variety can only be called a language variety when the idiolects are similar; otherwise the language users would not be able to communicate. This should mean that idiolects of other people using the same language variety, although less good than the idiolect, can still contain valuable information.
 
-The research question for this experiment thus is:
 
-\begin{examples}
-
-\item Does using the general language model as a background model for the idiolect model lead to more keystrokes saved than using one idiolect model alone?
-
-\end{examples}
-
-\subsubsection{Data}
 As dataset, the corpora described in \ref{data_simple} will be used. However, this time  both corpora will be used in one experiment.
 
-\subsubsection{Methodology}
 Again, the algorithm described in Chapter \ref{algorithm}, Soothsayer, will be used. As was explained in Section \ref{ss_intro}, Soothsayer consists of several modules that function as each other's safety net; if one module fails to deliver a prediction, the next one takes over. This way more than one language model can be easily be used in one experiment.
 
 In which order should the modules be placed? To limit the amount of possible module orders, I will do two assumptions:
@@ -648,8 +588,6 @@ Position&Type&Model\\
 \caption{Module order with the general model as background model, version 2} \label{order2}
 \end{table}
 
-\subsubsection{Results}
-
 The results are shown in Table \ref{results_background}. The first row repeats the results displayed in Table \ref{results_simple}, from the previous experiment, the second and third are the results of this experiment. The table shows that using the general model as a background corpus indeed increases the number of keystrokes saved, and that there is no measurable difference between order 1 and 2.
 
 \begin{table}[H]
@@ -663,12 +601,10 @@ Idiolect + general, order 2&Text by WS&38.7&42.1\\
 \caption{Percentage of keystrokes that can be saved when using the general model as background model} \label{results_background}
 \end{table}
 
-\subsubsection{Conclusion}
 We saw that using the general language model as a background model indeed increases the number of keystrokes saved. This is because the idiolect model, although it has more knowledge on what is likely to follow, is dependent on what the user has said before, and becomes useless when the user deviates from his/her normal patterns. As long as the user remains within the bounds of the language, the general model can fill this knowledge gap to a certain extent.
 
 Because there was no measurable difference between order 1 and order 2, the choice for one over the other becomes arbitrary. For subsequent experiments with a background model, I will consistently pick order 1.
 
-\subsubsection{Discussion} \label{simple_exp_disc}
 Is having a general language model as background model equally efficient for all idiolects? In this section, as a side-track, I'd like to argue this is not the case; it is likely it depends on how large the gap is the general model can fill. In the main experiment, we saw an increase in the number of keystrokes saved, from 35.2 \% CKS to 38.7\% CKS (3.5\%). To show the benefits are even higher for idiolect models with less good results, I will repeat this experiment with another idiolect: one year of weblogs written by Dutch physician and astronaut Andr\'e Kuipers, from July 2011 to July 2012. This period covers the preparations for Kuipers' second spaceflight PromISSe on Expedition 30 and Expedition 31 (from July to December 2011), the actual space mission (December 2011 to June 2012), and his return to earth (July 2012). The corpus consists of 31,790 words. 
 
 Like in the main experiment, it was calculated how many keystrokes could be saved when using the idiolect model alone, and the idiolect model with a general language model as background model. The results are summarized in Table \ref{results_kuipers}. 
@@ -688,19 +624,10 @@ These results show again that the algorithm performs much better when it uses th
 
 \subsection{The effect of the recency buffer} \label{recbuf}
 
-\subsubsection{Research question}
-
-For the experiments so far, the recency buffer was not used. As suggested in Section \ref{rb}, this might be a missed chance: the recency buffer by definition uses more recent input by the user than any other model, and might this way be able to do more accurate predictions. When added to a module using an idiolect model, the recency buffer is expected to have slight improvements, because of the recency. When added to a module using a general language model, however, the recency buffer is expected to have much larger improvements, because here the buffer can also add information about the idiolect of the user. The research question for this simulation thus is:
-
-\begin{examples}
-\item To what extent does adding the recency buffer improve the number of keystrokes saved for the idiolect model, the general language model, and a combination of them?
-\end{examples}
-
-\subsubsection{Data}
+For the experiments so far, the recency buffer was not used. As suggested in Section \ref{rb}, this might be a missed chance: the recency buffer by definition uses more recent input by the user than any other model, and might this way be able to do more accurate predictions. When added to a module using an idiolect model, the recency buffer is expected to have slight improvements, because of the recency. When added to a module using a general language model, however, the recency buffer is expected to have much larger improvements, because here the buffer can also add information about the idiolect of the user.
 
 Both the idiolect and the general language corpus described in Section \ref{data_simple} will be reused. 
 
-\subsubsection{Methodology}
 The experiments described in Sections \ref{simple_exp} and \ref{background} will be repeated, but this time with a recency buffer in the module chain. As was discovered in Section \ref{rb}, the system loses important information when it is put behind context-sensitive modules, so the recency buffer is always included directly after the last context-sensitive module. This leads to the following context-sensitive module orders:
 
 \begin{table}[H]
@@ -739,8 +666,6 @@ Position&Type&Model\\
 \end{table}
 
 
-\subsubsection{Results} 
-
 \begin{table}[H] 
 \centering
 \begin{tabular}{ll|llll} 
@@ -756,19 +681,12 @@ General + idiolect&Text by WS&38.7&42.1&39.9&42.6\\
 
 Table \ref{recbuf_results} shows that, as expected, the recency buffer has the most effect when added to the general language model. Furthermore, we see that, even if there are improvements, they are minimal.
 
-\subsubsection{Conclusion}
 In Section \ref{rb}, we saw that using the recency buffer only results in slight improvements. That result has been replicated here. The improvement is a slightly larger for the general language model, as expected, because here the recency buffer can add some simple idiolect information, besides information about recent language.
 
 \subsection{Using Twitter feeds as idiolects} \label{twitter_idiolects}
 
-\subsubsection{Research question}
-Although previous experiments had clear results, these are the results of only one idiolect. It is possible that this idiolect is not representative of idiolects in general; some people might have a more consistent style of writing than others. It is for a reason that the study of idiolects is sometimes also called the study of \emph{individual differences} \cite{barlow10}. The research question for this section therefore is:
+Although previous experiments had clear results, these are the results of only one idiolect. It is possible that this idiolect is not representative of idiolects in general; some people might have a more consistent style of writing than others. It is for a reason that the study of idiolects is sometimes also called the study of \emph{individual differences} \cite{barlow10}. 
 
-\begin{examples}
-\item To what extent do the previous findings hold for other language users?
-\end{examples}
-
-\subsubsection{Data} \label{data_twitter_idiolects}
 In this experiment, the power of idiolects will be investigated on a much larger scale by using 100 idiolects at the same time. For this, micro-blogging service Twitter is used, as it essentially is a large collection of idiolects. Twitter\footnote{\url{http://www.twitter.com}} is a micro-blogging service where each Twitter user can submit status updates known as tweets, which consist 140 characters or less. These tweets typically consist of personal information about the users themselves, news or links to other pages on the internet. Tweets are displayed on the user's profile page. 
 
 Using the Twitter API, all tweets of a manually created seed set of 40 Dutch Twitter users were retrieved from January until June 2013. Retweets, language these authors did not produce themselves, were excluded. These seed users were the starting point of an iterative expansion of the set of crawled Twitter uses by following mentions of other users (indicated with the syntax \emph{'@username'}). The goal of this expansion was to find as much active Twitter users as possible for the system to follow, and to capture the network of these users (which we will need for later experiments). The set was extended with 2 users every 30 minutes:
@@ -792,8 +710,6 @@ The relatively stable growth in the left part of the graph can be explained by t
 
 This distribution means that using all or a random selection of Twitter users is not likely to lead to good results, because for most users not much material is available. Therefore, only data from the 100 Twitter users for which there was the most material will be used to build the idiolect models. Twitter accounts run by something other than an individual person (like a company) were excluded manually. The number of words ranged from 61,098 words for the least active user (of the 100 users included in the experiments) to 167,685 words for the most active user. For the general Dutch corpus, the corpus described in Section \ref{data_simple} will be used, which had 55,212,868 words.
 
-\subsubsection{Methodology}
-
 The experiments described in Sections \ref{simple_exp}, \ref{background} and \ref{recbuf} will be replicated, with the same module set-ups. However, instead of only once, all experiments will now be done 100 times, with 100 different idiolect models. An overview of the experiments and their module set-ups:
 
 
@@ -815,8 +731,6 @@ Simulation&Experiment&Idiolect, context-sensitive&General, context-sensitive&Rec
 \end{table}
 
 Experiment 1 investigates whether idiolect models or the general language model are more powerful, experiment 2 investigates the effects of using the general language model as background model, and experiment 3 investigates the effect of adding the recency buffer to the idiolect model, the general language model, and both.
-
-\subsubsection{Results}
 
 The results of the simulations are summarized in Tables \ref{twitter_results_cks} and \ref{twitter_results_skks}. Because of the number of factors involved, CKS and SKKS are shown in two separate tables for clarity. Both tables show exactly the same pattern.
 
@@ -901,45 +815,23 @@ The large individual differences are illustrated in Figure \ref{chaos}, where th
 
 These differences means Soothsayer performs much better for one than for the other. Using the best-performing module set-up in general, the set-up with the idiolect model, backed up by the general language model, \emph{and} the recency buffer, the worst result is \textbf{21.8\% CKS} and \textbf{24.1\% SKKS} for user 90, and the best result is \textbf{51.3\% CKS} and \textbf{52.4\% SKKS} for user 97.
 
-\subsubsection{Conclusion}
 We already saw that Soothsayer works best when using the idiolect as the main model, backed up by a general language model, and a recency buffer to capture the characteristics of the current text. When repeating these experiments on a larger scale, the same results were found: idiolects work better, despite the general model having around 800 times more training material, general language models can still be useful as a background model, and the recency buffer improves the results. Whereas using the recency buffer led to only slight improvements in the previous experiments, it actually leads to more substantial improvements here. This discrepancy with the previous results can possibly be explained by the fact that there are a lot of differences between the idiolects; for some of the twitter users in the data set, the recency buffer did not work well either.
-
-\subsubsection{Discussion}
-Whereas Twitter mostly is a great dataset for this kind of research, it also has two possible downsides. I will outline these downsides, and defend my choice to use Twitter here:
-
-\begin{enumerate}
-
-\item \textbf{Twitter language might not be representative of real language}. Messages on Twitter are limited to 140 characters, which creates some limitations on how people use Twitter. Indeed, Twitter does have a bad reputation when it comes to the 'quality' of the language; Tumasjan {\em et al.} \shortcite{tumasjan+10} mention sources call it 'pointless babble'. While it is hard to find evidence before or against this view, I \emph{can} say this does not stroke at all with my personal experience with the Twitter data. For example, a large part of the corpus I collected consists of large companies like T-mobile, KPN (telecom providers) and NS (Dutch railways) giving customer support, as well as researchers talking about their research, developers talking about their products, and politicians giving their opinions on society. Furthermore, the fact that Twitter can be used to predict earthquakes \shortcite{sakaki+10}, box office revenues \cite{asur+10}, flu outbreaks \cite{lampos+10}, and even elections \cite{tumasjan+10}, suggests Twitter language is more than pointless babble. I therefore feel Twitter language is close enough to 'real' language to generalize these findings to other domains of language.
-
-\item \textbf{Twitter users might not be representative of the world's population}. Although this again is hard to quantify, Mislove {\em et al.} \shortcite{mislove+11} do an attempt by looking at information like self-reported names, self-reported locations, and the coordinates provided with some of the tweets. Their main findings are that (1) most of the Twitters users all male, although women have gained more and more ground over the last years, and (2) more populous areas are over-represented. That is, in places were more people live a larger part of the population uses Twitter. Common sense can add to these facts that Twitter users are interested in, or at least not averse to, technology, and somewhat younger; tweeting grandparents are rare. 
-
-Although young men from populous areas that are interested in technology indeed are not representative of the world's population, one can wonder to what extent that is actually necessary; if there is an audience for applications like Soothsayer, it probably is this audience. In other words, despite being not representative of the world's population, Twitter users might be exactly the right kind of people to test this software on.
-
-\end{enumerate}
 
 Concerning the large amount of variation between individual Twitter users, I want to mention it is completely unclear why this is the case. Why are some people so much easier to predict than others? Is it just limited to language style (i.e. some people simply write more varied than others), or are there more factors at play here? From manual inspections of the Twitter accounts sometimes some of the data could be explained (for example, some of the people for which the general (Dutch) language model did not work well, also tweeted in other languages, and people with powerful idiolects sometimes often repeated words like \emph{goedemorgen} 'good morning', \emph{dankjewel} 'thank you', and \emph{welterusten} 'sleep well'), but no clear patterns emerged. Trying to predict for which persons word prediction will go well and for which persons it will not might be an interesting topic for future research. It is a question that is related to the field computational stylometry and in particular automatic authorship attribution, although authorship attribution is the exact opposite of the task described here (guessing the author on the basis of text instead of guessing the text on the basis of the author) \cite{bagavandas+08}.
 
 \subsection{Social networks and language input} \label{input_networks}
 
-\subsubsection{Research question}
 In Sections \ref{simple_exp} and \ref{twitter_idiolects}, we saw that idiolect models tend to perform considerably better than general language models, despite being based on substantially less material than the general language model. In Section \ref{simple_exp_disc}, we also saw that the findings by Lesher {\em et al.} \shortcite{Lesher+99}, that more material leads to more keystrokes saved, also holds for idiolects. This leads to the expectation that more idiolectal training material might lead to even better results. This material, however, might not be available, simply because not all people write that much. For a particular user $x$, what other sources of language do we have that might be similar to the idiolect of $x$?
 
 One of the more obvious answers might be the language of the people $x$ often communicates with. The fact that people that are in some way related to each other speak alike is a well known in sociolinguistics; it is arguably the very basis of the whole field. A famous example of the workings of this phenomenon is the case of Martha's Vineyard, as described by the founding father of sociolinguistics William Labov \cite{labov63}. Martha's Vineyard is an island on the East Coast of the United States, part of the state of Massachusetts, and well-known as summer resort for wealthy tourists. Wikipedia\footnote{\url{http://en.wikipedia.org/wiki/Martha\%27s\_Vineyard}} notes that 'the 2010 census reported a year-round population of 16,535 residents; however, the summer population can swell to over 100,000 people.' Labov investigated the pronunciation of the diphthongs [aw] and [ay] (as in \emph{loud} and \emph{light}), and discovered that among the younger speakers (31-45 years) there seemed to be a movement away from the pronunciations associated with the standard norms, and towards a pronunciation associated with more conservative  Vineyard speakers. At first sight, this was extremely unexpected: since education had improved and had been available to most people, one would expect the \emph{older} generation to have a more 'island way of speaking', instead of the younger and better educated generation. However, Labov also discovered that the speakers with the most clear Vineyard pronuncation were also the speakers who actively tried to identify themselves as Vineyarders, valued the traditional island way of life, and disliked the stream of visitors which at that moment was starting to grow. In other words, the pronunciation was now used as a (subconscious) way of saying that the speaker was not a tourist, but an original inhabitant of the island.
 
 Since then, sociolinguistics has shown that such group languages or sociolects are not limited to dissociating groups of speakers from other groups of speakers (but can also just serve as in-group identity) and phonology (but can also be observed for all other layers of language, like syntax and lexicon). Therefore, I believe that adding the language of the people person $x$ communicates with a lot to his/her language model is likely to improve the prediction accuracy, because these people are likely to have a similar idiolect.
 
-This approach of including the language of the people from a particular person's environment can also be viewed from a different perspective: so far, I have followed Mollin \shortcite{mollin09} and Barlow\shortcite{barlow10} in using only the \emph{output} of speakers. This makes sense (since what comes out must have been inside), but can never be the full story, as there might be much more 'language' in a person's head than the language he/she utters. A more natural alternative to capture somebody's idiolect would be to follow a person from birth, and record all linguistic input he/she gets. The sociolect model that will be constructed here can be seen as a simple and general approximation of this: by including the language of the socially related persons of person $x$, the system can have a rough idea of the kind of input person $x$ gets. Our research question for this section thus becomes:
+This approach of including the language of the people from a particular person's environment can also be viewed from a different perspective: so far, I have followed Mollin \shortcite{mollin09} and Barlow\shortcite{barlow10} in using only the \emph{output} of speakers. This makes sense (since what comes out must have been inside), but can never be the full story, as there might be much more 'language' in a person's head than the language he/she utters. A more natural alternative to capture somebody's idiolect would be to follow a person from birth, and record all linguistic input he/she gets. The sociolect model that will be constructed here can be seen as a simple and general approximation of this: by including the language of the socially related persons of person $x$, the system can have a rough idea of the kind of input person $x$ gets.
 
-\begin{examples}
-\item Does using the sociolect model lead to more keystrokes saved than using the idiolect model?
-\end{examples}
-
-\subsubsection{Data}
 As was explained in Section \ref{data_twitter_idiolects}, the Twitter data were collected in a way to capture social relations as good as possible. This makes the current experiment possible. Sociolects were created by collecting all addressees mentioned with the \emph{@addressee} syntax for each of the 100 Twitter users used in the previous experiment. For all addressees that were mentioned three times or more, it was checked if this addressee was in the dataset (which was almost always the case). If so, it was checked whether this addressee also mentioned the original Twitter user at least three times. If this was also the case, the system assumed the users speak to each other often enough to have their language adjusted to each other, and the tweets of this addressee were added to the sociolect of the original Twitter user. We thus end up with 100 sociolects built around the 100 most active Twitter users, all based on the tweets of a Twitter user and the tweets of the persons that he communicated with at least six times (three times as writer, three times as reader).
 
 The results of Verberne {\em et al.} \shortcite{verberne+12} would predict that adding tweets in general would lead to increases in the number of keystrokes saved, as this is using more texts from the same genre. To be sure that any improvements can be attributed to the fact that this is the language from friends, a control model will be build. The training material for this control model was assembled by taking the sociolect as a model, but replacing every twitter feed that was not the idiolect by another random twitter feed with roughly the same number of words. Thus, whereas the sociolect model consists of the tweets of Twitter user $x$ and the tweets of the friends of twitter user $x$, the control model consists of the tweets of Twitter user $x$ and the tweets of random other Twitter users.
-
-\subsubsection{Methodology}
 
 For each of the 100 Twitter users, a simulation will be done for the model created on the basis of the idiolect and the random Twitter users and for the sociolect model. For this, the best performing module set-up from the previous experiments will be used, as shown in Table \ref{replicate_setup} (adapted from Table \ref{sim3}).
 
@@ -956,11 +848,7 @@ Position&Type&Model\\
 \caption{The best performing module set-up} \label{replicate_setup}
 \end{table}
 
-These results will be compared to the simulations for the idiolect model from the previous experiment.
-
-\subsubsection{Results}
-
-The results of the simulations are summarized in Table \ref{socio_results}.
+These results will be compared to the simulations for the idiolect model from the previous experiment. The results of the simulations are summarized in Table \ref{socio_results}.
 
 \begin{table}[H] 
 \centering
@@ -1002,11 +890,8 @@ Twitter user&\multicolumn{2}{l}{Idiolect}&\multicolumn{2}{l}{Idiolect+random fee
 
 For these users, we see an increase when random tweets are added, but a decrease when the tweets from their conversation partners are used. For user 24 and 49, the percentage of keystrokes saved when using the sociolect model is even lower than the idiolect model alone.  Using the best-performing module set-up in general, the set-up with the sociolect model, backed up by the general language model, \emph{and} the recency buffer, the worst result is \textbf{21.3\% CKS} and \textbf{22\% SKKS} for user 90, and the best result is \textbf{56.2\% CKS} and \textbf{58.1\% SKKS} for user 38.
 
-\subsubsection{Conclusion}
 As was expected on the basis of the findings of Verberne {\em et al.} \shortcite{verberne+12}, adding more tweets leads to more keystrokes saved; they are 'texts from the same genre' after all. A well-known fact from sociolinguistics is that people who are in some way related try to speak alike. For Twitter users this would mean that the tweets of the people they often communicate with are better predictors of what they are going to say, and this indeed turned out to be the case; when the sociolect models were used, significantly more keystrokes could be saved.
 
-
-\subsubsection{Discussion}
 At this point, sociolinguists may want to argue that the concept \emph{sociolect} could be operationalized in a more natural way. A real sociolect might be the language variety of a real \emph{group} of people. The relationships between the speakers might for example look like this:
 
 \begin{figure}[H] \centering
