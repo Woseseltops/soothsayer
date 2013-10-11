@@ -61,13 +61,8 @@ In this paper the word prediction system \emph{Xxx}\footnote{Name of the system 
 
 \section{Introduction} \label{intro}
 
-Our main aim of the study presented here is to show that the concepts of \emph{idiolect} and \emph{sociolect}, the language of one person and his or her social circle, can be used to improve \emph{word prediction}, the task of predicting what a user is going to type, as he/she is typing. Word prediction is used in many applications we use daily: Google completes our search queries, our web browser finishes the web addresses we type in, our email client finishes email addresses, Excel completes annotations based on earlier annotations, etc. It reduces the number of keystrokes we have to do, and thus saves us time and effort and prevents us from making mistakes. With the rise of smartphones,  on which one  cannot type as fast as on a normal keyboard, word prediction has become widely known and used. Preceding this popularization, word prediction systems were already developed up to three decades ago to assist people with speech and motor disabilities, like cerebral palsy or hemiplexia. By using a device equiped with word prediction technology, they can increase their communication rate considerably \cite{Garay-Vitoria+06}. Indeed, all authors before the year 2000, when mobile phones were not widely used yet, seem to target the disabled user group - Copestake \shortcite{copestake97} even reports building a system for one individual user. More recent work (this one included) targets a wider audience.
+Our main aim of the study presented here is to show that the concepts of \emph{idiolect} and \emph{sociolect}, the language of one person and his or her social circle, can be used to improve \emph{word prediction}, the task of predicting what a user is going to type, as he/she is typing. Word prediction technology reduces the number of keystrokes we have to make, and thus saves us time and effort and prevents us from making mistakes. With the rise of smartphones,  on which one  cannot type as fast as on a normal keyboard, word prediction has become widely known and used. Preceding this popularization, word prediction systems were already developed up to three decades ago to assist people with speech and motor disabilities, like cerebral palsy or hemiplexia. By using a device equipped with word prediction technology, they can increase their communication rate considerably \cite{Garay-Vitoria+06}. Indeed, all authors before the year 2000, when mobile phones were not widely used yet, seem to target the disabled user group - Copestake \shortcite{copestake97} even reports building a system for one individual user. More recent work (this included) targets a wider audience, but does return to the idea of using an individual's own 
 
-Several attempts have been undertaken to improve word prediction technology, so that it can increase the communication rate for smartphone users, people with physical disabilities, and typing in general. 
-
-
-
-\subsection{Idiolects} \label{idiolects}
 
 Almost every claim in the field of linguistics concerns language as a whole; whether the subject of investigation is a particular syntactic construction, phonological variable, or some other linguistic phenomenon, the results are always supposed to hold for an entire language variety. The concept of an idiolect, the language of only one person, is well-known, but rarely ever modelled or in some other way operationalized \cite{mollin09,barlow10,louwerse04}. According to Mollin \shortcite{mollin09} it is a 'neglected area in corpus linguistics', and Barlow \shortcite{barlow10} states that the term 'is distinguished by the fact that there is probably no other linguistic term in which there is such a large gap between the familiarity of the concept and lack of empirical data on the phenomenon.' This is remarkable, since 'idiolects are the only kind of language we can collect data on', as Haugen \shortcite{Haugen72} points out; a language variety essentially is a collection of idiolects.
 
@@ -78,68 +73,26 @@ Word prediction systems typically operate with an algorithm and a language model
 \section{Related work}
 \label{related}
 
-An early solution for useable word prediction was to use frequency lists; although it is possible to wait until a word unicity point has been reached (the point in a word where there is only possible prediction left), much more keystrokes can be saved if the prediction can be done earlier. For example, if the user wants to type the word \emph{communication}, the system could wait until \emph{communicatio} has been keyed in to make sure it does not give an incorrect suggestion in case the user wanted to say \emph{communicative}, but it could also take the risk and guess one of the words much earlier. 
+An early solution for useable word prediction was to use frequency lists; although it is possible to wait until a word unicity point has been reached (the point in a word where there is only possible prediction left), much more keystrokes can be saved if the prediction can be done earlier. One of the first word prediction systems using this technique, and also one of the first word predictions systems in general, was PAL \cite{swiffin+85}.  Since then, numerous authors have shown that taking context into account improves prediction accuracy significantly \cite{Lesher+99,Garay-Vitoria+06,Tanaka-Ishii07,vandenbosch+08}. This entails that the system has some information on which words are likely to follow each other, and uses this when giving predictions. A simple approach to implementing context-sensitivity is using the frequency list technique of the context-insensitive modules with $n$-grams;  see \cite{hunnicutt87} for an early example. The system then looks up the context in a list, sees which words often follow this context, and returns the most frequent one that still matches what the user has keyed in so far.
 
-Which one of the two (\emph{communication} or \emph{communicative}) the system guesses should be the option that is the most likely. This chance of occurence of a word is reflected by its frequency in texts: the more a word occurred in the past, the more likely it is to occur again in the future. In the example, \emph{communication} will be more likely to be correct because it occurs higher on frequency lists. One of the first word prediction systems using this technique, and also one of the first word predictions systems in general, was PAL \cite{swiffin+85}. 
+Obviously, the accuracy of a context-sensitive system largely depends on how often a similar context was available in the training material; since an algorithm can only know what will follow a particular context if it has seen that context before, we should try to give it as much training material as possible. A key publication by Lesher {\em et al.} \shortcite{Lesher+99} indeed shows that the accuracy of a context-sensitive word prediction system is related to how much training material is provided. Their algorithm can save 46\% of the keystrokes when using 100.000 words (when showing the user the top 10 of most likely predictions), and this percentage slowly but steadily increases when they add more training material, up to 54\% keystroke savings with 3 million words of training material.
 
-Since then, numerous authors have shown that taking context into account improves prediction accuracy significantly \cite{Lesher+99,Garay-Vitoria+06,Tanaka-Ishii07,vandenbosch+08}. This entails that the system has some information on which words are likely to follow each other, and uses this when giving predictions. For example, if the user has keyed in sentence \ref{iate}, a context-sensitive system should not predict the word \emph{communication}, even if it is high on the frequency lists, because \emph{communication} is unlikely to follow \emph{ate}.
+On the other hand, once most of the frequent combinations are covered, it takes more and more training material to improve the results a little bit. This means we also expect a loglinear effect of the amount of training material on the results of a word prediction system. Van den Bosch \shortcite{vandenbosch11} shows this is indeed the case: in his system, the step from 100 to 1,000 words in the training material, roughly 6\% more keystrokes could saved (from 15\% to 21\% keystrokes saved), whereas the same is true for the step from 1,000,000 to 10,000,000 words (from 40\% to 46\%).
 
-\begin{examples}
-\item I ate co \label{iate}
-\end{examples}
-
-A simple approach to implementing context-sensitivity is simply using the frequency list technique of the context-insensitive modules with $n$-grams;  see \cite{hunnicutt87} for an early example. The system then literally 'looks up' the context in a list, sees which words often follow this context, and returns the most frequent one that still matches what the user has keyed in so far.
-
-Obviously, the accuracy of a context-sensitive system largely depends on how often a similar context was available in the training material; since an algorithm can only know what will follow a particular context if it has seen that context before, we should try to give it as much training material as possible. A key publication by Lesher {\em et al.} \shortcite{Lesher+99} indeed shows that the accuracy of a context-sensitive word prediction system is related to how much training material is provided. Their algorithm can save 46\% of the keystrokes when using 100.000 words (when showing the user the top 10 of most likely predictions), and this percentage slowly but steadily increases when they add more training material: for 200.000 words it can save 47\%, for 300.000 words it can save 48\%, etcetera, until 54\% keystroke savings with 3 million words of training material.
-
-On the other hand, once most of the frequent combinations are covered, it takes more and more training material to improve the results just a little bit. This means we also expect a loglinear distribution for the effect of the amount of training material on the results of a word prediction system. Van den Bosch \shortcite{vandenbosch11} shows this is indeed the case: in his system, the step from 100 to 1000 words in the training material, roughly 6\% more keystrokes could saved (from 15\% to 21\% keystrokes saved), whereas the same is true for the step from 1000.000 to 10.000.000 words (from 40\% to 46\%).
-
-\paragraph{Using linguistic knowledge}
-
-A basic context-sensitive system, as described in the previous paragraph, knows which words are likely to follow each other, but has no idea of the more 'abstract', higher-level rules that might exist in language. A logical next step might thus be to add explicit linguistic knowledge to the system. A large part of the authors in the field of word prediction indeed try to include linguistic knowledge in some way. A relatively simple approach is to use Part of Speech tags besides orthographical representations of words \cite{carlberger+97,Fazly+03,copestake97}. This works similar to the ortographical approach, but this time the system is trained to know what PoS-tags are likely to follow each other (instead of which words). So besides words, the system also predict PoS-tags, and these predicted tags are then used to limit the pool of predicted words. For instance, if the system predicts \emph{work}, \emph{worst}, and \emph{world}, and also expects a noun, \emph{worst} is ruled out because it is an adjective.
-
-A deeper approach is to parse the sentence so far \cite{Matiasek+02,garay-vitoria+97}. This parse can of course only be partial, as the user is still in the process of forming the sentence. The result is then compared to a pool of known syntactic rules for the language. This rule will predict the PoS-tag of the next word, which will again be used to limit the words predicted by another part of the system. Matiasek {\em et al.} \shortcite{Matiasek+02} go even further and try to take into account compounds, as encountered in languages like Dutch, German, and Swedish. If the user uses the backspace to delete the automatically generated space (that is, if the user actively informs the system he/she intended to write a compound here), the compound module is activated. This module tries to predict the rest of the word on the basis of corpus information, such as how often all possible continuations of the word are part of a compound, and how often all continuations occur in this context.
+A large portion of the work on word prediction includes linguistic knowledge in some way. A relatively simple approach is to use part-of-speech tags besides orthographical representations of words \cite{carlberger+97,Fazly+03,copestake97}, where the system is also trained to know what PoS-tags are likely to follow each other. These predicted tags are then used to limit the pool of predicted words. A deeper approach is to parse the sentence so far \cite{Matiasek+02,garay-vitoria+97}. This parse can of course only be partial, as the user is still in the process of forming the sentence. The result is then compared to a pool of known syntactic rules for the language. This rule will predict the PoS-tag of the next word, which will again be used to limit the words predicted by another part of the system. Matiasek {\em et al.} \shortcite{Matiasek+02} go even further and try to take into account compounds, as encountered in languages like Dutch, German, and Swedish. 
 
 Interestingly, most authors conclude that including linguistic knowledge improves the results, but only slightly \cite{garay-vitoria+97,Fazly+03}. As Hunnicutt \shortcite{hunnicutt87} puts it: 'It appears [the implemented grammar] gives small reward for a great deal of effort if one looks at a measure such as keystroke savings'. Fazly and Hirst \shortcite{Fazly+03} note that adding explicit linguistic knowledge 'might not be considered worth the considerable extra cost that it requires'.
 
-\paragraph{Domain adaptation and recency}
+Humans use more than knowledge of language alone to predict what somebody is going to say; we also take into account what the speaker typically says, what the speaker is talking about, in what context. Besides the linguistic context, we may therefore also want to give the system some real-world context. One way may be is to use training material from the same domain. Verberne {\em et al.} \shortcite{verberne+12} show that trying to predict Wikipedia text, tweets, transcriptions of conversational speech and Frequently Asked Questions all worked best when using texts from the same type (e.g. training on Wikipedia text to predict Wikipedia text). Furthermore, they show that questions about neurological issues, for which little training material was available, could best be predicted with the corpus that was closest in terms of topics discussed: the medical pages from Wikipedia. 
 
-Context-sensitivity, in particular when using a lot of training material, is most powerful when it comes to collocations (for example, \emph{in combination with}, \emph{on the basis of}). However, humans use more than knowledge of knowledge alone to predict what somebody is going to say; we also take into account what the speaker typically says, and what the speaker is talking about. For instance, the input \emph{wed} can is likely to refer to \emph{Wednesday} when making an appointment for next week, whereas it can also be likely to refer to \emph{wedding} when talking about a marriage. In other words, besides the linguistic context, we also want to give the system some real-world context.
-
-One way to give some of this kind of knowledge to word prediction systems is to use training material from the same domain; Verberne {\em et al.} \shortcite{verberne+12} show that trying to predict Wikipedia text, tweets, transcriptions of conversational speech and Frequently Asked Questions all worked best when using texts from the same type (e.g. training on Wikipedia text to predict Wikipedia text). Furthermore, they show that questions about neurological issues, for which little training material was available, could best be predicted with the corpus that was closest in terms of topics discussed: the medical pages from Wikipedia. 
-
-Van den Bosch \shortcite{vandenbosch11} takes a completely different approach and tries to make a word prediction system learn about register and topic on the fly with a \emph{recency buffer}. This buffer stores the $n$ latest words; if a word the user is keying in matches one of the words in the recency buffer, this word is suggested instead of what the system would actually have suggested. The idea behind this is that if the user is writing about, for example, traveling, words like 'go', 'hotel', and 'see' will always be in the buffer and thus be suggested quickly. In other words, the systems learns about the user and the topic on the fly.
+Van den Bosch \shortcite{vandenbosch11} proposes to make a word prediction system learn about register and topic on the fly with a \emph{recency buffer}. This buffer stores the $n$ latest words; if a word the user is keying in matches one of the words in the recency buffer, this word is suggested instead of what the system would actually have suggested. The idea behind this is that if the user is writing about, for example, traveling, words like 'go', 'hotel', and 'see' will always be in the buffer and thus be suggested quickly. In other words, the systems learns about the user and the topic on the fly.
 
 Although both approaches help to increase the number of keystrokes saved, they also have downsides: for the system by Verberne {\em et al.} \shortcite{verberne+12} training texts in the same genre are needed, which might not be available, whereas the system by Van den Bosch \shortcite{vandenbosch11} ignores context information that it should weigh more intelligently. For example, while a context-sensitive text-prediction system will probably be able to predict \emph{to} for the sentence \emph{they were going t...}, the one with the recency buffer will predict \emph{they}.
 
 
-\section{The algorithm: Soothsayer} \label{algorithm}
+\section{System description} \label{algorithm}
 
-\subsection{Introduction}
-
-The goal of this chapter is to describe the algorithm used in this thesis. We will start with a basic application that uses word uniqueness thresholds to predict the word the user is keying in, and add more components and improvements step by step. I have given the resulting system the working title \emph{Soothsayer}, for ease of reference. \emph{Soothsayer} is an archaic English word for fortune teller.
-
-Before I start describing the algorithm, I will take some time to make a few decisions explicit: 
-
-\begin{itemize}
-\item Soothsayer's architecture, so the reader has an idea of how all components described below work together.
-\item How I evaluate the system, so there is objective information on whether an addition improves the prediction accuracy.
-\item What Soothsayer is not, i.e. what is the scope of this project.
-\end{itemize}
-
-These topics are topics are discussed in Sections \ref{ss_intro}, \ref{evaluation} and \ref{whatnot} respectively.
-
-\paragraph{Xxx's architecture} \label{ss_intro}
-Xxx works with independent modules. A module can be seen as a function that takes some input (for example, the letters of the word the user is currently keying in) and uses a language model to generate:
-
-\begin{enumerate}
-\item The most likely prediction
-\item The second most likely prediction
-\item The third most likely prediction
-\item In case of a context-sensitive module, how many other predictions the model provided
-\end{enumerate}
-
-Modules can be either context-insensitive or context-sensitive, as will be explained in much detail in Section \ref{ci} and Section \ref{cs} respectively, and use one language model. In a set-up with two language models we thus have four possible modules:
+Our system works with a set of independent word prediction modules. Modules can be either context-insensitive or context-sensitive, and use one language model. We will work with two language models, one based on a large collection of texts sampling from many different authors, the 'general' language model', and one based on a set of texts written by an individual, the 'idiolect'. We thus have four possible modules:
 
 \begin{table}[h]
 \begin{tabular}{lll} 
@@ -155,12 +108,9 @@ Module&Type&Model\\
 
 Modules can be concatenated in such a way that a second module takes over once the first modules no longer has predictions, a third module takes over once the second one no longer has predictions, etcetera. This makes it possible to use multiple prediction techniques \emph{and} multiple language models in one prediction system.
 
-For clarity, a quick overview of the terms: Xxx is a \textbf{word prediction system} which can consist of one or multiple \textbf{modules}. A module in turn consists of a particular \textbf{algorithm} (for example, the context-insensitive one), and a \textbf{language model}. A language model is created on the basis of \textbf{training material}. On several places in this thesis, the reader may get the impression the language model and the training material is the same thing; for example 'a system trained on tweets' can be used interchangably with 'a system using the tweets model'. However, keep in mind the language model is what the system actually uses to make its decisions, whereas the training material is used to create this language model.
+\paragraph{Evaluating the system} \label{evaluation}
 
-\paragraph{Evaluating additions} \label{evaluation}
-In this chapter, I will propose an addition to Xxx and then measure to what extent it improves the number of keystrokes saved several times. But how does one measure how many keystrokes are saved exactly? In other words, what is the best way to evaluate a word prediction system?
-
-In the literature so far, there is still discussion on what is the best way to evaluate word prediction systems. A straightforward evaluation might be to calculate the percentage of correctly predicted words (the so-called \emph{hit-ratio}), but as Garay-Vitoria and Abascal \shortcite{Garay-Vitoria+06} note, this is not not enough: a system that has 100\% of the words correct, but only gives this prediction at the last letter of every word saves very few keystrokes. A more natural way might be to test with real humans, and measure how much time they save when using the system \cite{carlberger+97,koester+98,Garay-Vitoria+06}. However, this is a costly and time-consuming task, as the participants will need a considerable amount of time to get used to the system. Therefore, I will evaluate Xxx by simulating somebody keying in a text, and simply counting how many keystrokes this virtual user does not have to do when using the system. 
+There is an ongoing discussion in the literature on what is the best way to evaluate word prediction systems. A straightforward evaluation might be to calculate the percentage of correctly predicted words (the so-called \emph{hit-ratio}), but as Garay-Vitoria and Abascal \shortcite{Garay-Vitoria+06} note, this is not not enough: a system that has 100\% of the words correct, but only gives this prediction at the last letter of every word saves very few keystrokes. A more natural way might be to test with real humans, and measure how much time they save when using the system \cite{carlberger+97,koester+98,Garay-Vitoria+06}. However, this is a costly and time-consuming task, as the participants will need a considerable amount of time to get used to the system. Therefore, we will evaluate Xxx by simulating somebody keying in a text, and simply counting how many keystrokes this virtual user does not have to do when using the system. 
 
 However, even when using simulations, there are multiple ways to evaluate the system. One possibility is to provide the user with a list of the $n$ most likely predictions \cite{Lesher+99,Fazly+03}. This approach has the advantage that it results in high percentages of keystrokes saved - in particular when $n$ is set to a high value, because this means the system can do multiple guesses at once, while only one has to be correct. As Van den Bosch \shortcite{vandenbosch11} notes, however, this also has important downsides: 
 
@@ -168,11 +118,9 @@ However, even when using simulations, there are multiple ways to evaluate the sy
 [I]n many devices and circumstances it is inefficient or impossible to present [...] suggestion lists. Inspecting a list of suggestions also poses a larger cognitive load than checking a single suggestion, and furthermore it is unclear how scrolling, browsing and selecting items from this list should be counted in terms of keystrokes.
 \end{quotation}
 
-For this reason, I will follow Van den Bosch \shortcite{vandenbosch11} and always calculate the number of keystrokes that could have been saved when the user was presented only one prediction at a time. Predictions can be accepted with the space key. Because this is sometimes problematic (for instance, if the user wanted to type \emph{sun}, but Xxx predicts \emph{sunday}, hitting space would lead to the wrong word), a rejection is also calculated as a keystroke. The number of keystrokes that can be saved if the word prediction system works this way will be called \textbf{Classical Keystrokes Saved} (CKS) in the remainder of this thesis.
+For this reason, we calculate the number of keystrokes that could have been saved when the user was presented only one prediction at a time. Predictions can be accepted with the space key. Because this is sometimes problematic (for instance, if the user wanted to type \emph{sun}, but Xxx predicts \emph{sunday}, hitting space would lead to the wrong word), a rejection is also calculated as a keystroke. The number of keystrokes that can be saved if the word prediction system works this way will be called \textbf{Classical Keystrokes Saved} (CKS) in the remainder of this thesis.
 
 On the other hand, current popular smartphone applications suggest this approach might be too strict. The popular smartphone application SwiftKey\footnote{\url{http://www.swiftkey.net/}} always shows the user three predictions, which seem to be (1) what the user has keyed in so far, (2) the most likely prediction and (3) the second most likely prediction. In case the user has not yet started typing the next word, option (1) is replaced by the third most likely prediction. Because smartphones use a touchscreen as an input device, no extra keystrokes are needed. The percentage of keystrokes that can be saved when two (and sometimes three) predictions were shown will be referred to as \textbf{SwiftKey Keystrokes Saved} (SKKS).
-
-A thing to notice is that both measures reflect the percentage of keystrokes saved in an ideal situation; that is, when the user accepts a correct prediction immediately once it is available. As will be discussed further in Section \ref{early}, this is not necessarily the case. 
 
 \subsection{Context-insensitive modules} \label{ci}
 
@@ -182,17 +130,9 @@ Context-insensitive modules only use information of the word the user is current
 \item I ate too much c \label{only_c}
 \end{examples}
 
-This means that a prediction like \emph{communication} is fully possible, despite the context, just because \emph{communication} starts with a c. This also means that at the beginning of a each new word no prediction will be available, because the module has no material to work with.
+This means that a prediction like \emph{communication} is fully possible, despite the context, just because \emph{communication} starts with a c. This also means that at the beginning of a each new word no prediction will be available, because the module has no material to work with. Despite these limitations, context-insensitive modules can already save a lot of keystrokes, because the first few letters of a word impose enormous limitations on what letters can possibly follow. Some character sequences can in fact only be completed into a single existing word; at the point where only one word is possible as a completion, the character string keyed in so far has reached the word's unicity point.
 
-Despite these limitations, context-insensitive modules can already save a lot of keystrokes, because the first few letters of a word impose enormous limitations on what letters can possibly follow.
-
-\begin{examples}
-\item This is good communic \label{communic}
-\end{examples}
-
-In sentence \ref{communic}, we already know from \emph{communic} that \emph{ation} or \emph{ative} will follow, simply because these are the only two words that start with \emph{communic}. The first iteration of the context-insensitive module I will propose will be based on this idea: at a certain point in a word, other words are no longer an option. This point is called the \emph{uniqueness threshold}.
-
-\paragraph{First iteration: using uniqueness thresholds}
+\paragraph{First iteration: using unicity points}
 
 The first iteration of the context-insensitive module will take the word the user is currently keying in as the input. If, on the basis of what has been given, only one word is still possible, this word will be returned as a prediction. To know which words are 'possible', the module uses a lexicon. An important characteristic of this approach is that is does not or rarely make mistakes (assuming a large enough lexicon): only words the system is 100\% sure about are predicted.
 
@@ -473,7 +413,7 @@ As was explained in Section \ref{word_prediction}, the accuracy of word predicti
 \label{lcurve}
 \end{figure} 
 
-We see that, as Van den Bosch \shortcite{vandenbosch11} suggested, to keep improving the results at the same rate, the amount of training material needs to grow exponentially. The example here starts with 20 words, and this number is multiplied by 5 for each step (which makes the x-axis logaritmic). Furthermore, we see that using the idiolect model starts giving better results  than the general language model somewhere between 12.500 and 62.500 words; roughly when it approaches 0.1\% of the amount of words in the general language model (55,212,868).
+We see that, as Van den Bosch \shortcite{vandenbosch11} suggested, to keep improving the results at the same rate, the amount of training material needs to grow exponentially. The example here starts with 20 words, and this number is multiplied by 5 for each step (which makes the x-axis logaritmic). Furthermore, we see that using the idiolect model starts giving better results  than the general language model somewhere between 12,500 and 62,500 words; roughly when it approaches 0.1\% of the amount of words in the general language model (55,212,868).
 
 \subsection{The general language model as a background model} \label{background}
 
@@ -861,12 +801,12 @@ To summarize this all in one statement: to save the most keystrokes, it is best 
 
 
 \section{Conclusion} \label{conclusion}
-In this thesis, I have described the workings of my word prediction system \emph{Xxx}. Furthermore, I hope to have made clear a number of things:
+In this paper we described the workings of the word prediction system \emph{Xxx}. Testing the system we found that
 
 \begin{enumerate}
-\item Word prediction and idiolects are an effective combination.
-\item When building a word prediction system, concentrating on either the algorithm or the language model alone is not enough.
-\item What works well for one speaker, might not necessarily work for another.
+\item Word prediction and idiolects are an effective combination;
+\item When building a word prediction system, concentrating on either the algorithm or the language model alone is not enough;
+\item What works well for one speaker, might not necessarily work for another;
 \item The fact that people speak like the people around them can also be useful to word prediction.
 \end{enumerate}
 
