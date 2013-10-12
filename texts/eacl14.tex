@@ -132,58 +132,12 @@ Context-insensitive modules only use information of the word the user is current
 
 This means that a prediction like \emph{communication} is fully possible, despite the context, just because \emph{communication} starts with a c. This also means that at the beginning of a each new word no prediction will be available, because the module has no material to work with. Despite these limitations, context-insensitive modules can already save a lot of keystrokes, because the first few letters of a word impose enormous limitations on what letters can possibly follow. Some character sequences can in fact only be completed into a single existing word; at the point where only one word is possible as a completion, the character string keyed in so far has reached the word's unicity point.
 
-\paragraph{First iteration: using unicity points}
-
-The first iteration of the context-insensitive module will take the word the user is currently keying in as the input. If, on the basis of what has been given, only one word is still possible, this word will be returned as a prediction. To know which words are 'possible', the module uses a lexicon. An important characteristic of this approach is that is does not or rarely make mistakes (assuming a large enough lexicon): only words the system is 100\% sure about are predicted.
-
-To test this, I exported all emails I have sent between February 2009 and February 2013, containing 175,168 words. I formed a lexicon on the basis of the first 90\% of the material, and tested on the remaining 10\% - the most recent emails. The testing was done by simulating a user keying in the material letter by letter. Once the correct prediction was available, the remaining letters of that word were skipped. The percentages were calculated by dividing the amount of skipped letters by the total amount of letters.
-
-This resulted in a \textbf{CKS of 5.1\%} and an \textbf{SKKS of 5.1\%}. These are relatively low percentages, but that can be explained by the fact that many of the words are too short to reach their uniqueness thresholds. For example, the word \emph{the} will never be predicted because even when the word is finished, alternatives are still possible (\emph{these}, \emph{there}, etc.).
-
-\paragraph{Second iteration: using word frequencies}
-A solution to the fact that short words never reach their uniqueness threshold can be to give the prediction \emph{before} the word has reached its recency threshold. This can lead to situations where the correct word is predicted long before the uniqueness threshold is reached, which increases the number of keystrokes saved. However, this also means many incorrect predictions will be given; we sacrifice the accuracy of the system. To what extent this is a problem is unclear: at the one hand, the user is forced to accept and reject more predictions while typing, which probably increases the cognitive load, at the other hand all the user has to do to reject a prediction is to continue typing; no extra actions are needed. A systematic investigation of the extra cognitive load during typing while using a word prediction system is beyond the scope of this thesis; because no extra actions are needed to reject the prediction it will be assumed the saved keystrokes are worth the extra cognitive load.
-
-If a prediction is given when multiple words are still a possibility, a system that picks the word with the highest chance of occurring will of course have the best results. These chances can be estimated by the frequency of the words in the language. Therefore, each time the users keys in a new letter, Xxx will go through a frequency list. The first (and thus most frequent and most likely) word that matches with what has been keyed in so far will be given as a prediction.
-
-To test this, the email corpus from the previous section was used. The simulation showed a much higher percentage of keystrokes can be saved this way: a \textbf{CKS of 20.4 \%} and an \textbf{SKKS of 26.8 \%}. For this reason, this second iteration of the algorithm is the algorithm that will be used when referring to the 'context-insensitive' module in the remainder of this thesis.
+The first iteration of the context-insensitive module will take the word the user is currently keying in as the input. If, on the basis of what has been given, only one word is still possible, this word will be returned as a prediction. To determine which words are possible, the module uses a lexicon. 
+An issue is that short words never reach their uniqueness threshold. One solution is to give the prediction \emph{before} the word has reached its unicity point. More generally, multiple guesses can be made, e.g. of all words that are still possible as completions of the current character sequence, but a good ranking is necessary if this number exceeds the low number of options that can be shown in an interface. A strong ranking metric is word frequency in a background corpus. Therefore, each time the users keys in a new letter, Xxx will go through an ordered frequency list. The first (and thus most frequent and most likely) word that matches with what has been keyed in so far is given as a prediction.
 
 \subsection{Context-sensitive modules} \label{cs}
 
-Context-sensitive modules make use of the words that came before the current word to limit what words are predicted. For sentence \ref{only_c}, repeated here as \ref{only_c_r}, the context would be the words \emph{ate}, \emph{too} and \emph{much}.
-
-\begin{examples}
-\item I ate too much c \label{only_c_r}
-\end{examples}
-
-Comparing this context to all contexts seen in training material results in a list of words which often occur together with the words from the context. This approach probably returns words like \emph{cookies} or \emph{cake} (because of the word \emph{ate}), while the word \emph{communication} is no longer an option because it probably did not occur in this context in the training material.
-
-\paragraph{Word prediction as a classification task}
-
-To make use of the context, Xxx approaches word prediction as a classification task. Classification means finding a \emph{class} for an \emph{instance} on the basis of its \emph{features}. For instance, you could say a person (instance) is a man (class) because he has a beard, a low voice, short hair and is tall (features). In some cases, classification is simple: when sorting garbage, you use only 1 feature (material) which results in the correct class (paper, glass, plastic, biodegradable, miscellaneous) 100\% of the time, but in most cases it is not; for instance, for a person with a beard you can be pretty sure it is a man, but not all men have beards. And for the other features, there also are women with low voices, women with short hair and women who are tall. In cases like this, it is the combination of features that (in most cases) will result in the correct class.
-
-For word prediction, we use the context as instance, the words in the context as features, and the word which follows this context as class. This means that instead of only two classes (as in the gender example), we have a separate class for every word that could possibly be predicted. Thus, if we want to predict that \emph{cookies} follows the context \emph{ate too much}, we hope that classifying the instance \emph{ate too much} on the basis of its features (the words \emph{ate}, \emph{too} or \emph{much}) will result in the correct class label \emph{cookies}.
-
-\paragraph{Nearest neighbour classification}
-
-There are many algorithms to do classification automatically. Xxx uses the $k$-nearest neighbour classification method. $k$-nearest neighbour classification (henceforth \emph{KNN}) means that the class is determined on the basis of similar cases in a training corpus. How many cases are taken into consideration, $k$, can be determined beforehand. For example, let us set $k$ to 1 and take the following instances as a training corpus:
-
-\begin{examples}
-\item one two three (four)
-\item one two and (three)
-\item one two plus (four)
-\end{examples}
-
-The first three words are the instances, the fourth word (between parentheses) is used as the class label. If we then classify a new instance \emph{one two three}, a KNN algorithm will look at these training instances, and decide whether they are similar enough to taken into consideration. What exactly is taken as the definition of 'similar' differs per algorithm; we will follow the IB1-algorithm \cite{aha+91} and simply count how many features overlap. The instance \emph{one two three} is extremely similar: three of the three features match. We then look at the class of this similar example (four), and give this as a result. Simply said, in this case the context-sensitive module will predict \emph{four} because it had exactly the same context in its training corpus, and that context was followed by \emph{four}.
-
-If we set $k$ to 2, both \emph{one two and} and \emph{one two plus} become a possibility as well: they both have two matching features. If we count instances with the same amount of matching features as 1, we now end up with three similar cases. Because most of these cases have \emph{four} as a class label, four will be predicted. Note that \emph{nearest distance classification} would actually be a better name for what we are doing here: we do not use the $k$ nearest neighbours, but \emph{all} nearest neighbours from the $k$ nearest distances \cite{daelemans+97}.
-
-Because the many class labels used for word prediction, Xxx always uses a $k$ of 1.
-
-\paragraph{IGTree}
-
-An important thing to notice from the three training instances in the example is that the third feature is the only feature that has relationship with the class label. The first two features are always \emph{one} and \emph{two} respectively, regardless of the class, and thus cannot be used to find out to which class this instance belongs. This is what is used in the in the IB1-IG algorithm, an variation on the IB1 algorithm mentioned previously: because they have a better relation to the class label, some features are given more weight in the decision process.
-
-The idea that some features can be more useful than others can even be used on a much deeper level to solve another problem: the IB1 algorithm generally is too slow to be used in practical applications, like Xxx. While the classification in the example above can be done in a split second, this is not the case for word prediction based on a lot of training material: a training corpus of ten thousand words means that a new instance has to be compared to ten thousand training instances for every character the user keys in. This takes too long, even for powerful computers, and is not necessary. This can be best explained with an example. Let us take the following four instances as our training corpus:
+Context-sensitive modules make use of the words that came before the current word to limit what words are predicted. For sentence \ref{only_c}, the context would be the words \emph{ate}, \emph{too} and \emph{much}. Comparing this context to all contexts seen in training material results in a list of words which often occur together with the words from the context. To make use of the context, Xxx approaches word prediction as a classification task, where the words in the context are the features, and the word which follows this context is the class label to be predicted. This means that we have a separate class for every word that could possibly be predicted. Xxx uses the $k$-nearest neighbour classification method, which is practically insensitive to the number of classes to ne predicted. $k$-nearest neighbour classification (henceforth \emph{KNN}) means that the class is determined on the basis of similar cases in a training corpus. How many cases are taken into consideration, $k$, can be determined beforehand. The similarity between a new instance and memorized instances is determined using a simularity function.  A classic implementation of \emph{KNN} suited for the type of symbolic features we have, the IB1-algorithm \cite{aha+91}, simply counts how many features overlap. However, the IB1 algorithm generally is too slow to be used in practical applications, ours included. We adopt IGTree\footnote{IGTree is implemented in the TiMBL software package, \url{http://ilk.uvt.nl/timbl}} \cite{daelemans+97}, an approximation of IB1 that does not require a comparison of of the complete context. Let us take the following four instances as our training corpus:
 
 \begin{examples}
 \item I ate those (cookies)
@@ -192,9 +146,7 @@ The idea that some features can be more useful than others can even be used on a
 \item I saw that (elephant)
 \end{examples}
 
-Whereas the first feature again has no relation with the class, the second one clearly has: as soon as we see \emph{ate}, we know that the classes \emph{zebras} and \emph{elephant} are no longer an option, and that it is of no use to 'keep them in mind' as an option.
-
-This is exactly how the IGTree algorithm \cite{daelemans+97} works: it calculates which features contain most information about the class labels, and orders the features from most informative to least informative. It then goes through these features one by one, and at each point 'throws away' the training instances that are no longer an option. This reduces classification to making a small number of decisions (in our case 3, because we have 3 features), instead of comparing thousands of strings. A possible decision tree for the training instances above can be seen in \ref{igtreetree}.
+IGTree calculates which features contain most information about the class labels using the Information Gain or Gain Ratio metrics, orders the features from most informative to least informative, and compresses the training set in a decision tree. Classification of a new context reduces to making a small number of decisions (a maximum of three, because we have three features), instead of comparing thousands to millions of strings. A possible decision tree for the training instances above can be seen in \ref{igtreetree}.
 
 \qtreeshowframes 
 
@@ -204,20 +156,16 @@ This is exactly how the IGTree algorithm \cite{daelemans+97} works: it calculate
 \label{igtreetree}
 \end{examples}
 
-But what happens if we ask IGTree to classify \emph{I ate these}? At the second node, \emph{these} is not one of the features, so the algorithm cannot make a decision. If a classification gets 'stuck' somewhere, which is almost always the case because the users can of course type anything they want, Xxx asks the algorithm to return everything which was still a possibility at that point. In our example, these are the classes \emph{cookies} and \emph{cake} - note that both are indeed possible words, because the classifier still used the feature \emph{ate}. For each possible class, \emph{confidence values} can then be calculated. Confidence values correspond to the percentage of all instances still possible that had that class. The result for \emph{I ate these} in our example would thus be \emph{cookies} with a confidence value of 0.5 (1 of the 2 instances still possible had this class), and \emph{cake} with a confidence value of 0.5 (1 of the 2 instances still possible had this class). If, however, there would have been two more examples with the word \emph{ate} in them that were followed by \emph{cake}, \emph{cake} would have a confidence of 0.75 (3 of the 4 instances still possible had this class), and \emph{cookies} would have a confidence value of 0.25 (1 of the 4 instances still possible had this class).
+If we ask IGTree to classify the unseen input \emph{I ate these}, the algorithm cannot make a decision between the four possible outcomes, because at the second node, \emph{these} is not one of the features. If a classification halts in this way, which frequently happens, Xxx asks the algorithm to return everything which was still a possibility at that point.For each possible class in this distribution of possible outcomes, confidence values can be calculated, corresponding to the percentage of all instances still possible that had that class. 
 
 In practice, what Xxx's context-sensitive modules do is:
 
 \begin{enumerate}
-\item Starting \emph{Timblserver}, a software suite of Memory-based Learning software, which includes IGTree. Timblserver is similar TiMBL, but get its input using the Transmission Control Protocol. This allows Xxx to keep the program running, instead of reloading the tree into memory every single time a classification is needed.
-\item Every time the user keys in a character, collecting the last three words, and sending them to the Timblserver.
-\item Collecting the output (the classes, thus the word predictions, that \mbox{Timblserver} returned), and picking the word that matches with what already has been keyed in so far. If more words match, Xxx picks the one with the highest confidence.
+\item Starting (a server version of) IGTree;
+\item Every time the user keys in a character, collecting the last three words, and sending them to IGTree;
+\item Collecting the output (the classes, thus the word predictions, that IGTree returned), and picking the word that matches with what already has been keyed in so far. If more words match, Xxx picks the one with the highest confidence.
 \item Returning this word as a suggestion.
 \end{enumerate}
-
-\paragraph{The experiment}
-
-To investigate how many keystrokes can be saved when using context information, as described in the previous paragraphs, an experiment similar to the experiment for the context-insensitive modules was carried out: a training corpus was created on the basis of 90\% of all of the emails I sent between February 2009 and February 2013, and the results were tested on the remaining 10\%. The percentages were calculated by dividing the amount of skipped letters by the total amount of letters. This resulted in a \textbf{CKS of 23.9\%} and an \textbf{SKKS of 26.9\%}.
 
 \subsection{Other decisions}
 
