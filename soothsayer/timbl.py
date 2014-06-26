@@ -20,7 +20,7 @@ class Timbl:
         if not port:
             port = self._getnewport()
         
-        r = soothsayer.command(self.cmdstring % (igtree, port),True);
+        r = soothsayer.command(self.cmdstring % (igtree, port));
         return port
 
     def connect(self, port, host='', retry=20, interval=1):
