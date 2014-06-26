@@ -20,8 +20,7 @@ class Timbl:
         if not port:
             port = self._getnewport()
         
-        soothsayer.command(self.cmdstring % (igtree, port))
-
+        r = soothsayer.command(self.cmdstring % (igtree, port),True);
         return port
 
     def connect(self, port, host='', retry=20, interval=1):
@@ -56,9 +55,15 @@ class Timbl:
     def findport(self, modelname):
         """ Find an existing Timbl server by model name"""
         pidlist = psutil.get_pid_list();
-        
+
         for i in reversed(pidlist):
-            p = psutil.Process(i);
+
+            try:
+                p = psutil.Process(i);
+            except psutil.NoSuchProcess:
+                #Sometimes it turns out the process does not really exist
+                continue;
+
             if len(p.cmdline) > 9 and p.cmdline[2] == modelname:
                 port = int(p.cmdline[9]);
                 return port
