@@ -17,9 +17,10 @@ class Timbl:
 
     def start_server(self, igtree, port=None):
         """ Start a new Timbl server"""
+
         if not port:
             port = self._getnewport()
-        
+
         r = soothsayer.command(self.cmdstring % (igtree, port));
         return port
 
@@ -43,7 +44,11 @@ class Timbl:
         #Get PID
         pidlist = psutil.get_pid_list();
         for i in reversed(pidlist):
-            p = psutil.Process(i);
+            try:
+                p = psutil.Process(i);
+            except psutil._error.NoSuchProcess:
+                continue;
+
             if len(p.cmdline) > 9 and p.cmdline[9] == str(port):
                 self.pid = i;
                 break;
