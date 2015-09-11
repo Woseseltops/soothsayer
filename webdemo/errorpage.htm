@@ -1,0 +1,401 @@
+<html>
+<head>
+<title>Soothsayer demo</title>
+<link href='http://fonts.googleapis.com/css?family=Ubuntu+Mono' rel='stylesheet' type='text/css'>
+<style type="text/css">
+body, select, a
+{
+	background-color:#300a24;
+	color:white;
+	text-align:center;
+	font-family:'Ubuntu Mono';
+}
+
+h1
+{
+	font-size:60px;
+}
+
+p, select
+{
+	font-size:17px;
+}
+
+.button
+{
+	text-decoration:underline;
+	cursor: pointer;
+}
+
+.info1, .info2, .user_input, .workfield
+{
+    width: 1080;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+.user_input
+{
+	font-size:20px;
+	text-align: left;
+    height: 200px;
+}
+
+.green
+{
+	color:#4e9a06;
+}
+
+.purple
+{
+	color:#64507b;
+}
+
+.red
+{
+	color:#ef2929;
+}
+
+.blue
+{
+	color:#729fcf;
+}
+
+.white
+{
+	color:white;
+}
+
+.emph
+{
+	background-color: #b7340a;
+    font-weight: bold;
+}
+
+.workfield
+{
+    background-color: rgb(60, 22, 43);
+}
+
+a.tweetbutton
+{
+	float: right;
+}
+
+#select_model
+{
+	border-style:solid;
+	width: 800px;
+	padding:30px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+#premade_models
+{
+	float:left;
+}
+
+#own_model
+{
+	font-size:20px;
+}
+
+#logo
+{
+	text-decoration:none;
+}
+
+</style>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script type="text/javascript">
+
+function source_to_color(source)
+{
+    if (source == 'PERS. MODEL/IGTREE')
+       return 'purple';
+    else if (source == 'PERS. MODEL/LEXICON')
+       return 'blue';
+    else if (source == 'GEN. MODEL/IGTREE')
+       return 'green';
+    else if (source == 'GEN. MODEL/LEXICON')
+       return 'red';
+}
+
+function remove_last_char(text)
+{
+    removed_one_char = false;
+    inside_tag = false;
+    
+    while (!removed_one_char)
+    {
+        if (text.slice(-1) == '>')
+        {
+            inside_tag = true   
+        }
+        else if (text.slice(-1) == '<')
+        {
+            inside_tag = false;   
+        }
+        else if (!inside_tag)
+        {
+            removed_one_char = true
+        }
+        text = text.slice(0,-1);
+    }
+
+    return text;
+}
+
+function last_word_white(t)
+{
+    space = new RegExp('<span ','g');
+    no_space = new RegExp('<span_','g');
+
+    t = t.replace(space,'<span_');
+    i = t.lastIndexOf(' ');   
+    last_word = t.slice(i);
+    last_word = $('<p>'+ last_word +'</p>').text();
+
+    new_text = t.slice(0,i) +last_word;
+    new_text = new_text.replace(no_space,'<span ');
+
+    return new_text;
+}
+
+function highlight(color)
+{
+    $('#pig').css('background-color','transparent');
+    $('#nlig').css('background-color','transparent');
+    $('#plex').css('background-color','transparent');
+    $('#nllex').css('background-color','transparent');
+
+    if(color == 'purple')
+    {
+       e = '#pig';
+    }
+    else if(color == 'green')
+    {
+       e = '#nlig';
+    }
+    else if(color == 'blue')
+    {
+       e = '#plex';
+    }
+    else if(color == 'red')
+    {
+       e = '#nllex';
+    }
+ 
+    $(e).css('background-color','#d2c7ec');
+}
+
+function clean_string(s)
+{
+   space = new RegExp(' ','g')
+   s = s.replace(space,'_');
+
+   no_weird_chars = new RegExp("[^a-zA-Z .,!:;\(\)_]",'g');
+   s = s.replace(no_weird_chars,'e');
+
+   return s;
+}
+
+function update_tweet_button(text,keypresses,saved)
+{
+    percentage = Math.round((saved / (keypresses + saved)) * 100);
+    $('a.tweetbutton').attr('onclick',"window.open('https://twitter.com/intent/tweet?text="+text+percentage.toString()+"%25 bespaard met &hashtags=Soothsayer', 'newwindow', 'width=300, height=250'); return false");
+}
+
+function update_savings(keypresses,saved)
+{
+  percentage = Math.round((saved / (keypresses + saved)) * 100);
+  $("#saved_perc").html(percentage.toString()+'% van de toetsaanslagen bespaard');
+}
+
+function get_model()
+{
+  model = $('#pickvalue').val();
+  if(model == '')
+  {
+    model = $('#pickvalue').html().replace('Taalmodel: ','').replace(' (<a href="get_models">Kies een ander</a>)','');
+  }
+
+  return model;
+}
+
+$(document).ready(function(){
+
+  //Basic vars
+  text_so_far = '';
+  text_so_far_colored = '';
+  keypresses = 0;
+  savings = 0;
+
+  //Ask for an empty text prediction
+  $.get('http://soothsayer.cls.ru.nl/predict?model='+get_model()+'&text=&show_source=True');
+
+  // Unbind the backspace and the tab and give new behaviors
+  $(document).unbind('keydown').bind('keydown', function (event) 
+  {
+    if (event.keyCode === 8) 
+    {
+      event.preventDefault();
+      keypresses += 1;
+      update_savings(keypresses,savings);
+      update_tweet_button(text_so_far,keypresses,savings);
+
+      //Firefix hack
+      if (navigator.userAgent.indexOf('Firefox') != -1 && text_so_far.slice(-1) != ' ')
+      {
+          text_so_far = text_so_far.slice(0,-1);
+          text_so_far_colored = text_so_far_colored.slice(0,-1);
+      }
+
+      //Remove the last character, and tags if present
+      text_so_far = remove_last_char(text_so_far);
+      text_so_far_colored = remove_last_char(text_so_far_colored);
+      text_so_far_colored = last_word_white(text_so_far_colored);
+
+      //Update the view      
+      len_last_word = text_so_far.split(" ").slice(-1)[0].length;
+
+      //Do a new prediction
+      lcontext = clean_string(text_so_far);
+
+      $.get('http://soothsayer.cls.ru.nl/predict?model='+get_model()+'&text='+lcontext+'&show_source=True',function(data) 
+      {
+          data = data.split(',');
+          prediction = data[0];
+          color = source_to_color(data[1]);
+
+          prediction_part = prediction.slice(len_last_word);
+          $(".user_input").html(text_so_far_colored+'</span><span color="white">|</span><span class="'+color+'">'+prediction_part+'</span>');
+      });
+
+    }
+    else if (event.keyCode === 9 || event.keyCode === 46)
+    {
+      event.preventDefault();
+      keypresses += 1;
+      update_savings(keypresses,savings);
+
+      //Remove prediction
+      prediction_part = '';
+      $(".user_input").html(text_so_far_colored+'|'+prediction_part);
+    }
+//    else if (event.keyCode == 32)
+//    {
+//      event.preventDefault();
+//    }
+
+  });
+
+  //Make form lose focus after the user used it (otherwise space will open the menu)
+  $('select').change(function()
+  {
+     $(this).blur();
+  });
+
+  // Respond to the other keys
+  $(document).keypress(function(e) 
+  { 
+
+      e.preventDefault();
+      keypresses += 1;     
+
+      //Prepare text field
+      content = $(".user_input").html();
+      if (content == "Je kunt gewoon beginnen met typen.") {content = '';}
+
+      //Firefox hack
+      if(e.keyCode==0)
+      {
+          e.keyCode = e.charCode;
+      }
+
+      char = String.fromCharCode(e.keyCode);
+
+      //Accept prediction
+      if($.inArray(char,['.',' ',',',':','?','!']) != -1)
+      {
+          text_so_far = text_so_far + prediction_part + char;
+          text_so_far_colored = text_so_far_colored + '<span class="'+color+'">' + prediction_part + '</span>' + char;          
+
+          savings += prediction_part.length;
+          prediction_part = '';
+
+          if (char != ' ')
+          {
+             text_so_far = text_so_far + ' ';
+             text_so_far_colored = text_so_far_colored + ' ';
+             update_tweet_button(text_so_far);
+             savings += 1;
+          }
+
+      }
+
+      //Add character
+      else
+      {
+          text_so_far = text_so_far+char; 
+          text_so_far_colored  = text_so_far_colored+char;
+      }
+
+      //Update the view      
+      len_last_word = text_so_far.split(" ").slice(-1)[0].length;
+
+
+      lcontext = clean_string(text_so_far);
+
+      $.get('http://soothsayer.cls.ru.nl/predict?model='+get_model()+'&text='+lcontext+'&show_source=True',function(data) 
+      {
+          data = data.split(',');
+          prediction = data[0];
+          color = source_to_color(data[1]);
+
+          prediction_part = prediction.slice(len_last_word);
+          $(".user_input").html(text_so_far_colored+'<span color="white">|</span><span class="'+color+'">'+prediction_part+'</span>');
+          highlight(color);
+	   update_savings(keypresses,savings);
+          update_tweet_button(text_so_far,keypresses,savings);
+      });
+
+  });
+
+  $(".info2").hide()
+
+  $(".button").click(function(){
+    $(".info2").toggle('slow');
+  });
+
+});
+
+</script>
+</head>
+<body>
+<h1><a id="logo" href="index"><span class="purple">So</span><span class="green">ot</span><span class="blue">hs</span><span class="red">ay</span><span class="purple">er</span></span> demo</a></h1>
+
+<p class="info1">Dit is een demonstratie voor Soothsayer, het masterscriptieproject van Wessel Stoop. Het probeert te voorspellen wat je gaat typen terwijl je typt. Druk op <span class="emph">spatie of een leesteken</span> om de voorspelling te accepteren, en op <span class="emph">delete</span> of <span class="emph">tab</span> om de voorspelling weg te halen (dus niet de backspace-knop, dat is misschien even wennen). Je begrijpt het systeem het snelste als je langzaam begint met typen. Het doel van Soothsayer is om te laten zien dat woordvoorspelling het beste werkt als je de software 'traint' op tekst die je eerder geschreven hebt. Je kunt hieronder testen met het taalmodel van Wessel, maar je kunt ook taalmodellen voor andere personen proberen:</p>
+
+<div id="select_model"><div id="premade_models"><form><select id="pickvalue"><option value="allmail">Verzonden emails van Wessel</option><option value="andrekuipers">Weblog Andre Kuipers</option><option value="trashfashion">Weblog Trashfashion (Sabine Oudt)</option><option value="borsato">Tweets van Marco Borsato</option><option value="youpvanthek">Tweets van Youp van \'t Hek</option></select></form></div><div id="own_model"><a href="get_models">OF gebruik een taalmodel gebaseerd op je eigen tweets</a></div></div>
+
+<p>[<span class="button">Meer info</span>]</p>
+
+<p class="info2">Soothsayer werkt met vier modules. Hieronder licht terwijl je typt op welke module het programma op het moment gebruikt. Met 'persoonlijk taalmodel' bedoel ik het model dat je hebt gekozen, zoals 'Verzonden emails van Wessel'.
+
+<br/><br/>
+<span id="pig" class="purple">Context-gevoelig, persoonlijk taalmodel</span><br/>
+<span id="nlig" class="green">Context-gevoelig, algemeen taalmodel voor het Nederlands</span><br/>
+<span id="plex" class="blue">Persoonlijk woordenboek</span><br/>
+<span id="nllex" class="red">Algemeen woordenboek voor het Nederlands</span><br/><br/>
+
+Om dit allemaal te laten draaien is een 'supercomputer' met de naam 'Applejack' op de achtergrond heel hard aan het werk. Soothsayer kan ook op andere computers met heel veel geheugen (dus geen laptops) geinstalleerd worden. De software is [<a href="http://www.github.com/woseseltops/soothsayer">hier</a>] te downloaden.
+</p>
+
+<div class="workfield">
+<span class="red">De voorspeller kan de onverwacht grote drukte momenteel niet aan. Probeer het later nog eens!</span>
+</div>
+
+</body>
+</html>
