@@ -2,15 +2,11 @@ import socket
 import time
 import soothsayer
 import math
-
-try:
-    import psutil
-except ImportError:
-    pass;
+import psutil
 
 class Timbl:
     def __init__(self):
-        self.cmdstring = 'timblserver -i %s +vdb +D -a1 -G +vcf -S %d -C 1000'
+        self.cmdstring = 'timblserver -i %s +vdb +D -a1 -G0 +vcf -S %d -C 1000'
         self.pid = None
         self.socket = None
         self.neverkillserver = False;
@@ -22,6 +18,7 @@ class Timbl:
             port = self._getnewport()
 
         r = soothsayer.command(self.cmdstring % (igtree, port));
+        print(self.cmdstring % (igtree, port))
         return port
 
     def connect(self, port, host='', retry=20, interval=1):
@@ -42,14 +39,15 @@ class Timbl:
                 continue
 
         #Get PID
-        pidlist = psutil.get_pid_list();
+        pidlist = psutil.pids();
         for i in reversed(pidlist):
             try:
                 p = psutil.Process(i);
             except psutil._error.NoSuchProcess:
                 continue;
 
-            if len(p.cmdline) > 9 and p.cmdline[9] == str(port):
+            cmdline = p.cmdline()
+            if len(cmdline) > 9 and cmdline[9] == str(port):
                 self.pid = i;
                 break;
 
@@ -59,7 +57,7 @@ class Timbl:
     
     def findport(self, modelname):
         """ Find an existing Timbl server by model name"""
-        pidlist = psutil.get_pid_list();
+        pidlist = psutil.pids();
 
         for i in reversed(pidlist):
 
@@ -69,8 +67,9 @@ class Timbl:
                 #Sometimes it turns out the process does not really exist
                 continue;
 
-            if len(p.cmdline) > 9 and p.cmdline[2] == modelname:
-                port = int(p.cmdline[9]);
+            cmdline = p.cmdline()
+            if len(cmdline) > 9 and cmdline[2] == modelname:
+                port = int(cmdline[9]);
                 return port
 
     def _getnewport(self):
