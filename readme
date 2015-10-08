@@ -1,5 +1,5 @@
 source /scratch2/www/soothsayer/virtualenv/ss/bin/activate
-source /vol/customopt/lama/bin/activate
+source /vol/customopt/lamachine/bin/activate
 python3 ss_standalone.py -l -server -p 4000
 
 The webdemo folder in the repository is not the one used by Apache
