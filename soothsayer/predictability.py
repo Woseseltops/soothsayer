@@ -1,5 +1,3 @@
-"""This script queries the server to see what extent a sentence is predictable by the language model run by that server"""
-
 from urllib.request import urlopen
 import soothsayer
 
@@ -19,9 +17,10 @@ def string_position_to_word_position(string,string_position):
 
     return string_position - current_position -1
 
-def get_predictability_for_sentence(sentence,lexicon_location='wordmodels/allmail.lex.txt',verbose=False):
+def get_predictability_for_sentence(sentence,base_location='',lexicon_location='wordmodels/allmail.lex.txt',verbose=False):
 
     ss = soothsayer.Soothsayer()
+    ss.base_location = base_location
 
     #Load the language models
     pers_model = soothsayer.Languagemodel('allmail','w','d')
@@ -44,6 +43,9 @@ def get_predictability_for_sentence(sentence,lexicon_location='wordmodels/allmai
 
     for n, letter in enumerate(sentence):    
     
+        if n%1000 == 0:
+            print(str(n)+'/'+str(len(sentence)))
+
         position_in_word = string_position_to_word_position(sentence,n)
 
         if letter not in ' _,.!?':
@@ -107,6 +109,6 @@ if __name__ == '__main__':
     if USE_SERVER:
         p = get_predictability_for_sentence_from_server('Top 10 leukste functietitels voor vrijwilligerswerk',WEBSERVER_URL,verbose=True)
     else:
-        p = get_predictability_for_sentence('Dit is een testzin',verbose=False)
+        p = get_predictability_for_sentence(100*'Dit is een testzin ',verbose=True)
 
     print(p)

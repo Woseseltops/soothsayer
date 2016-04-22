@@ -55,6 +55,8 @@ class Soothsayer():
         self.modules = []
         self.timblservers = {}
 
+        self.base_location = ''
+
     def setup_basic_modules(self,model):
     
         self.modules = [Module(self,'PERS. MODEL/IGTREE',model.name,'igtree'),
@@ -206,6 +208,10 @@ class Soothsayer():
             except:
                 return '','','',[];
 
+        return self.interpret_raw_distribution(raw_distr,current_word,boundary)
+
+    def interpret_raw_distribution(self,raw_distr,current_word,boundary):
+
         #Turn prediction into list of tuples
 
         raw_distr = raw_distr[1]
@@ -256,6 +262,7 @@ class Soothsayer():
                     third_highest_confidence = i[1]
                 
         return pick, second_pick, third_pick, predictions
+
 
     def read_frequency_file(self,model,current_word,boundary):
         """Returns the most frequent word that starts with current_word"""
@@ -669,6 +676,9 @@ class Module():
         self.kind = kind
         self.timblserver = ss.timblservers[self.modelname]
 
+        self.save_results_in_memory = True
+        self.last_resuls = ''
+
     def run(self,current_word,boundary,recency_buffer,nr):
 
         pick = ''
@@ -681,7 +691,11 @@ class Module():
         third_guess = ''
 
         if self.kind == 'igtree':
-            pick, second_pick, third_pick, predictions = self.ss.read_prediction_file(self.modelname,nr,current_word,boundary)
+
+            if self.save_results_in_memory:
+                pick, second_pick, third_pick, predictions = self.ss.interpret_raw_distribution(self.last_results,current_word,boundary)
+            else:
+                pick, second_pick, third_pick, predictions = self.ss.read_prediction_file(self.modelname,nr,current_word,boundary)
 
         elif self.kind == 'lex':
             pick,second_pick = self.ss.read_frequency_file(self.modelname,current_word,boundary)
@@ -710,7 +724,11 @@ class Module():
             c += 1;
 
         final_distr = '[ word ]' + distr.split('DISTRIBUTION')[1]
-        open('predictions/lcontext'+nr+'.'+self.modelname+'.IGTree.gr.out','w').write(final_distr)      
+
+        if self.save_results_in_memory:
+            self.last_results = final_distr
+        else:
+            open(self.ss.base_location+'predictions/lcontext'+nr+'.'+self.modelname+'.IGTree.gr.out','w').write(final_distr)      
 
 class Languagemodel():
 
