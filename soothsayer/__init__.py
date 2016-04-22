@@ -676,7 +676,7 @@ class Module():
         self.kind = kind
         self.timblserver = ss.timblservers[self.modelname]
 
-        self.save_results_in_memory = True
+        self.save_results_in_memory = False
         self.last_resuls = ''
 
     def run(self,current_word,boundary,recency_buffer,nr):
